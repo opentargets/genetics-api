@@ -1,0 +1,22 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# https://www.playframework.com/documentation/latest/ScalaRouting
+# ~~~~
+
+
+# An example controller showing a sample home page
+GET     /                           controllers.HomeController.index
+GET     /interval/:chr/:position    controllers.HomeController.interval(chr: String, position: Long, from: Long ?= 0, amount: Long ?= 100)
+
+# graphql uris
+# GET     /graphql                       controllers.GraphQLController.gql(query: Option[String] ?= None, variables: Option[String] ?= None)
+# POST    /graphql                       controllers.GraphQLController.gqlBody()
+
+GET     /graphql/schema                 controllers.GQLSchemaController.renderSchema
+GET     /graphql/browser                controllers.GQLSchemaController.renderClient
+
+# health uri
+GET     /_ah/health                 controllers.HomeController.healthcheck
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

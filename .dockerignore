@@ -1,0 +1,13 @@
+app
+conf
+logs
+public
+project
+test
+target/web
+target/scala-2.12
+target/streams
+target/test-reports
+.git
+.idea
+.g8

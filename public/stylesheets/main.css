@@ -1,0 +1,2 @@
+/*col:first-child {background: #F}*/
+col:nth-child(2n+0) {background: #eee}

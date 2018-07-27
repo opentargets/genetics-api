@@ -1,0 +1,31 @@
+sudo: false
+language: scala
+scala:
+  - 2.12.6
+jdk:
+  - oraclejdk8
+branches:
+  only:
+    - master
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION compile
+  - sbt ++$TRAVIS_SCALA_VERSION test
+  - sbt ++$TRAVIS_SCALA_VERSION dist
+deploy:
+  provider: releases
+  api_key:
+    secure: "UpyJGd3b+M0Su59lb1kXGWAg4Wpkv14zwsEgXVz5ZZFCR1XwThusGIN3jiUuhZiq9c9Nl7jmss2f5+ZoTx1O8DwP+hBxuu+Bc6C+16DxVfJUTVLKxsImX0ZXABLrfoO8nCAZsMxkMOjw4G2cfoFnBUBwuei7uLI2Yrxw4GZoS9vmC1nVOEFsn8wwwMhrniLYXMGUZXaUIu023gfB71cGyVMyXFITQ4p5G77uAsg6q9rfxUvICH+RPgb7khlSPkBlTqscfSXT2wtedwshXY3KZAHMg6VxzMOz3iI93aZlbkl+yqDLe2Twyy0OYrZ5v8Xr33IREPyxangRTHLDtnQ400X4td2xrlw4OW2ZiemnnjGvQF4v/Gnx6Ple9erFYGIkfGwABzbO+jBMdkoh88FzeP50bWN4VVVmDgtjpXCL+J+iVVYEutQrJZd4LWVBdF7MTBmnlM1meq1TIKidiA0QG5Fv0j+y3W2wXWkF/ZBZUDS8lXjyIKjVOSOAY7+f9mhIUaAKkJFWjZ2x02tBiLGiLA575yNb12uDwjuuW5Hp1s4hCuxjCipIGNF7KzHjSJEDE3TifCh8SbVJahSXdkJ5R7ftBXKx3O5o8lg0xtL+oGxhG/Hw7YxHXm3m7F11Dejo79+jussnYEKBBJTtLiMlbsX2KIUKsWT/ngzFT8fRl+g="
+  file_glob: true
+  file:
+    - "target/universal/ot-geckoapi-*"
+  on:
+    repo: opentargets/geckoapi
+    tags: true
+    all_branches: true
+  skip_cleanup: true
+notifications:
+  email:
+    recipients:
+    - mkarmona@gmail.com
+    on_success: never
+    on_failure: always

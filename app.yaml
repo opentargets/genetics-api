@@ -1,0 +1,25 @@
+runtime: custom
+env: flex
+resources:
+  cpu: 2
+  memory_gb: 4
+  disk_size_gb: 10
+
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 1
+  cool_down_period_sec: 60 # default value
+  cpu_utilization:
+    target_utilization: 0.9
+
+health_check:
+  enable_health_check: True
+
+
+# NOTE: Values below are commonly inserted by our CI system..
+# env_variables:
+
+# endpoints_api_service:
+#  name: ${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com
+#  config_id: ${GCENDPOINT_VERSION}
+# TODO make sure this config_id updates for every deployment
