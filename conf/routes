@@ -9,8 +9,8 @@ GET     /                           controllers.HomeController.index
 GET     /interval/:chr/:position    controllers.HomeController.interval(chr: String, position: Long, from: Long ?= 0, amount: Long ?= 100)
 
 # graphql uris
-# GET     /graphql                       controllers.GraphQLController.gql(query: Option[String] ?= None, variables: Option[String] ?= None)
-# POST    /graphql                       controllers.GraphQLController.gqlBody()
+GET     /graphql                       controllers.GraphQLController.gql(query: String, variables: Option[String] ?= None, operation: Option[String] ?= None)
+POST    /graphql                       controllers.GraphQLController.gqlBody()
 
 GET     /graphql/schema                 controllers.GQLSchemaController.renderSchema
 GET     /graphql/browser                controllers.GQLSchemaController.renderClient

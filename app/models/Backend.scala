@@ -13,30 +13,30 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
   import dbConfig.profile.api._
 
   def findAt(pos: Position, from: Long, amount: Long) = {
-    val found = queryV2G.filter(t =>
-      t.chr_id === pos.chr_id && t.position >= pos.position && t.position <= (pos.position + 500000))
-      .drop(from)
-      .take(amount)
+//    val found = queryV2G.filter(t =>
+//      t.chr_id === pos.chr_id && t.position >= pos.position && t.position <= (pos.position + 500000))
+//      .drop(from)
+//      .take(amount)
+// db.run(found.to[List].result.asTry)
 
-    val founds =
-      sql"""
-             select any(index_chr_id) as index_chr_id,
-              any(index_position) as index_position,
-              any(index_ref_allele) as index_ref_allele,
-              any(index_alt_allele) as index_alt_allele,
-              uniq(gene_id) as uniq_genes,
-              uniq(variant_id) as uniq_tag_variants,
-              count() as count_evs
-             from ot.d2v2g
-             where chr_id = ${pos.chr_id} and
-              position >= ${pos.position - 1000000} and
-              position <= ${pos.position + 1000000}
-             group by index_variant_id
-             order by index_position desc
-          """.as[D2V2GRegionSummary]
+    val founds = sql"""
+     select any(index_chr_id) as index_chr_id,
+      any(index_position) as index_position,
+      any(index_ref_allele) as index_ref_allele,
+      any(index_alt_allele) as index_alt_allele,
+      uniq(gene_id) as uniq_genes,
+      uniq(variant_id) as uniq_tag_variants,
+      count() as count_evs
+     from ot.d2v2g
+     where chr_id = ${pos.chr_id} and
+      position >= ${pos.position - 1000000} and
+      position <= ${pos.position + 1000000}
+     group by index_variant_id
+     order by index_position desc
+    """.as[D2V2GRegionSummary]
+
+
     db.run(founds.asTry)
-
-    // db.run(found.to[List].result.asTry)
   }
 
   private[models] val queryV2G = TableQuery[V2G]
