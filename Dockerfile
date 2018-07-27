@@ -1,16 +1,16 @@
 FROM gcr.io/google-appengine/openjdk
 RUN mkdir -p /srv/app
 
-COPY target/universal/ot-geckoapi-latest.zip /srv/app/ot-geckoapi-latest.zip
+COPY target/universal/ot-genetics-api-latest.zip /srv/app/ot-genetics-api-latest.zip
 COPY production.conf /srv/app/production.conf
 
 WORKDIR /srv/app
 
-RUN cd /srv/app && unzip ot-geckoapi-latest.zip
+RUN cd /srv/app && unzip ot-genetics-api-latest.zip
 
 RUN echo ${CH_URL} ${PLAY_SECRET}
 
-RUN chmod +x ot-geckoapi-latest/bin/ot-geckoapi
-ENTRYPOINT ot-geckoapi-latest/bin/ot-geckoapi -Dconfig.file=/srv/app/production.conf
+RUN chmod +x ot-genetics-api-latest/bin/ot-genetics-api
+ENTRYPOINT ot-genetics-api-latest/bin/ot-genetics-api -Dconfig.file=/srv/app/production.conf
 #    -Dplay.http.secret.key=${PLAY_SECRET}
 #    -Dslick.dbs.default.db.url=${CH_URL}

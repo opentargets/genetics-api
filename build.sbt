@@ -1,4 +1,4 @@
-name := """ot-geckoapi"""
+name := """ot-genetics-api"""
 organization := "io.opentargets"
 
 version := "latest"
