@@ -27,7 +27,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       uniq(gene_id) as uniq_genes,
       uniq(variant_id) as uniq_tag_variants,
       count() as count_evs
-     from ot.d2v2g
+     from ${d2v2g}
      where chr_id = ${pos.chr_id} and
       position >= ${pos.position - 1000000} and
       position <= ${pos.position + 1000000}
@@ -39,6 +39,22 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     db.run(founds.asTry)
   }
 
+  def manhattanTable(studyID: String) = {
+    val idxVariants = sql"""
+      select index_variant_id, any(index_rs_id),
+        any(index_chr_id), any(index_position),
+        any(index_ref_allele), any(index_alt_allele),
+        any(pval)
+      from ${v2dBySt}
+      where stid = '${studyID}'
+      group by index_variant_id
+      """.as[ManhattanRow]
+
+    db.run(idxVariants.asTry)
+  }
+
+  private val v2dBySt: String = "v2d_by_stchr"
+  private val d2v2g: String = "d2v2g"
   private[models] val queryV2G = TableQuery[V2G]
   // private[models] val queryV2DChrPos = TableQuery[V2DChrPos]
   // private[models] val queryV2DStudyChr = TableQuery[V2DStudyChr]

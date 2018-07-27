@@ -20,11 +20,6 @@ import scala.concurrent.Future
 //        resolve = Projector((ctx, f) ⇒ ctx.ctx.getDroid(ctx arg ID).get))
 //))
 
-// select index_variant_id, any(index_rs_id), any(index_chr_id), any(index_position), any(pval) as pval
-// from ot.v2d_by_stchr where stid = 'GCST003262'
-// group by index_variant_id
-// order by any(index_chr_id) asc, any(index_position) asc
-
 object GQLSchema {
   val query = ObjectType(
     "Query", fields[Backend, Unit](

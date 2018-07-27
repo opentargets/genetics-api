@@ -29,4 +29,11 @@ object Entities {
 
   implicit val getD2V2GRegionSummary = GetResult(r =>
     D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
+
+  case class ManhattanRow(index_variant_id: String, index_rs_id: Option[String], index_chr_id: String,
+                          index_position: String, index_ref_allele: String, index_alt_allele: String, pval: Double)
+
+  implicit val getManhattanRow = GetResult(r =>
+    ManhattanRow(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<, r.<<))
+
 }
