@@ -5,18 +5,19 @@
 
 
 # An example controller showing a sample home page
-GET     /                           controllers.HomeController.index
-GET     /interval/:chr/:position    controllers.HomeController.interval(chr: String, position: Long, from: Long ?= 0, amount: Long ?= 100)
+GET     /                               controllers.HomeController.index
+GET     /v2g/:chr/:position             controllers.HomeController.interval(chr: String, position: Long)
+GET     /d2v2g/:chr/:position           controllers.HomeController.summary(chr: String, position: Long)
 
 # graphql uris
-GET     /graphql                       controllers.GraphQLController.gql(query: String, variables: Option[String] ?= None, operation: Option[String] ?= None)
-POST    /graphql                       controllers.GraphQLController.gqlBody()
+GET     /graphql                        controllers.GraphQLController.gql(query: String, variables: Option[String] ?= None, operation: Option[String] ?= None)
+POST    /graphql                        controllers.GraphQLController.gqlBody()
 
 GET     /graphql/schema                 controllers.GQLSchemaController.renderSchema
 GET     /graphql/browser                controllers.GQLSchemaController.renderClient
 
 # health uri
-GET     /_ah/health                 controllers.HomeController.healthcheck
+GET     /_ah/health                     controllers.HomeController.healthcheck
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+GET     /assets/*file                   controllers.Assets.versioned(path="/public", file: Asset)

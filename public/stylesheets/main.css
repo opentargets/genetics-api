@@ -1,2 +1,23 @@
+html {
+    font-family: 'Roboto Slab';
+}
+
+body {
+    font-family: 'Roboto Slab', serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto', sans-serif;
+}
+
+p {
+    font-family: 'Roboto Slab', serif;
+}
+.tableClass {
+    font-family: 'Roboto Mono', monospace;
+}
+
 /*col:first-child {background: #F}*/
-col:nth-child(2n+0) {background: #eee}
+col:nth-child(2n+0) {
+    background: #efefef
+}

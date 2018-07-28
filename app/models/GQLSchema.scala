@@ -23,7 +23,7 @@ import scala.concurrent.Future
 object GQLSchema {
   val query = ObjectType(
     "Query", fields[Backend, Unit](
-      Field("manhattan", )
+      /*Field("manhattan", )*/
     ))
 
   val schema = Schema(query)

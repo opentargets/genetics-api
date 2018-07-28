@@ -12,29 +12,42 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
   val db = dbConfig.db
   import dbConfig.profile.api._
 
-  def findAt(pos: Position, from: Long, amount: Long) = {
-//    val found = queryV2G.filter(t =>
-//      t.chr_id === pos.chr_id && t.position >= pos.position && t.position <= (pos.position + 500000))
-//      .drop(from)
-//      .take(amount)
-// db.run(found.to[List].result.asTry)
-
+  def findAt(pos: Position) = {
     val founds = sql"""
-     select any(index_chr_id) as index_chr_id,
-      any(index_position) as index_position,
-      any(index_ref_allele) as index_ref_allele,
-      any(index_alt_allele) as index_alt_allele,
-      uniq(gene_id) as uniq_genes,
-      uniq(variant_id) as uniq_tag_variants,
-      count() as count_evs
-     from ${d2v2g}
-     where chr_id = ${pos.chr_id} and
-      position >= ${pos.position - 1000000} and
-      position <= ${pos.position + 1000000}
-     group by index_variant_id
-     order by index_position desc
-    """.as[D2V2GRegionSummary]
+      select
+        feature,
+        round(avg(position)) as avg_v_position,
+        uniq(gene_id),
+        uniq(variant_id)
+      from #$v2gTName
+      where chr_id = ${pos.chr_id} and
+        position >= ${pos.position - 1000000} and
+        position <= ${pos.position + 1000000}
+      group by feature
+      order by avg_v_position asc
+     """.as[V2GRegionSummary]
 
+    db.run(founds.asTry)
+  }
+
+  def summaryAt(pos: Position) = {
+    val founds = sql"""
+     select
+       any(index_chr_id) as index_chr_id,
+       any(index_position) as index_position,
+       any(index_ref_allele) as index_ref_allele,
+       any(index_alt_allele) as index_alt_allele,
+       uniq(gene_id) as uniq_genes,
+       uniq(variant_id) as uniq_tag_variants,
+       count() as count_evs
+     from #$d2v2gTName
+     where
+       chr_id = ${pos.chr_id} and
+       position >= ${pos.position - 1000000} and
+       position <= ${pos.position + 1000000}
+     group by index_variant_id
+     order by index_position asc
+    """.as[D2V2GRegionSummary]
 
     db.run(founds.asTry)
   }
@@ -45,17 +58,19 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
         any(index_chr_id), any(index_position),
         any(index_ref_allele), any(index_alt_allele),
         any(pval)
-      from ${v2dBySt}
-      where stid = '${studyID}'
+      from $v2dByStTName
+      where stid = $studyID
       group by index_variant_id
       """.as[ManhattanRow]
 
     db.run(idxVariants.asTry)
   }
 
-  private val v2dBySt: String = "v2d_by_stchr"
-  private val d2v2g: String = "d2v2g"
-  private[models] val queryV2G = TableQuery[V2G]
+  private val v2dByStTName: String = "v2d_by_stchr"
+  private val d2v2gTName: String = "d2v2g"
+  private val v2gTName: String = "v2g"
+
+  // private[models] val queryV2G = TableQuery[V2G]
   // private[models] val queryV2DChrPos = TableQuery[V2DChrPos]
   // private[models] val queryV2DStudyChr = TableQuery[V2DStudyChr]
   // private[models] val queryD2V2G = TableQuery[V2G]

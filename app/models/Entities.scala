@@ -23,6 +23,11 @@ object Entities {
 //                   pmid: Option[String], pub_date: Option[String], pub_journal: Option[String], pub_author: Option[String])
 
 
+  case class V2GRegionSummary(feature: String, avg_position: Long, uniq_genes: Long, uniq_variants: Long)
+
+  implicit val getV2GRegionSummary = GetResult(r =>
+    V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
+
   case class D2V2GRegionSummary(index_chr_id: String, index_position: Long, index_ref_allele: String,
                                 index_alt_allele: String, uniq_genes: Long, uniq_tag_variants: Long,
                                 count_evs: Long)

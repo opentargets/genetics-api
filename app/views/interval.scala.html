@@ -1,0 +1,29 @@
+@import models.Entities.V2GRegionSummary
+@(evidences: Vector[V2GRegionSummary])
+
+@main("opentargets genetics") {
+  <h1>test for opentargets genetics api + graphql</h1>
+  V2G evidences table at chr:position +- 1Mb: <br/><br/>
+  <table class="tableClass" style="width:100%">
+    <colgroup>
+      <col><col><col><col>
+    </colgroup>
+    <tbody>
+      <tr>
+        <th>Feature</th>
+        <th>Avg. variant position</th>
+        <th># uniq genes per feature</th>
+        <th># uniq variants per feature</th>
+      </tr>
+      @evidences.map{ ev =>
+              <tr>
+                <td>@ev.feature</td>
+                <td>@ev.avg_position</td>
+                <td>@ev.uniq_genes</td>
+                <td>@ev.uniq_variants</td>
+              </tr>
+      }
+  </tbody>
+  </table>
+
+}
