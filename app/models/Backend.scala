@@ -4,8 +4,12 @@ import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
 import clickhouse.ClickHouseProfile
 import models.Entities._
+import sangria.ast.Field
 import slick.collection.heterogeneous._
 import slick.collection.heterogeneous.syntax.HNil
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
 
 class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) {
   val dbConfig = dbConfigProvider.get[ClickHouseProfile]
@@ -52,18 +56,23 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     db.run(founds.asTry)
   }
 
-  def manhattanTable(studyID: String) = {
+  def manhattanTable(studyID: String, fields: Vector[Field]) = {
+    // TODO use fields to optimise the requested query
     val idxVariants = sql"""
-      select index_variant_id, any(index_rs_id),
-        any(index_chr_id), any(index_position),
-        any(index_ref_allele), any(index_alt_allele),
-        any(pval)
-      from $v2dByStTName
-      where stid = $studyID
-      group by index_variant_id
-      """.as[ManhattanRow]
+      |select index_variant_id, any(index_rs_id), any(index_chr_id), any(index_position), any(index_ref_allele),
+      | any(index_alt_allele),
+      | any(pval)
+      |from #$v2dByStTName
+      |where stid = $studyID
+      |group by index_variant_id
+      """.stripMargin.as[ManhattanRow]
 
-    db.run(idxVariants.asTry)
+    // map to proper manhattan association with needed fields
+    db.run(idxVariants.asTry).map {
+      case Success(v) => v.map(el => ManhattanAssoc(el.index_variant_id, el.index_rs_id,
+        el.pval, el.index_chr_id, el.index_position, List.empty, None, None))
+      case Failure(ex) => Vector.empty
+    }
   }
 
   private val v2dByStTName: String = "v2d_by_stchr"
