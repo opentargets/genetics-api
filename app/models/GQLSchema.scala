@@ -38,9 +38,9 @@ import scala.concurrent.Future
 //                                    crediblbeSetSize: Option[Int], ldSetSize: Option[Int])
 
 object GQLSchema {
-  val studyID = Argument("stid", StringType, description = "Study ID which links a top loci with a trait")
+  val studyID = Argument("id", StringType, description = "Study ID which links a top loci with a trait")
 
-  val simpleGene = ObjectType("simpleGene",
+  val gene = ObjectType("gene",
   "This element represents a simple gene object which contains id and name",
     fields[Backend, SimpleGene](
       Field("id", StringType,
@@ -70,7 +70,7 @@ object GQLSchema {
       Field("position", LongType,
         Some("absolute position p of the variant i in the chromosome j"),
         resolve = _.value.position),
-      Field("bestGenes", ListType(simpleGene),
+      Field("bestGenes", ListType(gene),
         Some("A list of best genes associated"),
         resolve = _.value.bestGenes),
       Field("credibleSetSize", OptionType(IntType),
