@@ -7,7 +7,7 @@ jdk:
 branches:
   only:
     - master
-    - /\d+\.\d+\.\d+/
+    - "/\\d+\\.\\d+\\.\\d+/"
 
 script:
   - sbt ++$TRAVIS_SCALA_VERSION compile
@@ -16,7 +16,7 @@ script:
 deploy:
   provider: releases
   api_key:
-    secure: "UpyJGd3b+M0Su59lb1kXGWAg4Wpkv14zwsEgXVz5ZZFCR1XwThusGIN3jiUuhZiq9c9Nl7jmss2f5+ZoTx1O8DwP+hBxuu+Bc6C+16DxVfJUTVLKxsImX0ZXABLrfoO8nCAZsMxkMOjw4G2cfoFnBUBwuei7uLI2Yrxw4GZoS9vmC1nVOEFsn8wwwMhrniLYXMGUZXaUIu023gfB71cGyVMyXFITQ4p5G77uAsg6q9rfxUvICH+RPgb7khlSPkBlTqscfSXT2wtedwshXY3KZAHMg6VxzMOz3iI93aZlbkl+yqDLe2Twyy0OYrZ5v8Xr33IREPyxangRTHLDtnQ400X4td2xrlw4OW2ZiemnnjGvQF4v/Gnx6Ple9erFYGIkfGwABzbO+jBMdkoh88FzeP50bWN4VVVmDgtjpXCL+J+iVVYEutQrJZd4LWVBdF7MTBmnlM1meq1TIKidiA0QG5Fv0j+y3W2wXWkF/ZBZUDS8lXjyIKjVOSOAY7+f9mhIUaAKkJFWjZ2x02tBiLGiLA575yNb12uDwjuuW5Hp1s4hCuxjCipIGNF7KzHjSJEDE3TifCh8SbVJahSXdkJ5R7ftBXKx3O5o8lg0xtL+oGxhG/Hw7YxHXm3m7F11Dejo79+jussnYEKBBJTtLiMlbsX2KIUKsWT/ngzFT8fRl+g="
+    secure: gF8CP2EHCxRH334f+0r79mS/deFcsA89TKuFHp5dwlenHOElT06K2tkUl6MO0RoM+1rNgLD5Hn6emz4nCUe3P0YvxHQcNeO0xajHK/5LGJgKJBSU5GWJ8NSlQtdIoqNojSqLTagrXwA2DJvcfdLx0YKQECWtqAaD6AmjAVXBPm//2kvqx5EyphEKcbDeZwNcMh0v+MFZ/ozZzKccABauPbga6p4f4SG5OYU85O3moDAhx/S0jgjIJ3LSTH7BR/ZREx53vxSKFqGir39UgZcTXvgjwewuD7BlCIpL7v0AflZsrrxf0n9f0TddCgCiWdop0IV1g0A0E3t7mzhRXPPu+xVrDtNbVN9MCdrmntBCRKwkBjc/AvdYuZXKb2bSQQZGzhwNOpKIolKPHBKxyg6Q6pLEPY/2dxe3y7Jh4RAjd3cE5FQkJkKjJn5qdmqfevgr9baz4s4rV7Gs/68TAGyV7VrFdc/csKJtrFwn0vMcMiPsgcsAkAUwNBri7CR+lcxOuXk+RlGV5yS8m+63wpMAuKrrMNPVI3jtNjQ54K3XbCUq0KwrUp40/4nYFAh4/ZBLYPQrdiBIx2lsKKP2zEJne5XxeopV0NkuNIbasSIf3BehpXOGg3MFDXhcj+ThGrB8GmSPbCvqO+G84vpl4/cFpxBrQ8q8CM28cBJQ/EU+WSI=
   file_glob: true
   file:
     - "target/universal/ot-genetics-api-latest.zip"
