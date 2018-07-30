@@ -66,7 +66,7 @@ trait ClickHouseProfile extends JdbcProfile {
 //        b"substr($n, ${QueryParameter.constOp[Int]("+")(_ + _)(start, LiteralNode(1).infer())})\)"
 //      case Library.IndexOf(n, str) => b"\(charindex($str, $n) - 1\)"
       case Library.User() => b"''"
-      case Library.Database() => b"''"
+      case Library.Database() => b"currentDatabase()"
 //      case RowNumber(_) => throw new SlickException("SQLite does not support row numbers")
 //      // https://github.com/jOOQ/jOOQ/issues/1595
 //      case Library.Repeat(n, times) => b"replace(substr(quote(zeroblob(($times + 1) / 2)), 3, $times), '0', $n)"

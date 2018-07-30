@@ -42,12 +42,15 @@ object GQLSchema {
       Field("bestGenes", ListType(gene),
         Some("A list of best genes associated"),
         resolve = _.value.bestGenes),
-      Field("credibleSetSize", OptionType(IntType),
-      Some("n tag variants for each index variant coming from crediblesets"),
+      Field("credibleSetSize", LongType,
+      Some("The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
         resolve = _.value.crediblbeSetSize),
-      Field("ldSetSize", OptionType(IntType),
-        Some("n tag variants for each lead variant coming from ld expansion"),
-        resolve = _.value.ldSetSize)
+      Field("ldSetSize", LongType,
+        Some("The cardinal of the set defined as tag variants for an index variant coming from ld expansion"),
+        resolve = _.value.ldSetSize),
+      Field("totalSetSize", LongType,
+        Some("The cardinal of the set defined as tag variants for an index variant coming from any expansion"),
+        resolve = _.value.totalSetSize)
     ))
 
   val query = ObjectType(

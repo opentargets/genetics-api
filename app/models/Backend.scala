@@ -56,6 +56,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
 
   def manhattanTable(studyID: String, fields: Vector[Field]) = {
     // TODO use fields to optimise the requested query
+
     val idxVariants = sql"""
       |select
       | index_variant_id,
@@ -64,7 +65,10 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       | any(index_position),
       | any(index_ref_allele),
       | any(index_alt_allele),
-      | any(pval)
+      | any(pval),
+      | uniqIf(variant_id, posterior_prob > 0) AS credibleSetSize,
+      | uniqIf(variant_id, r2 > 0) AS ldSetSize,
+      | uniq(variant_id) AS uniq_variants
       |from #$v2dByStTName
       |where stid = $studyID
       |group by index_variant_id
@@ -73,7 +77,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     // map to proper manhattan association with needed fields
     db.run(idxVariants.asTry).map {
       case Success(v) => v.map(el => ManhattanAssoc(el.index_variant_id, el.index_rs_id,
-        el.pval, el.index_chr_id, el.index_position, List.empty, None, None))
+        el.pval, el.index_chr_id, el.index_position, List.empty, el.credibleSetSize, el.ldSetSize, el.totalSetSize))
       case Failure(ex) => Vector.empty
     }
   }
