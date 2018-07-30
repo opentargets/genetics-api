@@ -14,7 +14,7 @@ GET     /graphql                        controllers.GraphQLController.gql(query:
 POST    /graphql                        controllers.GraphQLController.gqlBody()
 
 GET     /graphql/schema                 controllers.GQLSchemaController.renderSchema
-# GET     /graphql/browser                controllers.GQLSchemaController.renderClient
+GET     /graphql/browser                controllers.GQLSchemaController.renderClient
 
 # health uri
 GET     /_ah/health                     controllers.HomeController.healthcheck

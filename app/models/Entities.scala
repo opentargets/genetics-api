@@ -20,19 +20,6 @@ object Entities {
   //                   trait_reported: Option[String], ancestry_initial: Option[String], ancestry_replication: Option[String],
   //                   pmid: Option[String], pub_date: Option[String], pub_journal: Option[String], pub_author: Option[String])
 
-  // type ManhattanAssociation {
-  //    indexVariantId: String!
-  //    indexVariantRsId: String
-  //    pval: Float!
-  //    chromosome: String!
-  //    position: Int!
-  //    bestGenes: [Gene!]
-  //    # could have index variant which has no tag variants (goes nowhere on click)
-  //    credibleSetSize: Int
-  //    ldSetSize: Int
-  //    # TODO: get this
-  //    # maf: Float
-  //}
 
   case class SimpleGene(id: String, name: Option[String])
   case class ManhattanAssoc(indexVariantID: String, indexVariantRSID: Option[String], pval: Double,

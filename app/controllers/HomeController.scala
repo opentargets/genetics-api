@@ -43,13 +43,6 @@ class HomeController @Inject()(implicit ec: ExecutionContext, backend: Backend, 
     }
   }
 
-//  lazy val exceptionHandler = ExceptionHandler {
-//    case (_, error @ TooComplexQueryError) ⇒ HandledException(error.getMessage)
-//    case (_, error @ MaxQueryDepthReachedError(_)) ⇒ HandledException(error.getMessage)
-//  }
-
-  case object TooComplexQueryError extends Exception("Query is too expensive.")
-
   def healthcheck() = Action { request =>
     Ok("working")
   }

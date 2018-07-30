@@ -5,8 +5,6 @@ import play.api.db.slick.DatabaseConfigProvider
 import clickhouse.ClickHouseProfile
 import models.Entities._
 import sangria.ast.Field
-import slick.collection.heterogeneous._
-import slick.collection.heterogeneous.syntax.HNil
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
