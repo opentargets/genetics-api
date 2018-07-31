@@ -4,6 +4,7 @@ import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
 import clickhouse.ClickHouseProfile
 import models.Entities._
+import models.Functions._
 import sangria.ast.Field
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -54,8 +55,10 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     db.run(founds.asTry)
   }
 
-  def manhattanTable(studyID: String, fields: Vector[Field]) = {
+  def manhattanTable(studyID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
     // TODO use fields to optimise the requested query
+
+    val limitClause = parseOffsetLimit(pageIndex, pageSize)
 
     val idxVariants = sql"""
       |select
@@ -70,8 +73,10 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       | uniqIf(variant_id, r2 > 0) AS ldSetSize,
       | uniq(variant_id) AS uniq_variants
       |from #$v2dByStTName
-      |where stid = $studyID
+      |prewhere stid = $studyID
       |group by index_variant_id
+      |order by index_variant_id asc
+      |#$limitClause
       """.stripMargin.as[ManhattanRow]
 
     // map to proper manhattan association with needed fields

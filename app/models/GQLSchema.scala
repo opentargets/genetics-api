@@ -3,11 +3,13 @@ package models
 
 import sangria.execution.deferred.{Fetcher, HasId}
 import sangria.schema._
-
 import Entities._
+import sangria.marshalling.ToInput
 
 object GQLSchema {
   val studyID = Argument("id", StringType, description = "Study ID which links a top loci with a trait")
+  val pageIndex = Argument("pageIndex", OptionInputType(IntType), description = "pagination index >= 0")
+  val pageSize = Argument("pageSize", OptionInputType(IntType), description = "pagination size > 0")
 
   val gene = ObjectType("gene",
   "This element represents a simple gene object which contains id and name",
@@ -56,8 +58,9 @@ object GQLSchema {
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("manhattan", ListType(manhattanAssoc),
-        arguments = studyID :: Nil,
-        resolve = (ctx) ⇒ ctx.ctx.manhattanTable(ctx.arg(studyID),ctx.astFields))))
+        arguments = studyID :: pageIndex :: pageSize :: Nil,
+        resolve = (ctx) ⇒ ctx.ctx.manhattanTable(ctx.arg(studyID), ctx.arg(pageIndex), ctx.arg(pageSize))))
+  )
 
   val schema = Schema(query)
 }
