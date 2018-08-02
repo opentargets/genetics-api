@@ -5,17 +5,16 @@ import play.api.db.slick.DatabaseConfigProvider
 import clickhouse.ClickHouseProfile
 import models.Entities._
 import models.Functions._
-import sangria.ast.Field
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) {
   val dbConfig = dbConfigProvider.get[ClickHouseProfile]
   val db = dbConfig.db
   import dbConfig.profile.api._
 
-  def findAt(pos: Position) = {
+  def findAt(pos: DNAPosition) = {
     val founds = sql"""
       |select
       | feature,
@@ -23,7 +22,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       | uniq(gene_id),
       | uniq(variant_id)
       |from #$v2gTName
-      |where chr_id = ${pos.chr_id} and
+      |where chr_id = ${pos.chrId} and
       | position >= ${pos.position - 1000000} and
       | position <= ${pos.position + 1000000}
       |group by feature
@@ -33,7 +32,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     db.run(founds.asTry)
   }
 
-  def summaryAt(pos: Position) = {
+  def summaryAt(pos: DNAPosition) = {
     val founds = sql"""
       |select
       | any(index_chr_id) as index_chr_id,
@@ -45,7 +44,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       | count() as count_evs
       |from #$d2v2gTName
       |where
-      | chr_id = ${pos.chr_id} and
+      | chr_id = ${pos.chrId} and
       | position >= ${pos.position - 1000000} and
       | position <= ${pos.position + 1000000}
       |group by index_variant_id
@@ -55,19 +54,14 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     db.run(founds.asTry)
   }
 
-  def manhattanTable(studyID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
-    // TODO use fields to optimise the requested query
-
+  def buildManhattanTable(studyID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
+    import models.Entities.Prefs._
     val limitClause = parseOffsetLimit(pageIndex, pageSize)
 
     val idxVariants = sql"""
       |select
       | index_variant_id,
       | any(index_rs_id),
-      | any(index_chr_id),
-      | any(index_position),
-      | any(index_ref_allele),
-      | any(index_alt_allele),
       | any(pval),
       | uniqIf(variant_id, posterior_prob > 0) AS credibleSetSize,
       | uniqIf(variant_id, r2 > 0) AS ldSetSize,
@@ -77,13 +71,22 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       |group by index_variant_id
       |order by index_variant_id asc
       |#$limitClause
-      """.stripMargin.as[ManhattanRow]
+      """.stripMargin.as[V2DByStudy]
 
     // map to proper manhattan association with needed fields
     db.run(idxVariants.asTry).map {
-      case Success(v) => v.map(el => ManhattanAssoc(el.index_variant_id, el.index_rs_id,
-        el.pval, el.index_chr_id, el.index_position, List.empty, el.credibleSetSize, el.ldSetSize, el.totalSetSize))
-      case Failure(ex) => Vector.empty
+      case Success(v) => ManhattanTable(
+        v.map(el => {
+          // we got the line so correct variant must exist
+          val variant: Try[Option[Variant]] = el.index_variant_id
+          val completedV = variant.map(_.map(v => Variant(v.locus, v.refAllele, v.altAllele, el.index_rs_id)))
+
+          ManhattanAssociation(completedV.get.get, el.pval, List.empty,
+            el.credibleSetSize, el.ldSetSize, el.totalSetSize)
+        })
+      )
+
+      case Failure(ex) => ManhattanTable(associations = Vector.empty)
     }
   }
 
