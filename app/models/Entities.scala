@@ -1,12 +1,26 @@
 package models
 
-import ru.yandex.clickhouse.response.ClickHouseResultSet
 import slick.jdbc.GetResult
+import scala.util.Try
 
 object Entities {
-  case class Position(chr_id: String, position: Long)
-  case class Variant(chr_id: String, position: Long, ref_allele: String, alt_allele: String)
-  case class Gene(gene_chr: String, gene_id: String, gene_start: Long, gene_end: Long, gene_name: String)
+
+  case class DNAPosition(chrId: String, position: Long)
+  case class Variant(locus: DNAPosition, refAllele: String, altAllele: String, rsId: Option[String]) {
+    lazy val id: String = List(locus.chrId, locus.position.toString, refAllele, altAllele).map(_.toUpperCase).mkString("_")
+  }
+
+  object Variant {
+    def apply(variantId: String): Try[Option[Variant]] = {
+      Try {
+        variantId.toUpperCase.split("_").toList match {
+          case List(chr: String, pos: String, ref: String, alt: String) =>
+            Some(Variant(DNAPosition(chr, pos.toLong), ref, alt, None))
+          case _ => None
+        }
+      }
+    }
+  }
 
   case class V2GEv(chr_id: String, position: Long, segment: Int, ref_allele: String, alt_allele: String, rs_id: String,
                    gene_chr: String, gene_id: String, gene_start: Long, gene_end: Long, gene_name: String,
@@ -22,25 +36,37 @@ object Entities {
   //                   pmid: Option[String], pub_date: Option[String], pub_journal: Option[String], pub_author: Option[String])
 
 
-  case class SimpleGene(id: String, name: Option[String])
-  case class ManhattanAssoc(indexVariantID: String, indexVariantRSID: Option[String], pval: Double,
-                                    chromosome: String, position: Long, bestGenes: List[SimpleGene],
-                                    crediblbeSetSize: Long, ldSetSize: Long, totalSetSize: Long)
+  case class Gene(id: String, symbol: Option[String],
+                  start: Option[Long], end: Option[Long],
+                  chromosome: Option[String])
+
+  case class PheWASTable(associations: Vector[PheWASAssociation])
+  case class PheWASAssociation(studyId: String, traitReported: String, traitId: Option[String],
+                               pval: Double, beta: Double, nTotal: Long, nCases: Long)
+
+  case class ManhattanTable(associations: Vector[ManhattanAssociation])
+  case class ManhattanAssociation(variant: Variant, pval: Double,
+                                  bestGenes: List[Gene], crediblbeSetSize: Long,
+                                  ldSetSize: Long, totalSetSize: Long)
 
   case class V2GRegionSummary(feature: String, avg_position: Long, uniq_genes: Long, uniq_variants: Long)
-  implicit val getV2GRegionSummary = GetResult(r =>
-    V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
+
 
   case class D2V2GRegionSummary(index_chr_id: String, index_position: Long, index_ref_allele: String,
                                 index_alt_allele: String, uniq_genes: Long, uniq_tag_variants: Long,
                                 count_evs: Long)
-  implicit val getD2V2GRegionSummary = GetResult(r =>
-    D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
 
-  case class ManhattanRow(index_variant_id: String, index_rs_id: Option[String], index_chr_id: String,
-                          index_position: Long, index_ref_allele: String, index_alt_allele: String, pval: Double,
-                          credibleSetSize: Long, ldSetSize: Long, totalSetSize: Long)
-  implicit val getManhattanRow = GetResult(r =>
-    ManhattanRow(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
+  case class V2DByStudy(index_variant_id: String, index_rs_id: Option[String], pval: Double,
+                        credibleSetSize: Long, ldSetSize: Long, totalSetSize: Long)
 
+  case class V2DByVariantPheWAS(traitReported: String, stid: String, pval: Double, nInitial: Long, nRepeated: Long)
+
+  object Prefs {
+    implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
+    implicit val getV2GRegionSummary = GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
+    implicit val getV2DByStudy = GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<))
+    implicit val getV2DByVariantPheWAS = GetResult(r => V2DByVariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<))
+    implicit val getD2V2GRegionSummary = GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
+
+  }
 }

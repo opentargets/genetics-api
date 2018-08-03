@@ -27,7 +27,7 @@ class HomeController @Inject()(implicit ec: ExecutionContext, backend: Backend, 
 
   def interval(chr: String, position: Long) = {
     Action.async { implicit request: Request[AnyContent] =>
-      backend.findAt(Position(chr, position)).map {
+      backend.findAt(DNAPosition(chr, position)).map {
         case Success(f) => Ok(views.html.interval(f))
         case Failure(ex) => InternalServerError(ex.toString)
       }
@@ -36,7 +36,7 @@ class HomeController @Inject()(implicit ec: ExecutionContext, backend: Backend, 
 
   def summary(chr: String, position: Long) = {
     Action.async { implicit request: Request[AnyContent] =>
-      backend.summaryAt(Position(chr, position)).map {
+      backend.summaryAt(DNAPosition(chr, position)).map {
         case Success(f) => Ok(views.html.summary(f))
         case Failure(ex) => InternalServerError(ex.toString)
       }
