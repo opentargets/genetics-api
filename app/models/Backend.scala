@@ -9,6 +9,7 @@ import models.Entities.Prefs._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
+import scala.concurrent._
 
 class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) {
   val dbConfig = dbConfigProvider.get[ClickHouseProfile]
@@ -60,9 +61,45 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     // from ot.v2d_by_chrpos prewhere chr_id = '6' and variant_id = '6_88310327_G_A'
     // group by trait_reported, stid
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
+    val variant = Variant(variantID)
 
-    // query to get rows
+    variant match {
+      case Success(Some(v)) => {
+        val query =
+          sql"""
+               |select
+               | trait_reported,
+               | stid,
+               | any(pval),
+               | any(n_initial),
+               | any(n_replication)
+               |from #$v2dByChrPosTName
+               |prewhere chr_id = ${v.locus.chrId} and
+               |  position = ${v.locus.position} and
+               |  variant_id = ${v.id}
+               |group by trait_reported, stid
+               |order by trait_reported asc
+               |#$limitClause
+         """.stripMargin.as[V2DByVariantPheWAS]
+
+        db.run(query.asTry).map {
+          case Success(v) => PheWASTable(
+            associations = v.map(el => {
+              PheWASAssociation(el.stid, el.traitReported, Option.empty, el.pval, 0,
+                el.nInitial + el.nRepeated, 0)
+            })
+          )
+          case _ =>
+            PheWASTable(associations = Vector.empty)
+        }
+      }
+      case _ =>
+        Future {
+          PheWASTable(associations = Vector.empty)
+        }
+    }
   }
+
   def buildManhattanTable(studyID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
 
@@ -93,12 +130,12 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
             el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
-
       case Failure(ex) => ManhattanTable(associations = Vector.empty)
     }
   }
 
   private val v2dByStTName: String = "v2d_by_stchr"
+  private val v2dByChrPosTName: String = "v2d_by_chrpos"
   private val d2v2gTName: String = "d2v2g"
   private val v2gTName: String = "v2g"
 }

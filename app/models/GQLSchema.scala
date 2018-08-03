@@ -73,32 +73,31 @@ object GQLSchema {
         resolve = _.value.totalSetSize)
     ))
 
-  // TODO missing a lot fields but enough to test
-//  val pheWASAssociation = ObjectType("PheWASAssociation",
-//    "This element represents an association between a variant and a reported trait through a study",
-//    fields[Backend, PheWASAssociation](
-//      Field("studyId", StringType,
-//        Some("Study ID"),
-//        resolve = _.value.variant.id),
-//      Field("traitReported", StringType,
-//        Some("Trait reported"),
-//        resolve = _.value.variant.rsId),
-//      Field("traitId", OptionType(StringType),
-//        Some("Trait ID reported"),
-//        resolve = _.value.variant.rsId),
-//      Field("pval", FloatType,
-//        Some("Computed p-Value"),
-//        resolve = _.value.pval),
-//      Field("beta", OptionType(StringType),
-//        Some("beta"),
-//        resolve = _.value.variant.locus.chrId),
-//      Field("nTotal", LongType,
-//        Some("total sample size (variant level)"),
-//        resolve = _.value.variant.locus.position),
-//      Field("nCases", LongType,
-//        Some("number of cases (variant level)"),
-//        resolve = _.value.bestGenes)
-//    ))
+  val pheWASAssociation = ObjectType("PheWASAssociation",
+    "This element represents an association between a variant and a reported trait through a study",
+    fields[Backend, PheWASAssociation](
+      Field("studyId", StringType,
+        Some("Study ID"),
+        resolve = _.value.studyId),
+      Field("traitReported", StringType,
+        Some("Trait reported"),
+        resolve = _.value.traitReported),
+      Field("traitId", OptionType(StringType),
+        Some("Trait ID reported"),
+        resolve = _.value.traitId),
+      Field("pval", FloatType,
+        Some("Computed p-Value"),
+        resolve = _.value.pval),
+      Field("beta", FloatType,
+        Some("beta"),
+        resolve = _.value.beta),
+      Field("nTotal", LongType,
+        Some("total sample size (variant level)"),
+        resolve = _.value.nTotal),
+      Field("nCases", LongType,
+        Some("number of cases (variant level)"),
+        resolve = _.value.nCases)
+    ))
 
 
   val manhattan = ObjectType("Manhattan",
@@ -109,22 +108,22 @@ object GQLSchema {
         resolve = _.value.associations)
     ))
 
-//  val pheWAS = ObjectType("PheWAS",
-//    "This element represents a PheWAS like plot",
-//    fields[Backend, PheWASTable](
-//      Field("associations", ListType(pheWASAssociation),
-//        Some("A list of associations"),
-//        resolve = _.value.associations)
-//    ))
+  val pheWAS = ObjectType("PheWAS",
+    "This element represents a PheWAS like plot",
+    fields[Backend, PheWASTable](
+      Field("associations", ListType(pheWASAssociation),
+        Some("A list of associations"),
+        resolve = _.value.associations)
+    ))
 
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("manhattan", manhattan,
         arguments = studyId :: pageIndex :: pageSize :: Nil,
-        resolve = (ctx) => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize)))
-//      Field("pheWAS", pheWAS,
-//        arguments = variantId :: pageIndex :: pageSize :: Nil,
-//        resolve = (ctx) => ctx.ctx.buildManhattanTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize)))
+        resolve = (ctx) => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("pheWAS", pheWAS,
+        arguments = variantId :: pageIndex :: pageSize :: Nil,
+        resolve = (ctx) => ctx.ctx.buildPheWASTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize)))
     ))
 
   val schema = Schema(query)

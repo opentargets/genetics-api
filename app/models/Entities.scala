@@ -40,6 +40,10 @@ object Entities {
                   start: Option[Long], end: Option[Long],
                   chromosome: Option[String])
 
+  case class PheWASTable(associations: Vector[PheWASAssociation])
+  case class PheWASAssociation(studyId: String, traitReported: String, traitId: Option[String],
+                               pval: Double, beta: Double, nTotal: Long, nCases: Long)
+
   case class ManhattanTable(associations: Vector[ManhattanAssociation])
   case class ManhattanAssociation(variant: Variant, pval: Double,
                                   bestGenes: List[Gene], crediblbeSetSize: Long,
@@ -51,15 +55,18 @@ object Entities {
   case class D2V2GRegionSummary(index_chr_id: String, index_position: Long, index_ref_allele: String,
                                 index_alt_allele: String, uniq_genes: Long, uniq_tag_variants: Long,
                                 count_evs: Long)
-  implicit val getD2V2GRegionSummary = GetResult(r =>
-    D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
 
   case class V2DByStudy(index_variant_id: String, index_rs_id: Option[String], pval: Double,
                         credibleSetSize: Long, ldSetSize: Long, totalSetSize: Long)
+
+  case class V2DByVariantPheWAS(traitReported: String, stid: String, pval: Double, nInitial: Long, nRepeated: Long)
 
   object Prefs {
     implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
     implicit val getV2GRegionSummary = GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
     implicit val getV2DByStudy = GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<))
+    implicit val getV2DByVariantPheWAS = GetResult(r => V2DByVariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<))
+    implicit val getD2V2GRegionSummary = GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
+
   }
 }
