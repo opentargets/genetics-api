@@ -7,7 +7,8 @@ import Entities._
 import sangria.marshalling.ToInput
 
 object GQLSchema {
-  val studyID = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
+  val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
+  val variantId = Argument("variantId", StringType, description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
   val pageIndex = Argument("pageIndex", OptionInputType(IntType), description = "pagination index >= 0")
   val pageSize = Argument("pageSize", OptionInputType(IntType), description = "pagination size > 0")
 
@@ -17,9 +18,9 @@ object GQLSchema {
       Field("id", StringType,
         Some("Ensembl Gene ID of a gene"),
         resolve = _.value.id),
-      Field("name", OptionType(StringType),
+      Field("symbol", OptionType(StringType),
         Some("Approved symbol name of a gene"),
-        resolve = _.value.name)
+        resolve = _.value.symbol)
     ))
 
   val variant = ObjectType("Variant",
@@ -72,6 +73,33 @@ object GQLSchema {
         resolve = _.value.totalSetSize)
     ))
 
+  // TODO missing a lot fields but enough to test
+  val pheWASAssociation = ObjectType("PheWASAssociation",
+    "This element represents an association between a variant and a reported trait through a study",
+    fields[Backend, PheWASAssociation](
+      Field("studyId", StringType,
+        Some("Study ID"),
+        resolve = _.value.variant.id),
+      Field("traitReported", StringType,
+        Some("Trait reported"),
+        resolve = _.value.variant.rsId),
+      Field("traitId", OptionType(StringType),
+        Some("Trait ID reported"),
+        resolve = _.value.variant.rsId),
+      Field("pval", FloatType,
+        Some("Computed p-Value"),
+        resolve = _.value.pval),
+      Field("beta", OptionType(StringType),
+        Some("beta"),
+        resolve = _.value.variant.locus.chrId),
+      Field("nTotal", LongType,
+        Some("total sample size (variant level)"),
+        resolve = _.value.variant.locus.position),
+      Field("nCases", LongType,
+        Some("number of cases (variant level)"),
+        resolve = _.value.bestGenes)
+    ))
+
 
   val manhattan = ObjectType("Manhattan",
     "This element represents a Manhattan like plot",
@@ -81,12 +109,22 @@ object GQLSchema {
         resolve = _.value.associations)
     ))
 
+  val pheWAS = ObjectType("PheWAS",
+    "This element represents a PheWAS like plot",
+    fields[Backend, PheWASTable](
+      Field("associations", ListType(pheWASAssociation),
+        Some("A list of associations"),
+        resolve = _.value.associations)
+    ))
 
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("manhattan", manhattan,
-        arguments = studyID :: pageIndex :: pageSize :: Nil,
-        resolve = (ctx) => ctx.ctx.buildManhattanTable(ctx.arg(studyID), ctx.arg(pageIndex), ctx.arg(pageSize)))
+        arguments = studyId :: pageIndex :: pageSize :: Nil,
+        resolve = (ctx) => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("pheWAS", pheWAS,
+        arguments = variantId :: pageIndex :: pageSize :: Nil,
+        resolve = (ctx) => ctx.ctx.buildManhattanTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize)))
     ))
 
   val schema = Schema(query)

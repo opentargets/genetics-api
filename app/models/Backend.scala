@@ -5,6 +5,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import clickhouse.ClickHouseProfile
 import models.Entities._
 import models.Functions._
+import models.Entities.Prefs._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
@@ -54,9 +55,16 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     db.run(founds.asTry)
   }
 
+  def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
+    // select trait_reported, stid, any(pval), any(n_initial), any(n_replication)
+    // from ot.v2d_by_chrpos prewhere chr_id = '6' and variant_id = '6_88310327_G_A'
+    // group by trait_reported, stid
+    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+
+    // query to get rows
+  }
   def buildManhattanTable(studyID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
-    import models.Entities.Prefs._
-    val limitClause = parseOffsetLimit(pageIndex, pageSize)
+    val limitClause = parsePaginationTokens(pageIndex, pageSize)
 
     val idxVariants = sql"""
       |select

@@ -36,9 +36,9 @@ object Entities {
   //                   pmid: Option[String], pub_date: Option[String], pub_journal: Option[String], pub_author: Option[String])
 
 
-  case class Gene(id: String, name: Option[String],
-                          start: Option[Long], end: Option[Long],
-                          chromosome: Option[String])
+  case class Gene(id: String, symbol: Option[String],
+                  start: Option[Long], end: Option[Long],
+                  chromosome: Option[String])
 
   case class ManhattanTable(associations: Vector[ManhattanAssociation])
   case class ManhattanAssociation(variant: Variant, pval: Double,
@@ -46,8 +46,7 @@ object Entities {
                                   ldSetSize: Long, totalSetSize: Long)
 
   case class V2GRegionSummary(feature: String, avg_position: Long, uniq_genes: Long, uniq_variants: Long)
-  implicit val getV2GRegionSummary = GetResult(r =>
-    V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
+
 
   case class D2V2GRegionSummary(index_chr_id: String, index_position: Long, index_ref_allele: String,
                                 index_alt_allele: String, uniq_genes: Long, uniq_tag_variants: Long,
@@ -57,10 +56,10 @@ object Entities {
 
   case class V2DByStudy(index_variant_id: String, index_rs_id: Option[String], pval: Double,
                         credibleSetSize: Long, ldSetSize: Long, totalSetSize: Long)
-  implicit val getV2DByStudy = GetResult(r =>
-    V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<))
 
   object Prefs {
     implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
+    implicit val getV2GRegionSummary = GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
+    implicit val getV2DByStudy = GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<))
   }
 }
