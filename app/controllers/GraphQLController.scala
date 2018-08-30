@@ -19,6 +19,10 @@ import scala.util.{Failure, Success}
 class GraphQLController @Inject()(implicit ec: ExecutionContext, dbTables: Backend, cc: ControllerComponents)
   extends AbstractController(cc) {
 
+  def options = Action {
+    NoContent.withHeaders("Access-Control-Allow-Methods" -> "GET, POST, OPTIONS")
+  }
+
   def gql(query: String, variables: Option[String], operation: Option[String]) = Action.async {
     executeQuery(query, variables map parseVariables, operation)
   }

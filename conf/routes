@@ -10,6 +10,7 @@ GET     /v2g/:chr/:position             controllers.HomeController.interval(chr:
 GET     /d2v2g/:chr/:position           controllers.HomeController.summary(chr: String, position: Long)
 
 # graphql uris
+OPTIONS /graphql                        controllers.GraphQLController.options
 GET     /graphql                        controllers.GraphQLController.gql(query: String, variables: Option[String] ?= None, operation: Option[String] ?= None)
 POST    /graphql                        controllers.GraphQLController.gqlBody()
 
