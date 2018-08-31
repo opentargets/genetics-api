@@ -73,8 +73,8 @@ object GQLSchema {
     ))
 
   val indexVariantAssociation = ObjectType("IndexVariantAssociation",
-    "This object represent and link between and specified index variant with a tag variant through a (study, index)" +
-      "and a number of other variants via an expansion method",
+    "This object represent a link between a triple (study, trait, index_variant) and a tag variant " +
+      "via an expansion method (either ldExpansion or FineMapping)",
     fields[Backend, IndexVariantAssociation](
       Field("tagVariant", variant,
         Some("Tag variant ID as ex. 1_12345_A_T"),
