@@ -40,6 +40,38 @@ object GQLSchema {
         resolve = _.value.locus.position)
     ))
 
+  val study = ObjectType("Study",
+  "This element contains all study fields",
+    fields[Backend, Study](
+      Field("studyId", StringType,
+        Some("Study Identifier"),
+        resolve = _.value.studyId),
+      Field("traitCode", StringType,
+        Some("Trait Identifier"),
+        resolve = _.value.traitCode),
+      Field("traitReported", StringType,
+        Some("Trait Label as reported on the publication"),
+        resolve = _.value.traitReported),
+      Field("traitEfos", ListType(StringType),
+        Some("A list of curated efo codes"),
+        resolve = _.value.traitEfos),
+      Field("pmid", OptionType(StringType),
+        Some("PubMed ID for the corresponding publication"),
+        resolve = _.value.pubId),
+      Field("pubDate", OptionType(StringType),
+        Some("Publication Date as YYYY-MM-DD"),
+        resolve = _.value.pubDate),
+      Field("pubJournal", OptionType(StringType),
+        Some("Publication Journal name"),
+        resolve = _.value.pubJournal),
+      Field("pubTitle", OptionType(StringType),
+        Some("Publication Title"),
+        resolve = _.value.pubTitle),
+      Field("pubAuthor", OptionType(StringType),
+        Some("Publication author"),
+        resolve = _.value.pubAuthor)
+    ))
+
   // TODO missing a lot fields but enough to test
   val manhattanAssociation = ObjectType("ManhattanAssociation",
   "This element represents an association between a trait and a variant through a study",
@@ -108,6 +140,14 @@ object GQLSchema {
         resolve = _.value.associations)
     ))
 
+  val studyInfo = ObjectType("StudyInfo",
+  "This element represents a Study with a reported trait",
+    fields[Backend, StudyInfo](
+      Field("study", OptionType(study),
+        Some("A Study object"),
+        resolve = _.value.study)
+    ))
+
   val pheWAS = ObjectType("PheWAS",
     "This element represents a PheWAS like plot",
     fields[Backend, PheWASTable](
@@ -118,6 +158,9 @@ object GQLSchema {
 
   val query = ObjectType(
     "Query", fields[Backend, Unit](
+      Field("studyInfo", OptionType(study),
+        arguments = studyId :: Nil,
+        resolve = (ctx) => ctx.ctx.getStudyInfo(ctx.arg(studyId))),
       Field("manhattan", manhattan,
         arguments = studyId :: pageIndex :: pageSize :: Nil,
         resolve = (ctx) => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),

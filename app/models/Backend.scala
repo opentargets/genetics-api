@@ -100,6 +100,28 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     }
   }
 
+  def getStudyInfo(studyID: String) = {
+    val studyQ = sql"""
+                 |select
+                 | stid,
+                 | trait_code,
+                 | trait_reported,
+                 | trait_efos,
+                 | pmid,
+                 | pub_date,
+                 | pub_journal,
+                 | pub_title,
+                 | pub_author
+                 |from #$studiesTName
+                 |where stid = $studyID
+      """.stripMargin.as[Study]
+
+    db.run(studyQ.asTry).map {
+      case Success(v) => if (v.length > 0) Some(v(0)) else None
+      case Failure(_) => None
+    }
+  }
+
   def buildManhattanTable(studyID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
 
@@ -138,4 +160,5 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
   private val v2dByChrPosTName: String = "v2d_by_chrpos"
   private val d2v2gTName: String = "d2v2g"
   private val v2gTName: String = "v2g"
+  private val studiesTName: String = "studies"
 }
