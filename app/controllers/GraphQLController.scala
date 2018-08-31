@@ -21,12 +21,6 @@ class GraphQLController @Inject()(implicit ec: ExecutionContext, dbTables: Backe
 
   def options = Action {
     NoContent
-//    NoContent.withHeaders(
-//      "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS",
-//      "Access-Control-Allow-Origin" -> "*",
-//      "Access-Control-Allow-Headers" -> "Accept, Origin, Content-type, X-Json, X-Prototype-Version, X-Requested-With",
-//      "Access-Control-Max-Age" -> (60 * 60 * 24).toString
-//    )
   }
 
   def gql(query: String, variables: Option[String], operation: Option[String]) = Action.async {

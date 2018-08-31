@@ -19,4 +19,8 @@ object Functions {
       case List(i, s) => s"LIMIT ${i*s} , $s"
     }
   }
+
+  def parseSeq[T](s: String): Seq[T] = {
+    Seq.empty
+  }
 }

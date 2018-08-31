@@ -2,6 +2,7 @@ package models
 
 import slick.jdbc.GetResult
 import scala.util.Try
+import models.Functions.parseSeq
 
 object Entities {
 
@@ -59,14 +60,20 @@ object Entities {
   case class V2DByStudy(index_variant_id: String, index_rs_id: Option[String], pval: Double,
                         credibleSetSize: Long, ldSetSize: Long, totalSetSize: Long)
 
+  case class StudyInfo(study: Option[Study])
+  case class Study(studyId: String, traitCode: String, traitReported: String, traitEfos: Seq[String],
+                   pubId: Option[String], pubDate: Option[String], pubJournal: Option[String], pubTitle: Option[String],
+                   pubAuthor: Option[String])
+
   case class V2DByVariantPheWAS(traitReported: String, stid: String, pval: Double, nInitial: Long, nRepeated: Long)
 
   object Prefs {
     implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
-    implicit val getV2GRegionSummary = GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
-    implicit val getV2DByStudy = GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<))
-    implicit val getV2DByVariantPheWAS = GetResult(r => V2DByVariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<))
-    implicit val getD2V2GRegionSummary = GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
-
+    implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] = GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
+    implicit val getV2DByStudy: GetResult[V2DByStudy] = GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<))
+    implicit val getV2DByVariantPheWAS: GetResult[V2DByVariantPheWAS] = GetResult(r => V2DByVariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<))
+    implicit val getD2V2GRegionSummary: GetResult[D2V2GRegionSummary] = GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
+    implicit val getStudy: GetResult[Study] =
+      GetResult(r => Study(r.<<, r.<<, r.<<, parseSeq[String](r.nextString), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?))
   }
 }
