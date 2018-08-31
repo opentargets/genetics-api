@@ -156,6 +156,58 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     }
   }
 
+  def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
+    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+    val variant: Try[Option[Variant]] = variantID
+
+    variant match {
+      case Success(Some(v)) =>
+        val assocs = sql"""
+                       |select
+                       | chr_id,
+                       | position,
+                       | ref_allele,
+                       | alt_allele,
+                       | rs_id,
+                       | stid,
+                       | trait_code,
+                       | trait_reported,
+                       | trait_efos,
+                       | pmid,
+                       | pub_date,
+                       | pub_journal,
+                       | pub_title,
+                       | pub_author,
+                       | pval,
+                       | ifNull(n_initial,0) + ifNull(n_replication,0),
+                       | ifNull(n_cases, 0),
+                       | r2,
+                       | afr_1000g_prop,
+                       | amr_1000g_prop,
+                       | eas_1000g_prop,
+                       | eur_1000g_prop,
+                       | sas_1000g_prop,
+                       | log10_abf,
+                       | posterior_prob
+                       |from #$v2dByChrPosTName
+                       |prewhere
+                       |  chr_id = ${v.locus.chrId} and
+                       |  index_position = ${v.locus.position} and
+                       |  index_ref_allele = ${v.refAllele} and
+                       |  index_alt_allele = ${v.altAllele}
+                       |#$limitClause
+          """.stripMargin.as[IndexVariantAssociation]
+
+        // map to proper manhattan association with needed fields
+        val ret = db.run(assocs.asTry).map {
+          case Success(r) => Entities.IndexVariantTable(r)
+          case Failure(ex) => Entities.IndexVariantTable(associations = Vector.empty)
+        }
+        ret
+      case _ => Future.successful(Entities.IndexVariantTable(associations = Vector.empty))
+    }
+  }
+
   private val v2dByStTName: String = "v2d_by_stchr"
   private val v2dByChrPosTName: String = "v2d_by_chrpos"
   private val d2v2gTName: String = "d2v2g"

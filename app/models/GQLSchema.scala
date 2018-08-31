@@ -72,7 +72,53 @@ object GQLSchema {
         resolve = _.value.pubAuthor)
     ))
 
-  // TODO missing a lot fields but enough to test
+  val indexVariantAssociation = ObjectType("IndexVariantAssociation",
+    "This object represent and link between and specified index variant with a tag variant through a (study, index)" +
+      "and a number of other variants via an expansion method",
+    fields[Backend, IndexVariantAssociation](
+      Field("tagVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = _.value.tagVariant),
+      Field("study", study,
+        Some("study ID"),
+        resolve = _.value.study),
+      Field("pval", FloatType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.pval),
+      Field("nTotal", IntType,
+        Some("n total cases (n initial + n replication)"),
+        resolve = _.value.nTotal),
+      Field("nCases", IntType,
+        Some("n cases"),
+        resolve = _.value.nCases),
+      Field("overallR2", OptionType(FloatType),
+        Some("study ID"),
+        resolve = _.value.r2),
+      Field("afr1000GProp", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.afr1000GProp),
+      Field("amr1000GProp", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.amr1000GProp),
+      Field("eas1000GProp", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.eas1000GProp),
+      Field("eur1000GProp", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.eur1000GProp),
+      Field("sas1000GProp", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.sas1000GProp),
+      Field("log10Abf", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.log10Abf),
+      Field("posteriorProbability", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.posteriorProbability)
+
+
+    ))
+
   val manhattanAssociation = ObjectType("ManhattanAssociation",
   "This element represents an association between a trait and a variant through a study",
     fields[Backend, ManhattanAssociation](
@@ -156,6 +202,15 @@ object GQLSchema {
         resolve = _.value.associations)
     ))
 
+
+  val tagVariantsAndStudiesForIndexVariant = ObjectType("TagVariantsAndStudiesForIndexVariant",
+    "A list of rows with each link",
+    fields[Backend, IndexVariantTable](
+      Field("associations", ListType(indexVariantAssociation),
+        Some("A list of associations connected to a Index variant and a Study through some expansion methods"),
+        resolve = _.value.associations)
+    ))
+
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("studyInfo", OptionType(study),
@@ -164,6 +219,10 @@ object GQLSchema {
       Field("manhattan", manhattan,
         arguments = studyId :: pageIndex :: pageSize :: Nil,
         resolve = (ctx) => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("tagVariantsAndStudiesForIndexVariant", tagVariantsAndStudiesForIndexVariant,
+        arguments = variantId :: pageIndex :: pageSize :: Nil,
+        resolve = (ctx) =>
+          ctx.ctx.buildIndexVariantAssocTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("pheWAS", pheWAS,
         arguments = variantId :: pageIndex :: pageSize :: Nil,
         resolve = (ctx) => ctx.ctx.buildPheWASTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize)))
