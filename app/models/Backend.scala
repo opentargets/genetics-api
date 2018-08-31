@@ -112,7 +112,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
                  | pub_journal,
                  | pub_title,
                  | pub_author
-                 |from #$v2dByStTName
+                 |from #$studiesTName
                  |where stid = $studyID
       """.stripMargin.as[Study]
 
