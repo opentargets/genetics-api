@@ -45,6 +45,21 @@ object Entities {
   case class PheWASAssociation(studyId: String, traitReported: String, traitId: Option[String],
                                pval: Double, beta: Double, nTotal: Long, nCases: Long)
 
+  case class IndexVariantTable(associations: Vector[IndexVariantAssociation])
+  case class IndexVariantAssociation(tagVariant: Variant,
+                                     study: Study,
+                                     pval: Double,
+                                     nTotal: Int, // n_initial + n_replication which could be null as well both fields
+                                     nCases: Int,
+                                     r2: Option[Double],
+                                     afr1000GProp: Option[Double],
+                                     amr1000GProp: Option[Double],
+                                     eas1000GProp: Option[Double],
+                                     eur1000GProp: Option[Double],
+                                     sas1000GProp: Option[Double],
+                                     log10Abf: Option[Double],
+                                     posteriorProbability: Option[Double])
+
   case class ManhattanTable(associations: Vector[ManhattanAssociation])
   case class ManhattanAssociation(variant: Variant, pval: Double,
                                   bestGenes: List[Gene], crediblbeSetSize: Long,
@@ -75,5 +90,14 @@ object Entities {
     implicit val getD2V2GRegionSummary: GetResult[D2V2GRegionSummary] = GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
     implicit val getStudy: GetResult[Study] =
       GetResult(r => Study(r.<<, r.<<, r.<<, parseSeq[String](r.nextString), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?))
+
+    implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
+      r => {
+        val variant = Variant(DNAPosition(r.<<, r.<<), r.<<, r.<<, r.<<?)
+        val study = Study(r.<<, r.<<, r.<<, parseSeq[String](r.nextString), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
+        IndexVariantAssociation(variant, study,
+          r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
+      }
+    )
   }
 }
