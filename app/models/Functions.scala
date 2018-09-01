@@ -1,5 +1,7 @@
 package models
 
+import reflect.runtime.universe._
+
 object Functions {
   val defaultPaginationSize: Option[Int] = Some(500000)
 
@@ -20,7 +22,25 @@ object Functions {
     }
   }
 
-  def parseSeq[T](s: String): Seq[T] = {
-    Seq.empty
+  /** https://stackoverflow.com/questions/12218641/scala-what-is-a-typetag-and-how-do-i-use-it/12232195#12232195 */
+  def toSeqString(s: String): Seq[String] = {
+    if (s.length >= 2)
+      s.slice(1, s.length - 1).split(",").map(t => t.slice(1, t.length - 1))
+    else
+      Seq.empty
+  }
+
+  def toSeqDouble(s: String): Seq[Double] = {
+    if (s.length >= 2)
+      s.slice(1, s.length - 1).split(",").map(_.toDouble)
+    else
+      Seq.empty
+  }
+
+  def toSeqInt(s: String): Seq[Int] = {
+    if (s.length >= 2)
+      s.slice(1, s.length - 1).split(",").map(_.toInt)
+    else
+      Seq.empty
   }
 }
