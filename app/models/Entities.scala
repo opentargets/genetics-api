@@ -2,7 +2,7 @@ package models
 
 import slick.jdbc.GetResult
 import scala.util.Try
-import models.Functions.parseSeq
+import models.Functions.toSeqString
 
 object Entities {
 
@@ -89,12 +89,12 @@ object Entities {
     implicit val getV2DByVariantPheWAS: GetResult[V2DByVariantPheWAS] = GetResult(r => V2DByVariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<))
     implicit val getD2V2GRegionSummary: GetResult[D2V2GRegionSummary] = GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
     implicit val getStudy: GetResult[Study] =
-      GetResult(r => Study(r.<<, r.<<, r.<<, parseSeq[String](r.nextString), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?))
+      GetResult(r => Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?))
 
     implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
       r => {
         val variant = Variant(DNAPosition(r.<<, r.<<), r.<<, r.<<, r.<<?)
-        val study = Study(r.<<, r.<<, r.<<, parseSeq[String](r.nextString), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
+        val study = Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
         IndexVariantAssociation(variant, study,
           r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
       }
