@@ -23,6 +23,17 @@ object GQLSchema {
         resolve = _.value.symbol)
     ))
 
+  val scoredGene = ObjectType("ScoredGene",
+  "This object link a Gene with a score",
+    fields[Backend, (Gene, Double)](
+      Field("gene", gene,
+        Some("Gene Info"),
+        resolve = _.value._1),
+      Field("score", FloatType,
+        Some("Score a Float number between [0. .. 1.]"),
+        resolve = _.value._2)
+    ))
+
   val variant = ObjectType("Variant",
     "This element represents a variant object",
     fields[Backend, Variant](
@@ -137,7 +148,7 @@ object GQLSchema {
       Field("position", LongType,
         Some("absolute position p of the variant i in the chromosome j"),
         resolve = _.value.variant.locus.position),
-      Field("bestGenes", ListType(gene),
+      Field("bestGenes", ListType(scoredGene),
         Some("A list of best genes associated"),
         resolve = _.value.bestGenes),
       Field("credibleSetSize", LongType,
