@@ -87,7 +87,13 @@ object Entities {
     implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] = GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
     implicit val getV2DByStudy: GetResult[V2DByStudy] = {
       val toGeneScoreTuple = (geneIds: Seq[String], geneScores: Seq[Double]) => {
-        geneIds.map(Gene(_,None, None, None, None)) zip geneScores
+        val ordScored = (geneIds.map(Gene(_,None, None, None, None)) zip geneScores)
+          .sortBy(_._2)(Ordering[Double].reverse)
+
+        if (ordScored.isEmpty) ordScored
+        else {
+          ordScored.takeWhile(_._2 == ordScored.head._2)
+        }
       }
       GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<,
         toGeneScoreTuple(toSeqString(r.<<), toSeqDouble(r.<<))))

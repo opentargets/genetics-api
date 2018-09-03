@@ -155,7 +155,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       |        groupArray(gene_id) AS top_genes_ids,
       |        groupArray(overall_score) AS top_genes_scores
       |    FROM ot.d2v2g_score_by_overall
-      |    PREWHERE (variant_id = index_variant_id) AND (overall_score >= 0.9)
+      |    PREWHERE (variant_id = index_variant_id) AND (overall_score > 0.)
       |    GROUP BY variant_id
       |) USING (index_variant_id)
       |#$limitClause
