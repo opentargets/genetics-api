@@ -112,7 +112,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
                  | pub_journal,
                  | pub_title,
                  | pub_author
-                 |from #$studiesFullTName
+                 |from #$studiesTName
                  |where stid = $studyID
       """.stripMargin.as[Study]
 
@@ -144,7 +144,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       |        uniqIf(variant_id, posterior_prob > 0) AS credibleSetSize,
       |        uniqIf(variant_id, r2 > 0) AS ldSetSize,
       |        uniq(variant_id) AS uniq_variants
-      |    FROM #$v2dFullByStTName
+      |    FROM #$v2dByStTName
       |    PREWHERE stid = $studyID
       |    GROUP BY index_variant_id
       |)
@@ -234,6 +234,4 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
   private val d2v2gTName: String = "d2v2g"
   private val v2gTName: String = "v2g"
   private val studiesTName: String = "studies"
-  private val v2dFullByStTName: String = "v2df_by_stchr"
-  private val studiesFullTName: String = "studiesf"
 }
