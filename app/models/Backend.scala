@@ -148,7 +148,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       |    PREWHERE stid = $studyID
       |    GROUP BY index_variant_id
       |)
-      |ALL INNER JOIN
+      |ALL LEFT OUTER JOIN
       |(
       |    SELECT
       |        variant_id AS index_variant_id,
