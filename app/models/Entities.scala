@@ -2,7 +2,7 @@ package models
 
 import slick.jdbc.GetResult
 import scala.util.Try
-import models.Functions.toSeqString
+import models.Functions.{toSeqString, toSeqDouble}
 
 object Entities {
 
@@ -62,7 +62,7 @@ object Entities {
 
   case class ManhattanTable(associations: Vector[ManhattanAssociation])
   case class ManhattanAssociation(variant: Variant, pval: Double,
-                                  bestGenes: List[Gene], crediblbeSetSize: Long,
+                                  bestGenes: Seq[(Gene, Double)], crediblbeSetSize: Long,
                                   ldSetSize: Long, totalSetSize: Long)
 
   case class V2GRegionSummary(feature: String, avg_position: Long, uniq_genes: Long, uniq_variants: Long)
@@ -73,7 +73,7 @@ object Entities {
                                 count_evs: Long)
 
   case class V2DByStudy(index_variant_id: String, index_rs_id: Option[String], pval: Double,
-                        credibleSetSize: Long, ldSetSize: Long, totalSetSize: Long)
+                        credibleSetSize: Long, ldSetSize: Long, totalSetSize: Long, topGenes: Seq[(Gene, Double)])
 
   case class StudyInfo(study: Option[Study])
   case class Study(studyId: String, traitCode: String, traitReported: String, traitEfos: Seq[String],
@@ -85,7 +85,14 @@ object Entities {
   object Prefs {
     implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
     implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] = GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
-    implicit val getV2DByStudy: GetResult[V2DByStudy] = GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<))
+    implicit val getV2DByStudy: GetResult[V2DByStudy] = {
+      val toGeneScoreTuple = (geneIds: Seq[String], geneScores: Seq[Double]) => {
+        geneIds.map(Gene(_,None, None, None, None)) zip geneScores
+      }
+      GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<,
+        toGeneScoreTuple(toSeqString(r.<<), toSeqDouble(r.<<))))
+    }
+
     implicit val getV2DByVariantPheWAS: GetResult[V2DByVariantPheWAS] = GetResult(r => V2DByVariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<))
     implicit val getD2V2GRegionSummary: GetResult[D2V2GRegionSummary] = GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
     implicit val getStudy: GetResult[Study] =

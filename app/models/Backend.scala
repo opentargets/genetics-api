@@ -126,17 +126,38 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
 
     val idxVariants = sql"""
-      |select
-      | index_variant_id,
-      | any(index_rs_id),
-      | any(pval),
-      | uniqIf(variant_id, posterior_prob > 0) AS credibleSetSize,
-      | uniqIf(variant_id, r2 > 0) AS ldSetSize,
-      | uniq(variant_id) AS uniq_variants
-      |from #$v2dByStTName
-      |prewhere stid = $studyID
-      |group by index_variant_id
-      |order by index_variant_id asc
+      |SELECT
+      |    index_variant_id,
+      |    index_rs_id,
+      |    pval,
+      |    credibleSetSize,
+      |    ldSetSize,
+      |    uniq_variants,
+      |    top_genes_ids,
+      |    top_genes_scores
+      |FROM
+      |(
+      |    SELECT
+      |        index_variant_id,
+      |        any(index_rs_id) AS index_rs_id,
+      |        any(pval) AS pval,
+      |        uniqIf(variant_id, posterior_prob > 0) AS credibleSetSize,
+      |        uniqIf(variant_id, r2 > 0) AS ldSetSize,
+      |        uniq(variant_id) AS uniq_variants
+      |    FROM #$v2dByStTName
+      |    PREWHERE stid = $studyID
+      |    GROUP BY index_variant_id
+      |)
+      |ALL LEFT OUTER JOIN
+      |(
+      |    SELECT
+      |        variant_id AS index_variant_id,
+      |        groupArray(gene_id) AS top_genes_ids,
+      |        groupArray(overall_score) AS top_genes_scores
+      |    FROM ot.d2v2g_score_by_overall
+      |    PREWHERE (variant_id = index_variant_id) AND (overall_score >= 0.9)
+      |    GROUP BY variant_id
+      |) USING (index_variant_id)
       |#$limitClause
       """.stripMargin.as[V2DByStudy]
 
@@ -148,7 +169,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
           val variant: Try[Option[Variant]] = el.index_variant_id
           val completedV = variant.map(_.map(v => Variant(v.locus, v.refAllele, v.altAllele, el.index_rs_id)))
 
-          ManhattanAssociation(completedV.get.get, el.pval, List.empty,
+          ManhattanAssociation(completedV.get.get, el.pval, el.topGenes,
             el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
