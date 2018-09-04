@@ -37,9 +37,9 @@ object Entities {
   //                   pmid: Option[String], pub_date: Option[String], pub_journal: Option[String], pub_author: Option[String])
 
 
-  case class Gene(id: String, symbol: Option[String],
-                  start: Option[Long], end: Option[Long],
-                  chromosome: Option[String])
+  case class Gene(id: String, symbol: Option[String] = None, start: Option[Long] = None, end: Option[Long] = None,
+                  chromosome: Option[String] = None, tss: Option[Long] = None,
+                  bioType: Option[String] = None, exons: Seq[Long] = Seq.empty)
 
   case class PheWASTable(associations: Vector[PheWASAssociation])
   case class PheWASAssociation(studyId: String, traitReported: String, traitId: Option[String],
@@ -86,8 +86,8 @@ object Entities {
     implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
     implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] = GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
     implicit val getV2DByStudy: GetResult[V2DByStudy] = {
-      val toGeneScoreTuple = (geneIds: Seq[String], geneScores: Seq[Double]) => {
-        val ordScored = (geneIds.map(Gene(_,None, None, None, None)) zip geneScores)
+      def toGeneScoreTuple(geneIds: Seq[String], geneNames: Seq[String], geneScores: Seq[Double]) = {
+        val ordScored = ((geneIds zip geneNames).map(t => Gene(t._1, Some(t._2))) zip geneScores)
           .sortBy(_._2)(Ordering[Double].reverse)
 
         if (ordScored.isEmpty) ordScored
@@ -95,8 +95,9 @@ object Entities {
           ordScored.takeWhile(_._2 == ordScored.head._2)
         }
       }
+
       GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<,
-        toGeneScoreTuple(toSeqString(r.<<), toSeqDouble(r.<<))))
+        toGeneScoreTuple(toSeqString(r.<<), toSeqString(r.<<), toSeqDouble(r.<<))))
     }
 
     implicit val getV2DByVariantPheWAS: GetResult[V2DByVariantPheWAS] = GetResult(r => V2DByVariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<))
