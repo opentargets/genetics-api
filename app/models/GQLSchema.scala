@@ -20,7 +20,25 @@ object GQLSchema {
         resolve = _.value.id),
       Field("symbol", OptionType(StringType),
         Some("Approved symbol name of a gene"),
-        resolve = _.value.symbol)
+        resolve = _.value.symbol),
+      Field("chromosome", OptionType(StringType),
+        Some("Chromosome"),
+        resolve = _.value.chromosome),
+      Field("start", OptionType(LongType),
+        Some("Start position for the gene"),
+        resolve = _.value.start),
+      Field("end", OptionType(LongType),
+        Some("End position for the gene"),
+        resolve = _.value.end),
+      Field("tss", OptionType(LongType),
+        Some("Transcription start site"),
+        resolve = _.value.tss),
+      Field("bioType", OptionType(StringType),
+        Some("Bio-type of the gene"),
+        resolve = _.value.bioType),
+      Field("exons", ListType(LongType),
+        Some("Approved symbol name of a gene"),
+        resolve = _.value.exons)
     ))
 
   val scoredGene = ObjectType("ScoredGene",

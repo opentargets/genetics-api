@@ -134,6 +134,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       |    ldSetSize,
       |    uniq_variants,
       |    top_genes_ids,
+      |    top_genes_names,
       |    top_genes_scores
       |FROM
       |(
@@ -153,6 +154,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       |    SELECT
       |        variant_id AS index_variant_id,
       |        groupArray(gene_id) AS top_genes_ids,
+      |        groupArray(dictGetString('gene','gene_name',tuple(gene_id))) AS top_genes_names,
       |        groupArray(overall_score) AS top_genes_scores
       |    FROM ot.d2v2g_score_by_overall
       |    PREWHERE (variant_id = index_variant_id) AND (overall_score > 0.)
