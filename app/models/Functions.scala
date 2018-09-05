@@ -4,6 +4,7 @@ import reflect.runtime.universe._
 
 object Functions {
   val defaultPaginationSize: Option[Int] = Some(500000)
+  val defaultChromosomes = (1 to 22).map(_.toString) ++ Seq("X", "Y", "MT")
 
   /** the indexation of the pagination starts at page number 0 set by pageIndex and takes pageSize chunks
     * each time. The default pageSize is defaultPaginationSize
@@ -43,4 +44,15 @@ object Functions {
     else
       Seq.empty
   }
+
+  def toSeqLong(s: String): Seq[Long] = {
+    if (s.length > 2)
+      s.slice(1, s.length - 1).split(",").map(_.toLong)
+    else
+      Seq.empty
+  }
+
+  /** parse and return the proper chromosome string or None */
+  def parseChromosome(chromosome: String): Option[String] =
+    defaultChromosomes.find(_.equalsIgnoreCase(chromosome))
 }
