@@ -45,6 +45,22 @@ object Entities {
   case class PheWASAssociation(studyId: String, traitReported: String, traitId: Option[String],
                                pval: Double, beta: Double, nTotal: Long, nCases: Long)
 
+  case class TagVariantTable(associations: Vector[TagVariantAssociation])
+  case class TagVariantAssociation(indexVariant: Variant,
+                                     study: Study,
+                                     pval: Double,
+                                     nTotal: Int, // n_initial + n_replication which could be null as well both fields
+                                     nCases: Int,
+                                     r2: Option[Double],
+                                     afr1000GProp: Option[Double],
+                                     amr1000GProp: Option[Double],
+                                     eas1000GProp: Option[Double],
+                                     eur1000GProp: Option[Double],
+                                     sas1000GProp: Option[Double],
+                                     log10Abf: Option[Double],
+                                     posteriorProbability: Option[Double])
+
+
   case class IndexVariantTable(associations: Vector[IndexVariantAssociation])
   case class IndexVariantAssociation(tagVariant: Variant,
                                      study: Study,
@@ -107,9 +123,13 @@ object Entities {
   }
   object Prefs {
     implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
-    implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] = GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
+
+    implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] =
+      GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
+
     implicit val getV2DByStudy: GetResult[V2DByStudy] = {
-      def toGeneScoreTuple(geneIds: Seq[String], geneNames: Seq[String], geneScores: Seq[Double]) = {
+      def toGeneScoreTuple(geneIds: Seq[String], geneNames: Seq[String],
+                           geneScores: Seq[Double]) = {
         val ordScored = ((geneIds zip geneNames).map(t => Gene(id = t._1, symbol = Some(t._2))) zip geneScores)
           .sortBy(_._2)(Ordering[Double].reverse)
 
@@ -123,36 +143,35 @@ object Entities {
         toGeneScoreTuple(toSeqString(r.<<), toSeqString(r.<<), toSeqDouble(r.<<))))
     }
 
-    implicit val getV2DByVariantPheWAS: GetResult[V2DByVariantPheWAS] = GetResult(r => V2DByVariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<))
-    implicit val getD2V2GRegionSummary: GetResult[D2V2GRegionSummary] = GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
+    implicit val getV2DByVariantPheWAS: GetResult[V2DByVariantPheWAS] =
+      GetResult(r => V2DByVariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<))
+
+    implicit val getD2V2GRegionSummary: GetResult[D2V2GRegionSummary] =
+      GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
+
     implicit val getStudy: GetResult[Study] =
       GetResult(r => Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?))
 
     implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
       r => {
-        val variant = Variant(DNAPosition(r.<<, r.<<), r.<<, r.<<, r.<<?)
+        val variant = Variant(r.<<, r.<<?)
         val study = Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-        IndexVariantAssociation(variant, study,
+        IndexVariantAssociation(variant.get.get, study,
+          r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
+      }
+    )
+
+    implicit val getTagVariantAssoc: GetResult[TagVariantAssociation] = GetResult(
+      r => {
+        val variant = Variant(r.<<, r.<<?)
+        val study = Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
+        TagVariantAssociation(variant.get.get, study,
           r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
       }
     )
 
     implicit val getGeckoLine: GetResult[GeckoLine] = GetResult(
       r => {
-        //   variant_id,
-        //  rs_id ,
-        //  index_variant_id ,
-        //  index_variant_rsid ,
-        //  gene_id ,
-        //  dictGetString('gene','gene_name',tuple(gene_id)) as gene_name,
-        //  dictGetString('gene','biotype',tuple(gene_id)) as gene_type,
-        //  dictGetString('gene','chr',tuple(gene_id)) as gene_chr,
-        //  dictGetUInt32('gene','tss',tuple(gene_id)) as gene_tss,
-        //  dictGetUInt32('gene','start',tuple(gene_id)) as gene_start,
-        //  dictGetUInt32('gene','end',tuple(gene_id)) as gene_end,
-        //  dictGetUInt8('gene','fwdstrand',tuple(gene_id)) as gene_fwd,
-        //  cast(dictGetString('gene','exons',tuple(gene_id)), 'Array(UInt32)') as gene_exons,
-
         val tagVariant = Variant(r.<<, r.<<?).get.get
         val indexVariant = Variant(r.<<, r.<<?).get.get
 

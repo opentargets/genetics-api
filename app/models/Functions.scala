@@ -5,7 +5,15 @@ import reflect.runtime.universe._
 object Functions {
   val defaultPaginationSize: Option[Int] = Some(500000)
   val defaultChromosomes = (1 to 22).map(_.toString) ++ Seq("X", "Y", "MT")
+  val defaultMaxRegionSize = 2000000L
 
+  def parseRegion(start: Long, end: Long): (Long, Long) = {
+    val elems = List(end, start).map(_.abs).sorted(Ordering[Long].reverse)
+    (defaultMaxRegionSize - elems.tail.foldLeft(elems.head)((r, el) => r - el)) >= 0 match {
+      case true => (elems(1), elems.head)
+      case false => (elems.head, elems.head + defaultMaxRegionSize)
+    }
+  }
   /** the indexation of the pagination starts at page number 0 set by pageIndex and takes pageSize chunks
     * each time. The default pageSize is defaultPaginationSize
     * @param pageIndex ordinal of the pages chunked by pageSize. It 0-start based

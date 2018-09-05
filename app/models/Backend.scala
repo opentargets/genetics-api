@@ -187,10 +187,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       case Success(Some(v)) =>
         val assocs = sql"""
                        |select
-                       | chr_id,
-                       | position,
-                       | ref_allele,
-                       | alt_allele,
+                       | variant_id,
                        | rs_id,
                        | stid,
                        | trait_code,
@@ -221,7 +218,6 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
                        |#$limitClause
           """.stripMargin.as[IndexVariantAssociation]
 
-        // map to proper manhattan association with needed fields
         val ret = db.run(assocs.asTry).map {
           case Success(r) => Entities.IndexVariantTable(r)
           case Failure(ex) => Entities.IndexVariantTable(associations = Vector.empty)
@@ -231,9 +227,59 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     }
   }
 
+  def buildTagVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
+    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+    val variant: Try[Option[Variant]] = variantID
+
+    variant match {
+      case Success(Some(v)) =>
+        val assocs = sql"""
+                          |select
+                          | index_variant_id,
+                          | index_rs_id,
+                          | stid,
+                          | trait_code,
+                          | trait_reported,
+                          | trait_efos,
+                          | pmid,
+                          | pub_date,
+                          | pub_journal,
+                          | pub_title,
+                          | pub_author,
+                          | pval,
+                          | ifNull(n_initial,0) + ifNull(n_replication,0),
+                          | ifNull(n_cases, 0),
+                          | r2,
+                          | afr_1000g_prop,
+                          | amr_1000g_prop,
+                          | eas_1000g_prop,
+                          | eur_1000g_prop,
+                          | sas_1000g_prop,
+                          | log10_abf,
+                          | posterior_prob
+                          |from #$v2dByChrPosTName
+                          |prewhere
+                          |  chr_id = ${v.locus.chrId} and
+                          |  position = ${v.locus.position} and
+                          |  ref_allele = ${v.refAllele} and
+                          |  alt_allele = ${v.altAllele}
+                          |#$limitClause
+          """.stripMargin.as[TagVariantAssociation]
+
+        // map to proper manhattan association with needed fields
+        val ret = db.run(assocs.asTry).map {
+          case Success(r) => Entities.TagVariantTable(r)
+          case Failure(ex) => Entities.TagVariantTable(associations = Vector.empty)
+        }
+        ret
+      case _ => Future.successful(Entities.TagVariantTable(associations = Vector.empty))
+    }
+  }
+
   def buildGecko(chromosome: String, posStart: Long, posEnd: Long) = {
     parseChromosome(chromosome) match {
       case Some(chr) =>
+        val (start, end) = parseRegion(posStart, posEnd)
         val assocs = sql"""
                           |select
                           |  variant_id,
@@ -284,8 +330,8 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
                           | from #$d2v2gTName
                           | prewhere
                           |   chr_id = $chr and
-                          |   position >= $posStart and
-                          |   position <= $posEnd
+                          |   position >= $start and
+                          |   position <= $end
                           | group by stid, index_variant_id, variant_id, gene_id
                           |) all inner join (
                           | select
