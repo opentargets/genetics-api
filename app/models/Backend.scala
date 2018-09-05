@@ -231,9 +231,84 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     }
   }
 
+  def buildGecko(chromosome: String, posStart: Long, posEnd: Long) = {
+    parseChromosome(chromosome) match {
+      case Some(chr) =>
+        val assocs = sql"""
+                          |select
+                          |  variant_id,
+                          |  rs_id ,
+                          |  index_variant_id ,
+                          |  index_variant_rsid ,
+                          |  gene_id ,
+                          |  dictGetString('gene','gene_name',tuple(gene_id)) as gene_name,
+                          |  dictGetString('gene','biotype',tuple(gene_id)) as gene_type,
+                          |  dictGetString('gene','chr',tuple(gene_id)) as gene_chr,
+                          |  dictGetUInt32('gene','tss',tuple(gene_id)) as gene_tss,
+                          |  dictGetUInt32('gene','start',tuple(gene_id)) as gene_start,
+                          |  dictGetUInt32('gene','end',tuple(gene_id)) as gene_end,
+                          |  dictGetUInt8('gene','fwdstrand',tuple(gene_id)) as gene_fwd,
+                          |  cast(dictGetString('gene','exons',tuple(gene_id)), 'Array(UInt32)') as gene_exons,
+                          |  stid,
+                          |  pmid,
+                          |  pub_date ,
+                          |  pub_journal ,
+                          |  pub_title ,
+                          |  pub_author ,
+                          |  trait_reported ,
+                          |  trait_efos ,
+                          |  trait_code ,
+                          |  r2,
+                          |  posterior_prob ,
+                          |  pval,
+                          |  overall_score
+                          |from (
+                          | select
+                          |  stid,
+                          |  variant_id,
+                          |  any(rs_id) as rs_id,
+                          |  index_variant_id,
+                          |  any(index_variant_rsid) as index_variant_rsid,
+                          |  gene_id,
+                          |  any(pmid) as pmid,
+                          |  any(pub_date) as pub_date,
+                          |  any(pub_journal) as pub_journal,
+                          |  any(pub_title) as pub_title,
+                          |  any(pub_author) as pub_author,
+                          |  any(trait_reported) as trait_reported,
+                          |  any(trait_efos) as trait_efos,
+                          |  any(trait_code) as trait_code,
+                          |  any(r2) as r2,
+                          |  any(posterior_prob) as posterior_prob,
+                          |  any(pval) as pval
+                          | from #$d2v2gTName
+                          | prewhere
+                          |   chr_id = $chr and
+                          |   position >= $posStart and
+                          |   position <= $posEnd
+                          | group by stid, index_variant_id, variant_id, gene_id
+                          |) all inner join (
+                          | select
+                          |   variant_id,
+                          |   gene_id,
+                          |   overall_score
+                          | from #$d2v2gOScoresTName
+                          | prewhere chr_id = $chr
+                          |) using (variant_id, gene_id)
+          """.stripMargin.as[GeckoLine]
+
+        db.run(assocs.asTry).map {
+          case Success(r) => Entities.Gecko(r)
+          case Failure(ex) => Entities.Gecko(Seq.empty)
+        }
+      case None => Future.successful(None)
+    }
+  }
+
   private val v2dByStTName: String = "v2d_by_stchr"
   private val v2dByChrPosTName: String = "v2d_by_chrpos"
   private val d2v2gTName: String = "d2v2g"
+  private val d2v2gOScoresTName: String = "d2v2g_score_by_overall"
   private val v2gTName: String = "v2g"
   private val studiesTName: String = "studies"
 }

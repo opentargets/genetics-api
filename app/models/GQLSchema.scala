@@ -9,8 +9,11 @@ import sangria.marshalling.ToInput
 object GQLSchema {
   val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
   val variantId = Argument("variantId", StringType, description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
+  val chromosome = Argument("chromosome", StringType, description = "Chromosome as String between 1..22 or X, Y, MT")
   val pageIndex = Argument("pageIndex", OptionInputType(IntType), description = "pagination index >= 0")
   val pageSize = Argument("pageSize", OptionInputType(IntType), description = "pagination size > 0")
+  val dnaPosStart = Argument("start", LongType, description = "Start position in a specified chromosome")
+  val dnaPosEnd = Argument("end", LongType, description = "End position in a specified chromosome")
 
   val gene = ObjectType("Gene",
   "This element represents a simple gene object which contains id and name",
@@ -66,7 +69,13 @@ object GQLSchema {
         resolve = _.value.locus.chrId),
       Field("position", LongType,
         Some("Approved symbol name of a gene"),
-        resolve = _.value.locus.position)
+        resolve = _.value.locus.position),
+      Field("refAllele", StringType,
+        Some("Ref allele"),
+        resolve = _.value.refAllele),
+      Field("altAllele", StringType,
+        Some("Alt allele"),
+        resolve = _.value.altAllele)
     ))
 
   val study = ObjectType("Study",
@@ -206,6 +215,65 @@ object GQLSchema {
         resolve = _.value.nCases)
     ))
 
+  val geneTagVariant = ObjectType("GeneTagVariant",
+    "",
+    fields[Backend, GeneTagVariant](
+      Field("geneId", StringType,
+        Some(""),
+        resolve = _.value.geneId),
+      Field("tagVariantId", StringType,
+        Some(""),
+        resolve = _.value.tagVariantId),
+      Field("overallScore", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.overallScore)
+    ))
+
+  val tagVariantIndexVariantStudy = ObjectType("TagVariantIndexVariantStudy",
+    "",
+    fields[Backend, TagVariantIndexVariantStudy](
+      Field("tagVariantId", StringType,
+        Some(""),
+        resolve = _.value.tagVariantId),
+      Field("indexVariantId", StringType,
+        Some(""),
+        resolve = _.value.indexVariantId),
+      Field("studyId", StringType,
+        Some(""),
+        resolve = _.value.studyId),
+      Field("r2", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.r2),
+      Field("posteriorProbability", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.posteriorProb),
+      Field("pval", FloatType,
+        Some(""),
+        resolve = _.value.pval)
+    ))
+
+  val gecko = ObjectType("Gecko",
+    "",
+    fields[Backend, Gecko](
+      Field("genes", ListType(gene),
+        Some(""),
+        resolve = _.value.genes),
+      Field("tagVariants", ListType(variant),
+        Some(""),
+        resolve = _.value.tagVariants),
+      Field("indexVariants", ListType(variant),
+        Some(""),
+        resolve = _.value.indexVariants),
+      Field("studies", ListType(study),
+        Some(""),
+        resolve = _.value.studies),
+      Field("geneTagVariants", ListType(geneTagVariant),
+        Some(""),
+        resolve = _.value.geneTagVariants),
+      Field("tagVariantIndexVariantStudies", ListType(tagVariantIndexVariantStudy),
+        Some(""),
+        resolve = _.value.tagVariantIndexVariantStudies)
+    ))
 
   val manhattan = ObjectType("Manhattan",
     "This element represents a Manhattan like plot",
@@ -254,7 +322,10 @@ object GQLSchema {
           ctx.ctx.buildIndexVariantAssocTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("pheWAS", pheWAS,
         arguments = variantId :: pageIndex :: pageSize :: Nil,
-        resolve = (ctx) => ctx.ctx.buildPheWASTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize)))
+        resolve = (ctx) => ctx.ctx.buildPheWASTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("gecko", OptionType(gecko),
+        arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+        resolve = (ctx) => ctx.ctx.buildGecko(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd)))
     ))
 
   val schema = Schema(query)

@@ -2,7 +2,7 @@ package models
 
 import slick.jdbc.GetResult
 import scala.util.Try
-import models.Functions.{toSeqString, toSeqDouble}
+import models.Functions._
 
 object Entities {
 
@@ -12,11 +12,11 @@ object Entities {
   }
 
   object Variant {
-    def apply(variantId: String): Try[Option[Variant]] = {
+    def apply(variantId: String, rsId: Option[String] = None): Try[Option[Variant]] = {
       Try {
         variantId.toUpperCase.split("_").toList match {
           case List(chr: String, pos: String, ref: String, alt: String) =>
-            Some(Variant(DNAPosition(chr, pos.toLong), ref, alt, None))
+            Some(Variant(DNAPosition(chr, pos.toLong), ref, alt, rsId))
           case _ => None
         }
       }
@@ -39,7 +39,7 @@ object Entities {
 
   case class Gene(id: String, symbol: Option[String] = None, start: Option[Long] = None, end: Option[Long] = None,
                   chromosome: Option[String] = None, tss: Option[Long] = None,
-                  bioType: Option[String] = None, exons: Seq[Long] = Seq.empty)
+                  bioType: Option[String] = None, fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
 
   case class PheWASTable(associations: Vector[PheWASAssociation])
   case class PheWASAssociation(studyId: String, traitReported: String, traitId: Option[String],
@@ -82,12 +82,35 @@ object Entities {
 
   case class V2DByVariantPheWAS(traitReported: String, stid: String, pval: Double, nInitial: Long, nRepeated: Long)
 
+  case class GeneTagVariant(geneId: String, tagVariantId: String, overallScore: Double)
+  case class TagVariantIndexVariantStudy(tagVariantId: String, indexVariantId: String, studyId: String,
+                                         r2: Option[Double], pval: Double, posteriorProb: Option[Double])
+  case class Gecko(genes: Seq[Gene], tagVariants: Seq[Variant], indexVariants: Seq[Variant],
+                   studies: Seq[Study], geneTagVariants: Seq[GeneTagVariant],
+                   tagVariantIndexVariantStudies: Seq[TagVariantIndexVariantStudy])
+  case class GeckoLine(gene: Gene, tagVariant: Variant, indexVariant: Variant, study: Study,
+                       geneTagVariant: GeneTagVariant, tagVariantIndexVariantStudy: TagVariantIndexVariantStudy)
+
+  object Gecko {
+    def apply(geckoLines: Seq[GeckoLine]): Option[Gecko] = {
+      if (geckoLines.isEmpty) None
+      else {
+        val genes = geckoLines.map(_.gene).distinct
+        val tagVariants = geckoLines.map(_.tagVariant).distinct
+        val indexVariants = geckoLines.map(_.indexVariant).distinct
+        val studies = geckoLines.map(_.study).distinct
+        val geneTagVariants = geckoLines.map(_.geneTagVariant).distinct
+        val tagVariantIndexVariantStudies = geckoLines.map(_.tagVariantIndexVariantStudy).distinct
+        Some(Gecko(genes, tagVariants, indexVariants, studies, geneTagVariants, tagVariantIndexVariantStudies))
+      }
+    }
+  }
   object Prefs {
     implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
     implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] = GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
     implicit val getV2DByStudy: GetResult[V2DByStudy] = {
       def toGeneScoreTuple(geneIds: Seq[String], geneNames: Seq[String], geneScores: Seq[Double]) = {
-        val ordScored = ((geneIds zip geneNames).map(t => Gene(t._1, Some(t._2))) zip geneScores)
+        val ordScored = ((geneIds zip geneNames).map(t => Gene(id = t._1, symbol = Some(t._2))) zip geneScores)
           .sortBy(_._2)(Ordering[Double].reverse)
 
         if (ordScored.isEmpty) ordScored
@@ -111,6 +134,47 @@ object Entities {
         val study = Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
         IndexVariantAssociation(variant, study,
           r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
+      }
+    )
+
+    implicit val getGeckoLine: GetResult[GeckoLine] = GetResult(
+      r => {
+        //   variant_id,
+        //  rs_id ,
+        //  index_variant_id ,
+        //  index_variant_rsid ,
+        //  gene_id ,
+        //  dictGetString('gene','gene_name',tuple(gene_id)) as gene_name,
+        //  dictGetString('gene','biotype',tuple(gene_id)) as gene_type,
+        //  dictGetString('gene','chr',tuple(gene_id)) as gene_chr,
+        //  dictGetUInt32('gene','tss',tuple(gene_id)) as gene_tss,
+        //  dictGetUInt32('gene','start',tuple(gene_id)) as gene_start,
+        //  dictGetUInt32('gene','end',tuple(gene_id)) as gene_end,
+        //  dictGetUInt8('gene','fwdstrand',tuple(gene_id)) as gene_fwd,
+        //  cast(dictGetString('gene','exons',tuple(gene_id)), 'Array(UInt32)') as gene_exons,
+
+        val tagVariant = Variant(r.<<, r.<<?).get.get
+        val indexVariant = Variant(r.<<, r.<<?).get.get
+
+        val gene = Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
+          chromosome = r.nextStringOption(), tss = r.nextLongOption(),
+          start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
+          exons = toSeqLong(r.nextString()))
+
+        val study = Study(studyId = r.<<, pubId = r.<<?, pubDate = r.<<?, pubJournal = r.<<?,
+          pubTitle = r.<<?, pubAuthor = r.<<?, traitReported = r.<<, traitEfos = toSeqString(r.<<),
+          traitCode = r.<<)
+
+        val r2 = r.nextDoubleOption()
+        val posteriorProb = r.nextDoubleOption()
+        val pval = r.nextDouble()
+        val overallScore = r.nextDouble()
+
+        val geneTagVariant = GeneTagVariant(gene.id, tagVariant.id, overallScore)
+        val tagVariantIndexVariantStudy = TagVariantIndexVariantStudy(tagVariant.id, indexVariant.id,
+          study.studyId, r2, pval, posteriorProb)
+
+        GeckoLine(gene, tagVariant, indexVariant, study, geneTagVariant, tagVariantIndexVariantStudy)
       }
     )
   }
