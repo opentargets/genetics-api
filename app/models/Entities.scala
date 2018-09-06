@@ -109,7 +109,8 @@ object Entities {
 
   object Gecko {
     def apply(geckoLines: Seq[GeckoLine]): Option[Gecko] = {
-      if (geckoLines.isEmpty) None
+      if (geckoLines.isEmpty)
+        Some(Gecko(Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty))
       else {
         val genes = geckoLines.map(_.gene).distinct
         val tagVariants = geckoLines.map(_.tagVariant).distinct
