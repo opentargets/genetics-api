@@ -57,9 +57,6 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
   }
 
   def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
-    // select trait_reported, stid, any(pval), any(n_initial), any(n_replication)
-    // from ot.v2d_by_chrpos prewhere chr_id = '6' and variant_id = '6_88310327_G_A'
-    // group by trait_reported, stid
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
     val variant = Variant(variantID)
 
@@ -97,6 +94,38 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
         Future {
           PheWASTable(associations = Vector.empty)
         }
+    }
+  }
+
+  def getG2VSchema = {
+    def toSeqStruct(elems: Map[String, Map[String, String]]) = {
+      (for {
+        triple <- elems
+        tuple <- triple._2
+
+      } yield Entities.G2VSchemaElement(triple._1, tuple._1,
+        toSeqString(tuple._2).map(el =>
+          Tissue(el, Option(el.replace("_", " ").toLowerCase.capitalize)))))
+        .toSeq
+    }
+    val studyQ = sql"""
+                      |select
+                      | type_id,
+                      | source_id,
+                      | feature_set
+                      |from #$v2gStructureTName
+      """.stripMargin.as[(String, String, String)]
+
+    db.run(studyQ.asTry).map {
+      case Success(v) =>
+        val mappedRows = v.groupBy(_._1).mapValues(_.groupBy(_._2).mapValues(_.head._3))
+        val qtlElems = toSeqStruct(mappedRows.filterKeys(defaultQtlTypes.contains(_)))
+        val intervalElems = toSeqStruct(mappedRows.filterKeys(defaultIntervalTypes.contains(_)))
+        val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains(_)))
+
+        G2VSchema(qtlElems, intervalElems, fpredElems)
+      case Failure(ex) => println(ex)
+        G2VSchema(Seq.empty, Seq.empty, Seq.empty)
     }
   }
 
@@ -329,9 +358,13 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
                           |  any(pval) as pval
                           | from #$d2v2gTName
                           | prewhere
-                          |   chr_id = $chr and
-                          |   position >= $start and
-                          |   position <= $end
+                          |   chr_id = $chr and (
+                          |   (position >= $start and position <= $end) or
+                          |   (index_position >= $start and index_position <= $end) or
+                          |   (dictGetUInt32('gene','start',tuple(gene_id)) >= $start and
+                          |     dictGetUInt32('gene','start',tuple(gene_id)) <= $end) or
+                          |   (dictGetUInt32('gene','end',tuple(gene_id)) >= $start and
+                          |     dictGetUInt32('gene','end',tuple(gene_id)) <= $end))
                           | group by stid, index_variant_id, variant_id, gene_id
                           |) all inner join (
                           | select
@@ -357,4 +390,5 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
   private val d2v2gOScoresTName: String = "d2v2g_score_by_overall"
   private val v2gTName: String = "v2g"
   private val studiesTName: String = "studies"
+  private val v2gStructureTName: String = "v2g_structure"
 }

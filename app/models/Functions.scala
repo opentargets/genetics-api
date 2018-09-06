@@ -6,6 +6,9 @@ object Functions {
   val defaultPaginationSize: Option[Int] = Some(500000)
   val defaultChromosomes = (1 to 22).map(_.toString) ++ Seq("X", "Y", "MT")
   val defaultMaxRegionSize = 2000000L
+  val defaultQtlTypes = List("eqtl", "pqtl")
+  val defaultIntervalTypes = List("dhscor", "fantom5", "pchic")
+  val defaultFPredTypes = List("fpred")
 
   def parseRegion(start: Long, end: Long): (Long, Long) = {
     val elems = List(end, start).map(_.abs).sorted(Ordering[Long].reverse)

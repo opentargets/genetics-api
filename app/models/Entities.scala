@@ -121,6 +121,14 @@ object Entities {
       }
     }
   }
+
+  case class Tissue(id: String, name: Option[String])
+
+  case class G2VSchemaElement(id: String, sourceId: String, tissues: Seq[Tissue])
+
+  case class G2VSchema(qtls: Seq[G2VSchemaElement], intervals: Seq[G2VSchemaElement],
+                       functionalPredictions: Seq[G2VSchemaElement])
+
   object Prefs {
     implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
 
