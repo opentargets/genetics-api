@@ -1,6 +1,7 @@
 package models
 
 import slick.jdbc.GetResult
+
 import scala.util.Try
 import models.Functions._
 
@@ -22,20 +23,6 @@ object Entities {
       }
     }
   }
-
-  case class V2GEv(chr_id: String, position: Long, segment: Int, ref_allele: String, alt_allele: String, rs_id: String,
-                   gene_chr: String, gene_id: String, gene_start: Long, gene_end: Long, gene_name: String,
-                   feature: String, type_id: String, source_id: String, csq_counts: Option[Long],
-                   qtl_beta: Option[Double], qtl_se: Option[Double], qtl_pval: Option[Double],
-                   interval_score: Option[Double])
-//  case class V2DEv(chr_id: String, position: Long, segment: Int, ref_allele: String, alt_allele: String, rs_id: String,
-  //                   index_chr_id: String, index_position: Long, index_ref_allele: String, index_alt_allele: String, index_rs_id: String,
-  //                   efo_code: String, efo_label: String, r2: Option[Double], afr: Option[Double], mar: Option[Double],
-  //                   eas: Option[Double], eur: Option[Double], sas: Option[Double], log10_abf: Option[Double],
-  //                   posterior_prob: Option[Double], pval: Option[Double], n_initial: Option[Int], n_replication: Option[Int],
-  //                   trait_reported: Option[String], ancestry_initial: Option[String], ancestry_replication: Option[String],
-  //                   pmid: Option[String], pub_date: Option[String], pub_journal: Option[String], pub_author: Option[String])
-
 
   case class Gene(id: String, symbol: Option[String] = None, start: Option[Long] = None, end: Option[Long] = None,
                   chromosome: Option[String] = None, tss: Option[Long] = None,
@@ -112,18 +99,20 @@ object Entities {
       if (geckoLines.isEmpty)
         Some(Gecko(Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty))
       else {
-        val genes = geckoLines.map(_.gene).distinct
-        val tagVariants = geckoLines.map(_.tagVariant).distinct
-        val indexVariants = geckoLines.map(_.indexVariant).distinct
-        val studies = geckoLines.map(_.study).distinct
-        val geneTagVariants = geckoLines.map(_.geneTagVariant).distinct
-        val tagVariantIndexVariantStudies = geckoLines.map(_.tagVariantIndexVariantStudy).distinct
+        val genes = geckoLines.view.map(_.gene).distinct
+        val tagVariants = geckoLines.view.map(_.tagVariant).distinct
+        val indexVariants = geckoLines.view.map(_.indexVariant).distinct
+        val studies = geckoLines.view.map(_.study).distinct
+        val geneTagVariants = geckoLines.view.map(_.geneTagVariant).distinct
+        val tagVariantIndexVariantStudies = geckoLines.view.map(_.tagVariantIndexVariantStudy).distinct
         Some(Gecko(genes, tagVariants, indexVariants, studies, geneTagVariants, tagVariantIndexVariantStudies))
       }
     }
   }
 
-  case class Tissue(id: String, name: Option[String])
+  case class Tissue(id: String) {
+    val name: Option[String] = Option(id.replace("_", " ").toLowerCase.capitalize)
+  }
 
   case class G2VSchemaElement(id: String, sourceId: String, tissues: Seq[Tissue])
 
@@ -133,12 +122,64 @@ object Entities {
   case class G2VAssociation(gene: Gene, overallScore: Double, qtls: Seq[G2VElement[QTLTissue]],
                             intervals: Seq[G2VElement[IntervalTissue]], fpreds: Seq[G2VElement[FPredTissue]])
 
+  object G2VAssociation {
+    def toQtlTissues(scoreds: Seq[ScoredG2VLine]): Seq[QTLTissue] =
+      scoreds.map(el =>
+        QTLTissue(Tissue(el.feature), el.qtlScoreQ, el.qtlBeta, el.qtlPval))
+
+    def toIntervalTissues(scoreds: Seq[ScoredG2VLine]): Seq[IntervalTissue] =
+      scoreds.map(el =>
+        Entities.IntervalTissue(Tissue(el.feature), el.intervalScoreQ, el.intervalScore))
+
+    def toFPredTissues(scoreds: Seq[ScoredG2VLine]): Seq[FPredTissue] =
+      scoreds.map(el =>
+        Entities.FPredTissue(Tissue(el.feature), el.fpredMaxLabel, el.fpredMaxScore))
+
+    def apply(groupedGene: Seq[ScoredG2VLine]): G2VAssociation = {
+      val gene = groupedGene.head.gene
+      val score = groupedGene.head.overallScore
+      val grouped = groupedGene.view.groupBy(r => (r.typeId, r.sourceId))
+
+      val qtls = grouped.filterKeys(k => defaultQtlTypes.contains(k._1))
+        .mapValues(p => {
+          val tp = p.head.typeId
+          val sc = p.head.sourceId
+          G2VElement[QTLTissue](p.head.typeId, p.head.sourceId, None,
+            p.head.sourceScores(sc), toQtlTissues(p))
+        }).values.toSeq
+
+      val intervals = grouped.filterKeys(k => defaultIntervalTypes.contains(k._1))
+        .mapValues(p => {
+          val tp = p.head.typeId
+          val sc = p.head.sourceId
+          G2VElement[IntervalTissue](p.head.typeId, p.head.sourceId, None,
+            p.head.sourceScores(sc), toIntervalTissues(p))
+        }).values.toSeq
+
+      val fpreds = grouped.filterKeys(k => defaultFPredTypes.contains(k._1))
+        .mapValues(p => {
+          val tp = p.head.typeId
+          val sc = p.head.sourceId
+          G2VElement[FPredTissue](p.head.typeId, p.head.sourceId, None,
+            p.head.sourceScores(sc), toFPredTissues(p))
+        }).values.toSeq
+
+      G2VAssociation(gene, score, qtls, intervals, fpreds)
+    }
+  }
+
   case class G2VElement[T](id: String, sourceId: String, name: Option[String], aggregatedScore: Double,
                            tissues: Seq[T])
 
   case class QTLTissue(tissue: Tissue, quantile: Double, beta: Option[Double], pval: Option[Double])
   case class IntervalTissue(tissue: Tissue, quantile: Double, score: Option[Double])
   case class FPredTissue(tissue: Tissue, maxEffectLabel: Option[String], maxEffectScore: Option[Double])
+
+  case class ScoredG2VLine(gene: Gene, overallScore: Double, sourceScores: Map[String, Double],
+                           typeId: String, sourceId: String, feature: String, fpredMaxLabel: Option[String],
+                           fpredMaxScore: Option[Double], qtlBeta: Option[Double], qtlSE: Option[Double],
+                           qtlPval: Option[Double], intervalScore: Option[Double], qtlScoreQ: Double,
+                           intervalScoreQ: Double)
 
   object Prefs {
     implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
@@ -213,6 +254,15 @@ object Entities {
           study.studyId, r2, pval, posteriorProb)
 
         GeckoLine(gene, tagVariant, indexVariant, study, geneTagVariant, tagVariantIndexVariantStudy)
+      }
+    )
+
+    implicit val getScoredG2VLine: GetResult[ScoredG2VLine] = GetResult(
+      r => {
+        val gene = Gene(r.<<)
+        ScoredG2VLine(gene, r.<<, (
+          toSeqString(r.nextString()) zip toSeqDouble(r.nextString())).toMap, r.<<, r.<<, r.<<,
+          r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<)
       }
     )
   }

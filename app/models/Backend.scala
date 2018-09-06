@@ -105,9 +105,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
         tuple <- triple._2
 
       } yield Entities.G2VSchemaElement(triple._1, tuple._1,
-        toSeqString(tuple._2).map(el =>
-          Tissue(el, Option(el.replace("_", " ").toLowerCase.capitalize)))))
-        .toSeq
+        toSeqString(tuple._2).map(el => Tissue(el)))).toSeq
     }
     val studyQ = sql"""
                       |select
@@ -378,7 +376,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
           """.stripMargin.as[GeckoLine]
 
         db.run(assocs.asTry).map {
-          case Success(r) => Entities.Gecko(r)
+          case Success(r) => Entities.Gecko(r.view)
           case Failure(ex) => Entities.Gecko(Seq.empty)
         }
       case None => Future.successful(None)
@@ -388,81 +386,66 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
   def buildG2V(variantID: String) = {
     val variant: Try[Option[Variant]] = variantID
 
-    // TODO here I have to finish
     variant match {
       case Success(Some(v)) =>
         val assocs = sql"""
-                          |select
-                          |  variant_id,
-                          |  rs_id ,
-                          |  index_variant_id ,
-                          |  index_variant_rsid ,
-                          |  gene_id ,
-                          |  dictGetString('gene','gene_name',tuple(gene_id)) as gene_name,
-                          |  dictGetString('gene','biotype',tuple(gene_id)) as gene_type,
-                          |  dictGetString('gene','chr',tuple(gene_id)) as gene_chr,
-                          |  dictGetUInt32('gene','tss',tuple(gene_id)) as gene_tss,
-                          |  dictGetUInt32('gene','start',tuple(gene_id)) as gene_start,
-                          |  dictGetUInt32('gene','end',tuple(gene_id)) as gene_end,
-                          |  dictGetUInt8('gene','fwdstrand',tuple(gene_id)) as gene_fwd,
-                          |  cast(dictGetString('gene','exons',tuple(gene_id)), 'Array(UInt32)') as gene_exons,
-                          |  stid,
-                          |  pmid,
-                          |  pub_date ,
-                          |  pub_journal ,
-                          |  pub_title ,
-                          |  pub_author ,
-                          |  trait_reported ,
-                          |  trait_efos ,
-                          |  trait_code ,
-                          |  r2,
-                          |  posterior_prob ,
-                          |  pval,
-                          |  overall_score
-                          |from (
-                          | select
-                          |  stid,
-                          |  variant_id,
-                          |  any(rs_id) as rs_id,
-                          |  index_variant_id,
-                          |  any(index_variant_rsid) as index_variant_rsid,
-                          |  gene_id,
-                          |  any(pmid) as pmid,
-                          |  any(pub_date) as pub_date,
-                          |  any(pub_journal) as pub_journal,
-                          |  any(pub_title) as pub_title,
-                          |  any(pub_author) as pub_author,
-                          |  any(trait_reported) as trait_reported,
-                          |  any(trait_efos) as trait_efos,
-                          |  any(trait_code) as trait_code,
-                          |  any(r2) as r2,
-                          |  any(posterior_prob) as posterior_prob,
-                          |  any(pval) as pval
-                          | from #$d2v2gTName
-                          | prewhere
-                          |   chr_id = $chr and (
-                          |   (position >= $start and position <= $end) or
-                          |   (index_position >= $start and index_position <= $end) or
-                          |   (dictGetUInt32('gene','start',tuple(gene_id)) >= $start and
-                          |     dictGetUInt32('gene','start',tuple(gene_id)) <= $end) or
-                          |   (dictGetUInt32('gene','end',tuple(gene_id)) >= $start and
-                          |     dictGetUInt32('gene','end',tuple(gene_id)) <= $end))
-                          | group by stid, index_variant_id, variant_id, gene_id
-                          |) all inner join (
-                          | select
-                          |   variant_id,
-                          |   gene_id,
-                          |   overall_score
-                          | from #$d2v2gOScoresTName
-                          | prewhere chr_id = $chr
-                          |) using (variant_id, gene_id)
-          """.stripMargin.as[GeckoLine]
+                          |SELECT
+                          |    gene_id,
+                          |    overall_score,
+                          |    source_list,
+                          |    source_score_list,
+                          |    type_id,
+                          |    source_id,
+                          |    feature,
+                          |    fpred_max_label,
+                          |    fpred_max_score,
+                          |    qtl_beta,
+                          |    qtl_se,
+                          |    qtl_pval,
+                          |    interval_score,
+                          |    qtl_score_q,
+                          |    interval_score_q
+                          |FROM
+                          |(
+                          |    SELECT
+                          |        gene_id,
+                          |        type_id,
+                          |        source_id,
+                          |        feature,
+                          |        fpred_max_label,
+                          |        fpred_max_score,
+                          |        qtl_beta,
+                          |        qtl_se,
+                          |        qtl_pval,
+                          |        interval_score,
+                          |        qtl_score_q,
+                          |        interval_score_q
+                          |    FROM #$v2gTName
+                          |    PREWHERE
+                          |       (chr_id = ${v.locus.chrId}) AND
+                          |       (position = ${v.locus.position}) AND
+                          |       (variant_id = ${v.id})
+                          |)
+                          |ALL INNER JOIN
+                          |(
+                          |    SELECT
+                          |        variant_id,
+                          |        gene_id,
+                          |        source_list,
+                          |        source_score_list,
+                          |        overall_score
+                          |    FROM #$v2gOScoresTName
+                          |    PREWHERE (chr_id = ${v.locus.chrId}) AND
+                          |       (variant_id = ${v.id})
+                          |) USING (gene_id)
+                          |ORDER BY gene_id ASC
+          """.stripMargin.as[ScoredG2VLine]
 
         db.run(assocs.asTry).map {
-          case Success(r) => Seq.empty
+          case Success(r) => r.view.groupBy(_.gene.id).mapValues(G2VAssociation(_)).values.toSeq
           case Failure(ex) => Seq.empty
         }
-      case _ => Future.successful(None)
+      case _ => Future.failed(new Exception("failed to get scored g2v line"))
     }
   }
 
@@ -471,6 +454,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
   private val d2v2gTName: String = "d2v2g"
   private val d2v2gOScoresTName: String = "d2v2g_score_by_overall"
   private val v2gTName: String = "v2g"
-  private val studiesTName: String = "studies"
+  private val v2gOScoresTName: String = "v2g_score_by_overall"
   private val v2gStructureTName: String = "v2g_structure"
+  private val studiesTName: String = "studies"
 }
