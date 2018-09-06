@@ -129,6 +129,16 @@ object Entities {
   case class G2VSchema(qtls: Seq[G2VSchemaElement], intervals: Seq[G2VSchemaElement],
                        functionalPredictions: Seq[G2VSchemaElement])
 
+  case class G2VAssociation(gene: Gene, overallScore: Double, qtls: Seq[G2VElement[QTLTissue]],
+                            intervals: Seq[G2VElement[IntervalTissue]], fpreds: Seq[G2VElement[FPredTissue]])
+
+  case class G2VElement[T](id: String, sourceId: String, name: Option[String], aggregatedScore: Double,
+                           tissues: Seq[T])
+
+  case class QTLTissue(tissue: Tissue, quantile: Double, beta: Option[Double], pval: Option[Double])
+  case class IntervalTissue(tissue: Tissue, quantile: Double, score: Option[Double])
+  case class FPredTissue(tissue: Tissue, maxEffectLabel: Option[String], maxEffectScore: Option[Double])
+
   object Prefs {
     implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
 

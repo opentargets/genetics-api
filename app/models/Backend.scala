@@ -1,5 +1,6 @@
 package models
 
+import akka.actor.Status
 import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
 import clickhouse.ClickHouseProfile
@@ -381,6 +382,87 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
           case Failure(ex) => Entities.Gecko(Seq.empty)
         }
       case None => Future.successful(None)
+    }
+  }
+
+  def buildG2V(variantID: String) = {
+    val variant: Try[Option[Variant]] = variantID
+
+    // TODO here I have to finish
+    variant match {
+      case Success(Some(v)) =>
+        val assocs = sql"""
+                          |select
+                          |  variant_id,
+                          |  rs_id ,
+                          |  index_variant_id ,
+                          |  index_variant_rsid ,
+                          |  gene_id ,
+                          |  dictGetString('gene','gene_name',tuple(gene_id)) as gene_name,
+                          |  dictGetString('gene','biotype',tuple(gene_id)) as gene_type,
+                          |  dictGetString('gene','chr',tuple(gene_id)) as gene_chr,
+                          |  dictGetUInt32('gene','tss',tuple(gene_id)) as gene_tss,
+                          |  dictGetUInt32('gene','start',tuple(gene_id)) as gene_start,
+                          |  dictGetUInt32('gene','end',tuple(gene_id)) as gene_end,
+                          |  dictGetUInt8('gene','fwdstrand',tuple(gene_id)) as gene_fwd,
+                          |  cast(dictGetString('gene','exons',tuple(gene_id)), 'Array(UInt32)') as gene_exons,
+                          |  stid,
+                          |  pmid,
+                          |  pub_date ,
+                          |  pub_journal ,
+                          |  pub_title ,
+                          |  pub_author ,
+                          |  trait_reported ,
+                          |  trait_efos ,
+                          |  trait_code ,
+                          |  r2,
+                          |  posterior_prob ,
+                          |  pval,
+                          |  overall_score
+                          |from (
+                          | select
+                          |  stid,
+                          |  variant_id,
+                          |  any(rs_id) as rs_id,
+                          |  index_variant_id,
+                          |  any(index_variant_rsid) as index_variant_rsid,
+                          |  gene_id,
+                          |  any(pmid) as pmid,
+                          |  any(pub_date) as pub_date,
+                          |  any(pub_journal) as pub_journal,
+                          |  any(pub_title) as pub_title,
+                          |  any(pub_author) as pub_author,
+                          |  any(trait_reported) as trait_reported,
+                          |  any(trait_efos) as trait_efos,
+                          |  any(trait_code) as trait_code,
+                          |  any(r2) as r2,
+                          |  any(posterior_prob) as posterior_prob,
+                          |  any(pval) as pval
+                          | from #$d2v2gTName
+                          | prewhere
+                          |   chr_id = $chr and (
+                          |   (position >= $start and position <= $end) or
+                          |   (index_position >= $start and index_position <= $end) or
+                          |   (dictGetUInt32('gene','start',tuple(gene_id)) >= $start and
+                          |     dictGetUInt32('gene','start',tuple(gene_id)) <= $end) or
+                          |   (dictGetUInt32('gene','end',tuple(gene_id)) >= $start and
+                          |     dictGetUInt32('gene','end',tuple(gene_id)) <= $end))
+                          | group by stid, index_variant_id, variant_id, gene_id
+                          |) all inner join (
+                          | select
+                          |   variant_id,
+                          |   gene_id,
+                          |   overall_score
+                          | from #$d2v2gOScoresTName
+                          | prewhere chr_id = $chr
+                          |) using (variant_id, gene_id)
+          """.stripMargin.as[GeckoLine]
+
+        db.run(assocs.asTry).map {
+          case Success(r) => Seq.empty
+          case Failure(ex) => Seq.empty
+        }
+      case _ => Future.successful(None)
     }
   }
 
