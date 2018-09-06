@@ -398,6 +398,114 @@ object GQLSchema {
         resolve = _.value.functionalPredictions)
     ))
 
+  val qtlTissue = ObjectType("QTLTissue",
+    "",
+    fields[Backend, QTLTissue](
+      Field("tissue", tissue,
+        Some(""),
+        resolve = _.value.tissue),
+      Field("quantile", FloatType,
+        Some(""),
+        resolve = _.value.quantile),
+      Field("beta", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta),
+      Field("pval", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.pval)
+    ))
+
+  val intervalTissue = ObjectType("IntervalTissue",
+    "",
+    fields[Backend, IntervalTissue](
+      Field("tissue", tissue,
+        Some(""),
+        resolve = _.value.tissue),
+      Field("quantile", FloatType,
+        Some(""),
+        resolve = _.value.quantile),
+      Field("score", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.score)
+    ))
+
+  val fpredTissue = ObjectType("FPredTissue",
+    "",
+    fields[Backend, FPredTissue](
+      Field("tissue", tissue,
+        Some(""),
+        resolve = _.value.tissue),
+      Field("maxEffectLabel", OptionType(StringType),
+        Some(""),
+        resolve = _.value.maxEffectLabel),
+      Field("maxEffectScore", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.maxEffectScore)
+    ))
+
+
+  val qtlElement = ObjectType("QTLElement",
+    "A list of rows with each link",
+    fields[Backend, G2VElement[QTLTissue]](
+      Field("id", StringType,
+        Some(""),
+        resolve = _.value.id),
+      Field("sourceId", StringType,
+        Some(""),
+        resolve = _.value.sourceId),
+      Field("tissues", ListType(qtlTissue),
+        Some(""),
+        resolve = _.value.tissues)
+    ))
+
+  val intervalElement = ObjectType("IntervalElement",
+    "A list of rows with each link",
+    fields[Backend, G2VElement[IntervalTissue]](
+      Field("id", StringType,
+        Some(""),
+        resolve = _.value.id),
+      Field("sourceId", StringType,
+        Some(""),
+        resolve = _.value.sourceId),
+      Field("tissues", ListType(intervalTissue),
+        Some(""),
+        resolve = _.value.tissues)
+    ))
+
+  val fPredElement = ObjectType("FunctionalPredictionElement",
+    "A list of rows with each link",
+    fields[Backend, G2VElement[FPredTissue]](
+      Field("id", StringType,
+        Some(""),
+        resolve = _.value.id),
+      Field("sourceId", StringType,
+        Some(""),
+        resolve = _.value.sourceId),
+      Field("tissues", ListType(fpredTissue),
+        Some(""),
+        resolve = _.value.tissues)
+    ))
+
+  val geneForVariant = ObjectType("GeneForVariant",
+    "A list of rows with each link",
+    fields[Backend, G2VAssociation](
+      Field("gene", gene,
+        Some("Associated scored gene"),
+        resolve = _.value.gene),
+      Field("overallScore", FloatType,
+        Some(""),
+        resolve = _.value.overallScore),
+      Field("qtls", ListType(qtlElement),
+        Some(""),
+        resolve = _.value.qtls),
+      Field("intervals", ListType(intervalElement),
+        Some(""),
+        resolve = _.value.intervals),
+      Field("functionalPredictions", ListType(fPredElement),
+        Some(""),
+        resolve = _.value.fpreds)
+    ))
+
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("studyInfo", OptionType(study),
@@ -423,13 +531,9 @@ object GQLSchema {
       Field("genesForVariantSchema", v2gSchema,
         arguments = Nil,
         resolve = (ctx) => ctx.ctx.getG2VSchema),
-//      Field("gecko", ListType(geneForVariant),
-//        arguments = variantId :: Nil,
-//        resolve = (ctx) => ctx.ctx.buildGecko(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd)))
-      // type Query {
-      //    genesForVariantSchema: G2VSchema!
-      //    genesForVariant(variantId: String!): [GeneForVariant!]!
-      //}
+      Field("genesForVariant", ListType(geneForVariant),
+        arguments = variantId :: Nil,
+        resolve = (ctx) => ctx.ctx.buildG2V(ctx.arg(variantId)))
     ))
 
   val schema = Schema(query)

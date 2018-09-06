@@ -1,5 +1,6 @@
 package models
 
+import akka.actor.Status
 import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
 import clickhouse.ClickHouseProfile
@@ -104,9 +105,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
         tuple <- triple._2
 
       } yield Entities.G2VSchemaElement(triple._1, tuple._1,
-        toSeqString(tuple._2).map(el =>
-          Tissue(el, Option(el.replace("_", " ").toLowerCase.capitalize)))))
-        .toSeq
+        toSeqString(tuple._2).map(el => Tissue(el)))).toSeq
     }
     val studyQ = sql"""
                       |select
@@ -377,10 +376,76 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
           """.stripMargin.as[GeckoLine]
 
         db.run(assocs.asTry).map {
-          case Success(r) => Entities.Gecko(r)
+          case Success(r) => Entities.Gecko(r.view)
           case Failure(ex) => Entities.Gecko(Seq.empty)
         }
       case None => Future.successful(None)
+    }
+  }
+
+  def buildG2V(variantID: String) = {
+    val variant: Try[Option[Variant]] = variantID
+
+    variant match {
+      case Success(Some(v)) =>
+        val assocs = sql"""
+                          |SELECT
+                          |    gene_id,
+                          |    overall_score,
+                          |    source_list,
+                          |    source_score_list,
+                          |    type_id,
+                          |    source_id,
+                          |    feature,
+                          |    fpred_max_label,
+                          |    fpred_max_score,
+                          |    qtl_beta,
+                          |    qtl_se,
+                          |    qtl_pval,
+                          |    interval_score,
+                          |    qtl_score_q,
+                          |    interval_score_q
+                          |FROM
+                          |(
+                          |    SELECT
+                          |        gene_id,
+                          |        type_id,
+                          |        source_id,
+                          |        feature,
+                          |        fpred_max_label,
+                          |        fpred_max_score,
+                          |        qtl_beta,
+                          |        qtl_se,
+                          |        qtl_pval,
+                          |        interval_score,
+                          |        qtl_score_q,
+                          |        interval_score_q
+                          |    FROM #$v2gTName
+                          |    PREWHERE
+                          |       (chr_id = ${v.locus.chrId}) AND
+                          |       (position = ${v.locus.position}) AND
+                          |       (variant_id = ${v.id})
+                          |)
+                          |ALL INNER JOIN
+                          |(
+                          |    SELECT
+                          |        variant_id,
+                          |        gene_id,
+                          |        source_list,
+                          |        source_score_list,
+                          |        overall_score
+                          |    FROM #$v2gOScoresTName
+                          |    PREWHERE (chr_id = ${v.locus.chrId}) AND
+                          |       (variant_id = ${v.id})
+                          |) USING (gene_id)
+                          |ORDER BY gene_id ASC
+          """.stripMargin.as[ScoredG2VLine]
+
+        db.run(assocs.asTry).map {
+          case Success(r) => r.view.groupBy(_.gene.id).mapValues(G2VAssociation(_)).values.toSeq
+          case Failure(ex) => Seq.empty
+        }
+      case _ => Future.failed(new Exception("failed to get scored g2v line"))
     }
   }
 
@@ -389,6 +454,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
   private val d2v2gTName: String = "d2v2g"
   private val d2v2gOScoresTName: String = "d2v2g_score_by_overall"
   private val v2gTName: String = "v2g"
-  private val studiesTName: String = "studies"
+  private val v2gOScoresTName: String = "v2g_score_by_overall"
   private val v2gStructureTName: String = "v2g_structure"
+  private val studiesTName: String = "studies"
 }
