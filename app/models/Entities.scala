@@ -3,6 +3,7 @@ package models
 import slick.jdbc.GetResult
 
 import scala.util.Try
+import scala.collection.breakOut
 import models.Functions._
 
 object Entities {
@@ -99,13 +100,26 @@ object Entities {
       if (geckoLines.isEmpty)
         Some(Gecko(Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty))
       else {
-        val genes = geckoLines.view.map(_.gene).distinct
-        val tagVariants = geckoLines.view.map(_.tagVariant).distinct
-        val indexVariants = geckoLines.view.map(_.indexVariant).distinct
-        val studies = geckoLines.view.map(_.study).distinct
-        val geneTagVariants = geckoLines.view.map(_.geneTagVariant).distinct
-        val tagVariantIndexVariantStudies = geckoLines.view.map(_.tagVariantIndexVariantStudy).distinct
-        Some(Gecko(genes, tagVariants, indexVariants, studies, geneTagVariants, tagVariantIndexVariantStudies))
+        var genes: Set[Gene] = Set.empty
+        var tagVariants: Set[Variant] = Set.empty
+        var indexVariants: Set[Variant] = Set.empty
+        var studies: Set[Study] = Set.empty
+        var tagVariantIndexVariantStudies: Set[TagVariantIndexVariantStudy] = Set.empty
+
+        var geneTagVariants: Set[GeneTagVariant] = Set.empty
+        geckoLines.foreach(line => {
+          genes += line.gene
+          tagVariants += line.tagVariant
+          indexVariants += line.indexVariant
+          studies += line.study
+          tagVariantIndexVariantStudies += line.tagVariantIndexVariantStudy
+        })
+
+        // breakOut could be a good way to map virtually to a other collection of a different type
+        // https://stackoverflow.com/questions/46509951/how-do-i-efficiently-count-distinct-fields-in-a-collection
+        // val genes = geckoLines.map(_.gene)(breakOut).toSet.toSeq
+         Some(Gecko(genes.toStream, tagVariants.toStream, indexVariants.toStream, studies.toStream,
+                  geneTagVariants.toStream, tagVariantIndexVariantStudies.toStream))
       }
     }
   }
@@ -146,7 +160,7 @@ object Entities {
           val sc = p.head.sourceId
           G2VElement[QTLTissue](p.head.typeId, p.head.sourceId, None,
             p.head.sourceScores(sc), toQtlTissues(p))
-        }).values.toSeq
+        }).values.toStream
 
       val intervals = grouped.filterKeys(k => defaultIntervalTypes.contains(k._1))
         .mapValues(p => {
@@ -154,7 +168,7 @@ object Entities {
           val sc = p.head.sourceId
           G2VElement[IntervalTissue](p.head.typeId, p.head.sourceId, None,
             p.head.sourceScores(sc), toIntervalTissues(p))
-        }).values.toSeq
+        }).values.toStream
 
       val fpreds = grouped.filterKeys(k => defaultFPredTypes.contains(k._1))
         .mapValues(p => {
@@ -162,7 +176,7 @@ object Entities {
           val sc = p.head.sourceId
           G2VElement[FPredTissue](p.head.typeId, p.head.sourceId, None,
             p.head.sourceScores(sc), toFPredTissues(p))
-        }).values.toSeq
+        }).values.toStream
 
       G2VAssociation(gene, score, qtls, intervals, fpreds)
     }
