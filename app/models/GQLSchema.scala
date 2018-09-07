@@ -453,6 +453,9 @@ object GQLSchema {
       Field("sourceId", StringType,
         Some(""),
         resolve = _.value.sourceId),
+      Field("aggregatedScore", FloatType,
+        Some(""),
+        resolve = _.value.aggregatedScore),
       Field("tissues", ListType(qtlTissue),
         Some(""),
         resolve = _.value.tissues)
@@ -467,6 +470,9 @@ object GQLSchema {
       Field("sourceId", StringType,
         Some(""),
         resolve = _.value.sourceId),
+      Field("aggregatedScore", FloatType,
+        Some(""),
+        resolve = _.value.aggregatedScore),
       Field("tissues", ListType(intervalTissue),
         Some(""),
         resolve = _.value.tissues)
@@ -481,6 +487,9 @@ object GQLSchema {
       Field("sourceId", StringType,
         Some(""),
         resolve = _.value.sourceId),
+      Field("aggregatedScore", FloatType,
+        Some(""),
+        resolve = _.value.aggregatedScore),
       Field("tissues", ListType(fpredTissue),
         Some(""),
         resolve = _.value.tissues)
