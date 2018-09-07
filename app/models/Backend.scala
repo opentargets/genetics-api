@@ -391,6 +391,14 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
         val assocs = sql"""
                           |SELECT
                           |    gene_id,
+                          |    dictGetString('gene','gene_name',tuple(gene_id)) as gene_name,
+                          |    dictGetString('gene','biotype',tuple(gene_id)) as gene_type,
+                          |    dictGetString('gene','chr',tuple(gene_id)) as gene_chr,
+                          |    dictGetUInt32('gene','tss',tuple(gene_id)) as gene_tss,
+                          |    dictGetUInt32('gene','start',tuple(gene_id)) as gene_start,
+                          |    dictGetUInt32('gene','end',tuple(gene_id)) as gene_end,
+                          |    dictGetUInt8('gene','fwdstrand',tuple(gene_id)) as gene_fwd,
+                          |    cast(dictGetString('gene','exons',tuple(gene_id)), 'Array(UInt32)') as gene_exons,
                           |    overall_score,
                           |    source_list,
                           |    source_score_list,
