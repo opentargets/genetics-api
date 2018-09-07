@@ -105,13 +105,14 @@ object Entities {
         var indexVariants: Set[Variant] = Set.empty
         var studies: Set[Study] = Set.empty
         var tagVariantIndexVariantStudies: Set[TagVariantIndexVariantStudy] = Set.empty
-
         var geneTagVariants: Set[GeneTagVariant] = Set.empty
+
         geckoLines.foreach(line => {
           genes += line.gene
           tagVariants += line.tagVariant
           indexVariants += line.indexVariant
           studies += line.study
+          geneTagVariants += line.geneTagVariant
           tagVariantIndexVariantStudies += line.tagVariantIndexVariantStudy
         })
 
