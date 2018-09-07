@@ -273,7 +273,11 @@ object Entities {
 
     implicit val getScoredG2VLine: GetResult[ScoredG2VLine] = GetResult(
       r => {
-        val gene = Gene(r.<<)
+        val gene = Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
+          chromosome = r.nextStringOption(), tss = r.nextLongOption(),
+          start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
+          exons = toSeqLong(r.nextString()))
+
         ScoredG2VLine(gene, r.<<, (
           toSeqString(r.nextString()) zip toSeqDouble(r.nextString())).toMap, r.<<, r.<<, r.<<,
           r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<)
