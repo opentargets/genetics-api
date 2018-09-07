@@ -6,7 +6,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import clickhouse.ClickHouseProfile
 import models.Entities._
 import models.Functions._
-import models.Entities.Prefs._
+import models.Entities.Implicits._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
@@ -62,7 +62,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     val variant = Variant(variantID)
 
     variant match {
-      case Success(Some(v)) => {
+      case Success(v) => {
         val query =
           sql"""
                |select
@@ -91,10 +91,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
             PheWASTable(associations = Vector.empty)
         }
       }
-      case _ =>
-        Future {
-          PheWASTable(associations = Vector.empty)
-        }
+      case Failure(exception) => Future.failed(exception)
     }
   }
 
@@ -145,7 +142,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       """.stripMargin.as[Study]
 
     db.run(studyQ.asTry).map {
-      case Success(v) => if (v.length > 0) Some(v(0)) else None
+      case Success(v) => v.headOption
       case Failure(_) => None
     }
   }
@@ -196,10 +193,10 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       case Success(v) => ManhattanTable(
         v.map(el => {
           // we got the line so correct variant must exist
-          val variant: Try[Option[Variant]] = el.index_variant_id
-          val completedV = variant.map(_.map(v => Variant(v.locus, v.refAllele, v.altAllele, el.index_rs_id)))
+          val variant: Try[Variant] = el.index_variant_id
+          val completedV = variant.map(v => Variant(v.locus, v.refAllele, v.altAllele, el.index_rs_id))
 
-          ManhattanAssociation(completedV.get.get, el.pval, el.topGenes,
+          ManhattanAssociation(completedV.get, el.pval, el.topGenes,
             el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
@@ -209,10 +206,10 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
 
   def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
-    val variant: Try[Option[Variant]] = variantID
+    val variant: Try[Variant] = variantID
 
     variant match {
-      case Success(Some(v)) =>
+      case Success(v) =>
         val assocs = sql"""
                        |select
                        | variant_id,
@@ -246,21 +243,21 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
                        |#$limitClause
           """.stripMargin.as[IndexVariantAssociation]
 
-        val ret = db.run(assocs.asTry).map {
+        db.run(assocs.asTry).map {
           case Success(r) => Entities.IndexVariantTable(r)
           case Failure(ex) => Entities.IndexVariantTable(associations = Vector.empty)
         }
-        ret
-      case _ => Future.successful(Entities.IndexVariantTable(associations = Vector.empty))
+      // case Failure(_) => Future.successful(Entities.IndexVariantTable(associations = Vector.empty))
+      case Failure(exception) => Future.failed(exception)
     }
   }
 
   def buildTagVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
-    val variant: Try[Option[Variant]] = variantID
+    val variant: Try[Variant] = variantID
 
     variant match {
-      case Success(Some(v)) =>
+      case Success(v) =>
         val assocs = sql"""
                           |select
                           | index_variant_id,
@@ -295,12 +292,12 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
           """.stripMargin.as[TagVariantAssociation]
 
         // map to proper manhattan association with needed fields
-        val ret = db.run(assocs.asTry).map {
+        db.run(assocs.asTry).map {
           case Success(r) => Entities.TagVariantTable(r)
           case Failure(ex) => Entities.TagVariantTable(associations = Vector.empty)
         }
-        ret
-      case _ => Future.successful(Entities.TagVariantTable(associations = Vector.empty))
+      // case Failure(_) => Future.successful(Entities.TagVariantTable(associations = Vector.empty))
+      case Failure(exception) => Future.failed(exception)
     }
   }
 
@@ -379,15 +376,16 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
           case Success(r) => Entities.Gecko(r.view)
           case Failure(ex) => Entities.Gecko(Seq.empty)
         }
+        // TODO return a proper exception
       case None => Future.successful(None)
     }
   }
 
   def buildG2V(variantID: String) = {
-    val variant: Try[Option[Variant]] = variantID
+    val variant: Try[Variant] = variantID
 
     variant match {
-      case Success(Some(v)) =>
+      case Success(v) =>
         val assocs = sql"""
                           |SELECT
                           |    gene_id,
@@ -453,7 +451,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
           case Success(r) => r.view.groupBy(_.gene.id).mapValues(G2VAssociation(_)).values.toSeq
           case Failure(ex) => Seq.empty
         }
-      case _ => Future.failed(new Exception("failed to get scored g2v line"))
+      case Failure(exception) => Future.failed(exception)
     }
   }
 

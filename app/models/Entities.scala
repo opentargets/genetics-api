@@ -2,11 +2,17 @@ package models
 
 import slick.jdbc.GetResult
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.collection.breakOut
 import models.Functions._
+import sangria.execution.UserFacingError
 
 object Entities {
+  val variantErrorMsg: String =
+    "Ouch! I've failed to parse the variant '%s' you ask for. May be you didn't spell it correctly. " +
+      "Please, pay attention to what you wrote bofore as it could be missing a letter or so. " +
+      "Let me please illustrate this with an example: '1_12345_T_C'"
+  case class VariantError(msg: String) extends Exception(variantErrorMsg format(msg)) with UserFacingError
 
   case class DNAPosition(chrId: String, position: Long)
   case class Variant(locus: DNAPosition, refAllele: String, altAllele: String, rsId: Option[String]) {
@@ -14,13 +20,12 @@ object Entities {
   }
 
   object Variant {
-    def apply(variantId: String, rsId: Option[String] = None): Try[Option[Variant]] = {
-      Try {
-        variantId.toUpperCase.split("_").toList match {
-          case List(chr: String, pos: String, ref: String, alt: String) =>
-            Some(Variant(DNAPosition(chr, pos.toLong), ref, alt, rsId))
-          case _ => None
-        }
+    def apply(variantId: String, rsId: Option[String] = None): Try[Variant] = {
+      variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
+        case List(chr: String, pos: String, ref: String, alt: String) =>
+          Success(Variant(DNAPosition(chr, pos.toLong), ref, alt, rsId))
+        case _ =>
+          Failure(VariantError(variantId))
       }
     }
   }
@@ -196,8 +201,8 @@ object Entities {
                            qtlPval: Option[Double], intervalScore: Option[Double], qtlScoreQ: Double,
                            intervalScoreQ: Double)
 
-  object Prefs {
-    implicit def stringToVariant(variantID: String): Try[Option[Variant]] = Variant.apply(variantID)
+  object Implicits {
+    implicit def stringToVariant(variantID: String): Try[Variant] = Variant.apply(variantID)
 
     implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] =
       GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
@@ -231,7 +236,7 @@ object Entities {
       r => {
         val variant = Variant(r.<<, r.<<?)
         val study = Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-        IndexVariantAssociation(variant.get.get, study,
+        IndexVariantAssociation(variant.get, study,
           r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
       }
     )
@@ -240,15 +245,15 @@ object Entities {
       r => {
         val variant = Variant(r.<<, r.<<?)
         val study = Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-        TagVariantAssociation(variant.get.get, study,
+        TagVariantAssociation(variant.get, study,
           r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
       }
     )
 
     implicit val getGeckoLine: GetResult[GeckoLine] = GetResult(
       r => {
-        val tagVariant = Variant(r.<<, r.<<?).get.get
-        val indexVariant = Variant(r.<<, r.<<?).get.get
+        val tagVariant = Variant(r.<<, r.<<?).get
+        val indexVariant = Variant(r.<<, r.<<?).get
 
         val gene = Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
           chromosome = r.nextStringOption(), tss = r.nextLongOption(),
