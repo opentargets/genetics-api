@@ -20,7 +20,8 @@ object Entities {
       "It is only supported chromosomes in the range [1..22] and 'X', 'Y' and 'MT'."
 
   val inChromosomeRegionErrorMsg: String =
-    "Ouch! In chromosome region was not properly specified."
+    "Ouch! The chromosome region was not properly specified. 'start' argument must be a positive number " +
+      "and < 'end' argument. Also, the argument 'end' must be a positive number and > 'start'."
 
   case class VariantViolation(msg: String) extends BaseViolation(variantErrorMsg format(msg))
   case class ChromosomeViolation(msg: String) extends BaseViolation(chromosomeErrorMsg format(msg))
