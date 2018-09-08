@@ -1,5 +1,7 @@
 package models
 
+import models.Entities.{ChromosomeViolation, InChromosomeRegionViolation}
+
 import reflect.runtime.universe._
 
 object Functions {
@@ -10,12 +12,21 @@ object Functions {
   val defaultIntervalTypes = List("dhscor", "fantom5", "pchic")
   val defaultFPredTypes = List("fpred")
 
-  def parseRegion(start: Long, end: Long): (Long, Long) = {
-    val elems = List(end, start).map(_.abs).sorted(Ordering[Long].reverse)
-    (defaultMaxRegionSize - elems.tail.foldLeft(elems.head)((r, el) => r - el)) >= 0 match {
-      case true => (elems(1), elems.head)
-      case false => (elems.head, elems.head + defaultMaxRegionSize)
-    }
+  /** Both numbers must be positive numbers and absolute chromosome coords,
+    * start >= 0 and end > 0. Also, (end - start) > 0 and the diff between end and start
+    * must be greater than 0 and less or equal than defaultMaxRegionSize
+    *
+    * @param start start position on a genome strand
+    * @param end end position of the range
+    * @return Some(start, end) pair or None
+    */
+  def parseRegion(start: Long, end: Long): Either[InChromosomeRegionViolation, (Long, Long)] = {
+    if ( (start >= 0 && end > 0) &&
+      ((end - start) > 0) &&
+      ((end - start) <= defaultMaxRegionSize) ) {
+      Right((start, end))
+    } else
+      Left(InChromosomeRegionViolation())
   }
   /** the indexation of the pagination starts at page number 0 set by pageIndex and takes pageSize chunks
     * each time. The default pageSize is defaultPaginationSize
@@ -64,6 +75,9 @@ object Functions {
   }
 
   /** parse and return the proper chromosome string or None */
-  def parseChromosome(chromosome: String): Option[String] =
-    defaultChromosomes.find(_.equalsIgnoreCase(chromosome))
+  def parseChromosome(chromosome: String): Either[ChromosomeViolation,String] =
+    defaultChromosomes.find(_.equalsIgnoreCase(chromosome)) match {
+      case Some(chr) => Right(chr)
+      case None => Left(ChromosomeViolation(chromosome))
+    }
 }

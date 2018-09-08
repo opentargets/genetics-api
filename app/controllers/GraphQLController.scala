@@ -12,7 +12,7 @@ import sangria.execution.deferred.DeferredResolver
 import sangria.execution._
 import sangria.parser.{QueryParser, SyntaxError}
 import sangria.marshalling.playJson._
-import models.Entities.{VariantError}
+import models.Entities._
 
 import scala.util.{Failure, Success}
 
@@ -78,7 +78,7 @@ class GraphQLController @Inject()(implicit ec: ExecutionContext, dbTables: Backe
   lazy val exceptionHandler = ExceptionHandler {
     case (_, error @ TooComplexQueryError) => HandledException(error.getMessage)
     case (_, error @ MaxQueryDepthReachedError(_)) => HandledException(error.getMessage)
-    case (_, error @ VariantError(_)) => HandledException(error.getMessage)
+    case (_, error @ InputParameterCheckError(_)) => HandledException(error.getMessage)
   }
 
   case object TooComplexQueryError extends Exception("Query is too expensive.")

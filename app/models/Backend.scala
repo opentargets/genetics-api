@@ -1,12 +1,12 @@
 package models
 
-import akka.actor.Status
 import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
 import clickhouse.ClickHouseProfile
 import models.Entities._
 import models.Functions._
 import models.Entities.Implicits._
+import sangria.validation.Violation
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
@@ -62,7 +62,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
     val variant = Variant(variantID)
 
     variant match {
-      case Success(v) => {
+      case Right(v) => {
         val query =
           sql"""
                |select
@@ -91,7 +91,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
             PheWASTable(associations = Vector.empty)
         }
       }
-      case Failure(exception) => Future.failed(exception)
+      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
     }
   }
 
@@ -193,10 +193,10 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       case Success(v) => ManhattanTable(
         v.map(el => {
           // we got the line so correct variant must exist
-          val variant: Try[Variant] = el.index_variant_id
+          val variant = Variant(el.index_variant_id)
           val completedV = variant.map(v => Variant(v.locus, v.refAllele, v.altAllele, el.index_rs_id))
 
-          ManhattanAssociation(completedV.get, el.pval, el.topGenes,
+          ManhattanAssociation(completedV.right.get, el.pval, el.topGenes,
             el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
@@ -206,10 +206,10 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
 
   def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
-    val variant: Try[Variant] = variantID
+    val variant = Variant(variantID)
 
     variant match {
-      case Success(v) =>
+      case Right(v) =>
         val assocs = sql"""
                        |select
                        | variant_id,
@@ -248,16 +248,17 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
           case Failure(ex) => Entities.IndexVariantTable(associations = Vector.empty)
         }
       // case Failure(_) => Future.successful(Entities.IndexVariantTable(associations = Vector.empty))
-      case Failure(exception) => Future.failed(exception)
+      case Left(violation) =>
+        Future.failed(InputParameterCheckError(Vector(violation)))
     }
   }
 
   def buildTagVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
-    val variant: Try[Variant] = variantID
+    val variant = Variant(variantID)
 
     variant match {
-      case Success(v) =>
+      case Right(v) =>
         val assocs = sql"""
                           |select
                           | index_variant_id,
@@ -297,14 +298,15 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
           case Failure(ex) => Entities.TagVariantTable(associations = Vector.empty)
         }
       // case Failure(_) => Future.successful(Entities.TagVariantTable(associations = Vector.empty))
-      case Failure(exception) => Future.failed(exception)
+      case Left(violation) =>
+        Future.failed(InputParameterCheckError(Vector(violation)))
     }
   }
 
   def buildGecko(chromosome: String, posStart: Long, posEnd: Long) = {
-    parseChromosome(chromosome) match {
-      case Some(chr) =>
-        val (start, end) = parseRegion(posStart, posEnd)
+    // TODO voy por aqui intentando unir dos Either juntos
+    (parseChromosome(chromosome), parseRegion(posStart, posEnd)) match {
+      case (Right(chr), Right((start, end))) =>
         val assocs = sql"""
                           |select
                           |  variant_id,
@@ -376,16 +378,17 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
           case Success(r) => Entities.Gecko(r.view)
           case Failure(ex) => Entities.Gecko(Seq.empty)
         }
-        // TODO return a proper exception
-      case None => Future.successful(None)
+      case (chrEither, rangeEither) =>
+        Future.failed(InputParameterCheckError(
+          Vector(chrEither, rangeEither).filter(_.isLeft).map(_.left.get).asInstanceOf[Vector[Violation]]))
     }
   }
 
   def buildG2V(variantID: String) = {
-    val variant: Try[Variant] = variantID
+    val variant = Variant(variantID)
 
     variant match {
-      case Success(v) =>
+      case Right(v) =>
         val assocs = sql"""
                           |SELECT
                           |    gene_id,
@@ -451,7 +454,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
           case Success(r) => r.view.groupBy(_.gene.id).mapValues(G2VAssociation(_)).values.toSeq
           case Failure(ex) => Seq.empty
         }
-      case Failure(exception) => Future.failed(exception)
+      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
     }
   }
 

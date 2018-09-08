@@ -1,18 +1,38 @@
 package models
 
+import models.Entities.InputParameterCheckError
 import slick.jdbc.GetResult
 
 import scala.util.{Failure, Success, Try}
 import scala.collection.breakOut
 import models.Functions._
-import sangria.execution.UserFacingError
+import sangria.execution._
+import sangria.validation.{BaseViolation, Violation}
 
 object Entities {
   val variantErrorMsg: String =
-    "Ouch! I've failed to parse the variant '%s' you ask for. May be you didn't spell it correctly. " +
-      "Please, pay attention to what you wrote bofore as it could be missing a letter or so. " +
-      "Let me please illustrate this with an example: '1_12345_T_C'"
-  case class VariantError(msg: String) extends Exception(variantErrorMsg format(msg)) with UserFacingError
+    "Ouch! It failed to parse the variant '%s' you ask for. Maybe you didn't spell it correctly. " +
+      "Please, pay attention to what you wrote before as it could be missing a letter or something else. " +
+      "Let me illustrate this with an example: '1_12345_T_C'."
+
+  val chromosomeErrorMsg: String =
+    "Ouch! It failed to parse the chromosome '%s' you ask for. Maybe you didn't spell it correctly. " +
+      "It is only supported chromosomes in the range [1..22] and 'X', 'Y' and 'MT'."
+
+  val inChromosomeRegionErrorMsg: String =
+    "Ouch! In chromosome region was not properly specified."
+
+  case class VariantViolation(msg: String) extends BaseViolation(variantErrorMsg format(msg))
+  case class ChromosomeViolation(msg: String) extends BaseViolation(chromosomeErrorMsg format(msg))
+  case class InChromosomeRegionViolation() extends BaseViolation(inChromosomeRegionErrorMsg)
+
+  case class InputParameterCheckError(violations: Vector[Violation])
+    extends Exception(s"Error during input parameter check. " +
+      s"Violations:\n\n${violations map (_.errorMessage) mkString "\n\n"}")
+        with WithViolations
+        with UserFacingError
+
+
 
   case class DNAPosition(chrId: String, position: Long)
   case class Variant(locus: DNAPosition, refAllele: String, altAllele: String, rsId: Option[String]) {
@@ -20,12 +40,12 @@ object Entities {
   }
 
   object Variant {
-    def apply(variantId: String, rsId: Option[String] = None): Try[Variant] = {
+    def apply(variantId: String, rsId: Option[String] = None): Either[VariantViolation, Variant] = {
       variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
         case List(chr: String, pos: String, ref: String, alt: String) =>
-          Success(Variant(DNAPosition(chr, pos.toLong), ref, alt, rsId))
+          Right(Variant(DNAPosition(chr, pos.toLong), ref, alt, rsId))
         case _ =>
-          Failure(VariantError(variantId))
+          Left(VariantViolation(variantId))
       }
     }
   }
@@ -202,7 +222,7 @@ object Entities {
                            intervalScoreQ: Double)
 
   object Implicits {
-    implicit def stringToVariant(variantID: String): Try[Variant] = Variant.apply(variantID)
+    implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] = Variant.apply(variantID)
 
     implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] =
       GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
@@ -236,7 +256,7 @@ object Entities {
       r => {
         val variant = Variant(r.<<, r.<<?)
         val study = Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-        IndexVariantAssociation(variant.get, study,
+        IndexVariantAssociation(variant.right.get, study,
           r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
       }
     )
@@ -245,15 +265,15 @@ object Entities {
       r => {
         val variant = Variant(r.<<, r.<<?)
         val study = Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-        TagVariantAssociation(variant.get, study,
+        TagVariantAssociation(variant.right.get, study,
           r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
       }
     )
 
     implicit val getGeckoLine: GetResult[GeckoLine] = GetResult(
       r => {
-        val tagVariant = Variant(r.<<, r.<<?).get
-        val indexVariant = Variant(r.<<, r.<<?).get
+        val tagVariant = Variant(r.<<, r.<<?).right.get
+        val indexVariant = Variant(r.<<, r.<<?).right.get
 
         val gene = Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
           chromosome = r.nextStringOption(), tss = r.nextLongOption(),
