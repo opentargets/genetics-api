@@ -37,7 +37,9 @@ object Entities {
 
   case class DNAPosition(chrId: String, position: Long)
   case class Variant(locus: DNAPosition, refAllele: String, altAllele: String, rsId: Option[String]) {
-    lazy val id: String = List(locus.chrId, locus.position.toString, refAllele, altAllele).map(_.toUpperCase).mkString("_")
+    lazy val id: String = List(locus.chrId, locus.position.toString, refAllele, altAllele)
+      .map(_.toUpperCase)
+      .mkString("_")
   }
 
   object Variant {
@@ -152,7 +154,7 @@ object Entities {
   }
 
   case class Tissue(id: String) {
-    val name: Option[String] = Option(id.replace("_", " ").toLowerCase.capitalize)
+    lazy val name: Option[String] = Option(id.replace("_", " ").toLowerCase.capitalize)
   }
 
   case class G2VSchemaElement(id: String, sourceId: String, tissues: Seq[Tissue])
