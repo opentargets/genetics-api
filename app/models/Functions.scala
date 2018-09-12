@@ -1,16 +1,16 @@
 package models
 
-import models.Entities.{ChromosomeViolation, InChromosomeRegionViolation}
+import models.Violations.{ChromosomeViolation, InChromosomeRegionViolation}
 
 import reflect.runtime.universe._
 
 object Functions {
   val defaultPaginationSize: Option[Int] = Some(500000)
-  val defaultChromosomes = (1 to 22).map(_.toString) ++ Seq("X", "Y", "MT")
-  val defaultMaxRegionSize = 2000000L
-  val defaultQtlTypes = List("eqtl", "pqtl")
-  val defaultIntervalTypes = List("dhscor", "fantom5", "pchic")
-  val defaultFPredTypes = List("fpred")
+  val defaultChromosomes: Seq[String] = (1 to 22).map(_.toString) ++ Seq("X", "Y", "MT")
+  val defaultMaxRegionSize: Long = 2000000L
+  val defaultQtlTypes: List[String] = List("eqtl", "pqtl")
+  val defaultIntervalTypes: List[String] = List("dhscor", "fantom5", "pchic")
+  val defaultFPredTypes: List[String] = List("fpred")
 
   /** Both numbers must be positive numbers and absolute chromosome coords,
     * start >= 0 and end > 0. Also, (end - start) > 0 and the diff between end and start

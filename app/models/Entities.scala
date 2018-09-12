@@ -1,40 +1,11 @@
 package models
 
-import models.Entities.InputParameterCheckError
 import slick.jdbc.GetResult
 
-import scala.util.{Failure, Success, Try}
-import scala.collection.breakOut
+import models.Violations._
 import models.Functions._
-import sangria.execution._
-import sangria.validation.{BaseViolation, Violation}
 
 object Entities {
-  val variantErrorMsg: String =
-    "Ouch! It failed to parse the variant '%s' you ask for. Maybe you didn't spell it correctly. " +
-      "Please, pay attention to what you wrote before as it could be missing a letter or something else. " +
-      "Let me illustrate this with an example: '1_12345_T_C'."
-
-  val chromosomeErrorMsg: String =
-    "Ouch! It failed to parse the chromosome '%s' you ask for. Maybe you didn't spell it correctly. " +
-      "It is only supported chromosomes in the range [1..22] and 'X', 'Y' and 'MT'."
-
-  val inChromosomeRegionErrorMsg: String =
-    "Ouch! The chromosome region was not properly specified. 'start' argument must be a positive number " +
-      "and < 'end' argument. Also, the argument 'end' must be a positive number and > 'start'."
-
-  case class VariantViolation(msg: String) extends BaseViolation(variantErrorMsg format(msg))
-  case class ChromosomeViolation(msg: String) extends BaseViolation(chromosomeErrorMsg format(msg))
-  case class InChromosomeRegionViolation() extends BaseViolation(inChromosomeRegionErrorMsg)
-
-  case class InputParameterCheckError(violations: Vector[Violation])
-    extends Exception(s"Error during input parameter check. " +
-      s"Violations:\n\n${violations map (_.errorMessage) mkString "\n\n"}")
-        with WithViolations
-        with UserFacingError
-
-
-
   case class DNAPosition(chrId: String, position: Long)
   case class Variant(locus: DNAPosition, refAllele: String, altAllele: String, rsId: Option[String]) {
     lazy val id: String = List(locus.chrId, locus.position.toString, refAllele, altAllele)
@@ -153,6 +124,15 @@ object Entities {
     }
   }
 
+  abstract class SearchResult(id: String)
+
+  case class GeneSearchResult (id: String) extends SearchResult(id)
+  case class StudySearchResult (id: String) extends SearchResult(id)
+  case class VariantSearchResult (id: String) extends SearchResult(id)
+
+  case class SearchResultSet(genes: Seq[GeneSearchResult], variants: Seq[VariantSearchResult],
+                             studies: Seq[StudySearchResult])
+
   case class Tissue(id: String) {
     lazy val name: Option[String] = Option(id.replace("_", " ").toLowerCase.capitalize)
   }
@@ -185,7 +165,6 @@ object Entities {
 
       val qtls = grouped.filterKeys(k => defaultQtlTypes.contains(k._1))
         .mapValues(p => {
-          val tp = p.head.typeId
           val sc = p.head.sourceId
           G2VElement[QTLTissue](p.head.typeId, p.head.sourceId, None,
             p.head.sourceScores(sc), toQtlTissues(p))
@@ -193,7 +172,6 @@ object Entities {
 
       val intervals = grouped.filterKeys(k => defaultIntervalTypes.contains(k._1))
         .mapValues(p => {
-          val tp = p.head.typeId
           val sc = p.head.sourceId
           G2VElement[IntervalTissue](p.head.typeId, p.head.sourceId, None,
             p.head.sourceScores(sc), toIntervalTissues(p))
@@ -201,7 +179,6 @@ object Entities {
 
       val fpreds = grouped.filterKeys(k => defaultFPredTypes.contains(k._1))
         .mapValues(p => {
-          val tp = p.head.typeId
           val sc = p.head.sourceId
           G2VElement[FPredTissue](p.head.typeId, p.head.sourceId, None,
             p.head.sourceScores(sc), toFPredTissues(p))

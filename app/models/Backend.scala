@@ -3,19 +3,28 @@ package models
 import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
 import clickhouse.ClickHouseProfile
+import com.sksamuel.elastic4s.ElasticsearchClientUri
 import models.Entities._
 import models.Functions._
 import models.Entities.Implicits._
+import models.Violations.{InputParameterCheckError, SearchStringViolation}
 import sangria.validation.Violation
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 import scala.concurrent._
+import com.sksamuel.elastic4s.http._
 
 class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) {
   val dbConfig = dbConfigProvider.get[ClickHouseProfile]
   val db = dbConfig.db
   import dbConfig.profile.api._
+
+  // you must import the DSL to use the syntax helpers
+  import com.sksamuel.elastic4s.http.ElasticDsl._
+  import com.sksamuel.elastic4s.ElasticImplicits._
+
+  val esQ = HttpClient(ElasticsearchClientUri("elasticsearch://localhost:9200"))
 
   def findAt(pos: DNAPosition) = {
     val founds = sql"""
@@ -122,6 +131,20 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
         G2VSchema(qtlElems, intervalElems, fpredElems)
       case Failure(ex) => println(ex)
         G2VSchema(Seq.empty, Seq.empty, Seq.empty)
+    }
+  }
+
+  def getSearchResultSet(qString: String) = {
+    if (qString.length > 0) {
+      esQ.execute {
+        multi(
+          search("genes") query qString,
+          search("variants") query qString,
+          search("studies") query qString
+        )
+      }.map( _ => SearchResultSet(Seq.empty, Seq.empty, Seq.empty))
+    } else {
+      Future.failed(InputParameterCheckError(Vector(SearchStringViolation())))
     }
   }
 

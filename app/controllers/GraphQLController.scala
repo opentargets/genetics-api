@@ -12,6 +12,7 @@ import sangria.execution.deferred.DeferredResolver
 import sangria.execution._
 import sangria.parser.{QueryParser, SyntaxError}
 import sangria.marshalling.playJson._
+import models.Violations._
 import models.Entities._
 
 import scala.util.{Failure, Success}
