@@ -23,8 +23,7 @@ libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
   // for the http client
   "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
-  // if you want to use reactive streams
-  "com.sksamuel.elastic4s" %% "elastic4s-http-streams" % elastic4sVersion
+  "com.sksamuel.elastic4s" %% "elastic4s-play-json" % elastic4sVersion,
 )
 
 // Adds additional packages into Twirl

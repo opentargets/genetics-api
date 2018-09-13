@@ -22,9 +22,7 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
 
   // you must import the DSL to use the syntax helpers
   import com.sksamuel.elastic4s.http.ElasticDsl._
-  import com.sksamuel.elastic4s.ElasticImplicits._
-
-  val esQ = HttpClient(ElasticsearchClientUri("elasticsearch://localhost:9200"))
+  val esUri = ElasticsearchClientUri("127.0.0.1", 9200)
 
   def findAt(pos: DNAPosition) = {
     val founds = sql"""
@@ -136,13 +134,20 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
 
   def getSearchResultSet(qString: String) = {
     if (qString.length > 0) {
+      var esQ = HttpClient(esUri)
       esQ.execute {
         multi(
-          search("genes") query qString,
-          search("variants") query qString,
-          search("studies") query qString
+          search("studies") query qString,
+          search("variant_*") query prefixQuery("variant_id", qString),
+          search("genes") query qString
         )
-      }.map( _ => SearchResultSet(Seq.empty, Seq.empty, Seq.empty))
+      }.map(r => {
+        r.responses.foreach(sr => {
+          println(s"total hits ${sr.hits.total}")
+          println(sr.hits.hits.toSeq)
+        })
+        SearchResultSet(Seq.empty, Seq.empty, Seq.empty)
+      })
     } else {
       Future.failed(InputParameterCheckError(Vector(SearchStringViolation())))
     }
