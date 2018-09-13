@@ -40,6 +40,9 @@ object GQLSchema {
       Field("bioType", OptionType(StringType),
         Some("Bio-type of the gene"),
         resolve = _.value.bioType),
+      Field("fwdStrand", OptionType(BooleanType),
+        Some("Forward strand true or false"),
+        resolve = _.value.fwd),
       Field("exons", ListType(LongType),
         Some("Approved symbol name of a gene"),
         resolve = _.value.exons)
@@ -535,13 +538,6 @@ object GQLSchema {
   //    # TBD: sample size
   //    # TBD: loci count
   //}
-  val geneSearchResult = ObjectType("GeneSearchResult",
-  "Gene search result object",
-    fields[Backend, GeneSearchResult](
-      Field("id", StringType,
-        Some("Gene ID"),
-        resolve = _.value.id)
-    ))
 
   val variantSearchResult = ObjectType("VariantSearchResult",
     "Variant search result object",
@@ -551,24 +547,25 @@ object GQLSchema {
         resolve = _.value.id)
     ))
 
-  val studySearchResult = ObjectType("StudySearchResult",
-    "Study search result object",
-    fields[Backend, StudySearchResult](
-      Field("id", StringType,
-        Some("Gene ID"),
-        resolve = _.value.id)
-    ))
-
   val searchResult = ObjectType("SearchResult",
     "Search data by a query string",
     fields[Backend, SearchResultSet](
-      Field("genes", ListType(geneSearchResult),
+      Field("totalGenes", LongType,
+        Some("Total number of genes found"),
+        resolve = _.value.totalGenes),
+      Field("totalVariants", LongType,
+        Some("Total number of variants found"),
+        resolve = _.value.totalVariants),
+      Field("totalStudies", LongType,
+        Some("Total number of studies found"),
+        resolve = _.value.totalStudies),
+      Field("genes", ListType(gene),
         Some("Gene search result list"),
         resolve = _.value.genes),
       Field("variants", ListType(variantSearchResult),
         Some("Variant search result list"),
         resolve = _.value.variants),
-      Field("studies", ListType(studySearchResult),
+      Field("studies", ListType(study),
         Some("Study search result list"),
         resolve = _.value.studies)
     ))
@@ -577,8 +574,9 @@ object GQLSchema {
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("search", searchResult,
-        arguments = queryString :: Nil,
-        resolve = (ctx) => ctx.ctx.getSearchResultSet(ctx.arg(queryString))),
+        arguments = queryString :: pageIndex :: pageSize :: Nil,
+        resolve = (ctx) =>
+          ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("studyInfo", OptionType(study),
         arguments = studyId :: Nil,
         resolve = (ctx) => ctx.ctx.getStudyInfo(ctx.arg(studyId))),

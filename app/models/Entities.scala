@@ -1,7 +1,7 @@
 package models
 
+import com.sksamuel.elastic4s.{Hit, HitReader}
 import slick.jdbc.GetResult
-
 import models.Violations._
 import models.Functions._
 
@@ -126,12 +126,11 @@ object Entities {
 
   abstract class SearchResult(id: String)
 
-  case class GeneSearchResult (id: String) extends SearchResult(id)
-  case class StudySearchResult (id: String) extends SearchResult(id)
   case class VariantSearchResult (id: String) extends SearchResult(id)
 
-  case class SearchResultSet(genes: Seq[GeneSearchResult], variants: Seq[VariantSearchResult],
-                             studies: Seq[StudySearchResult])
+  case class SearchResultSet(totalGenes: Long, genes: Seq[Gene],
+                             totalVariants: Long, variants: Seq[VariantSearchResult],
+                             totalStudies: Long, studies: Seq[Study])
 
   case class Tissue(id: String) {
     lazy val name: Option[String] = Option(id.replace("_", " ").toLowerCase.capitalize)
@@ -201,7 +200,54 @@ object Entities {
                            qtlPval: Option[Double], intervalScore: Option[Double], qtlScoreQ: Double,
                            intervalScoreQ: Double)
 
-  object Implicits {
+  object ESImplicits {
+    implicit object GeneHitReader extends HitReader[Gene] {
+      override def read(hit: Hit): Either[Throwable, Gene] = {
+        if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
+        else {
+          val mv = hit.sourceAsMap
+
+          Right(Gene(mv("gene_id").toString,
+            Option(mv("gene_name").asInstanceOf[String]),
+            Option(mv("start").asInstanceOf[Int]),
+            Option(mv("end").asInstanceOf[Int]),
+            Option(mv("chr").toString),
+            Option(mv("tss").asInstanceOf[Int]),
+            Option(mv("biotype").asInstanceOf[String]),
+            Option(mv("fwdstrand").asInstanceOf[Int] match {
+              case 0 => false
+              case 1 => true
+              case _ => false
+            })
+            )
+          )
+        }
+      }
+    }
+
+    implicit object StudyHitReader extends HitReader[Study] {
+      override def read(hit: Hit): Either[Throwable, Study] = {
+        if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
+        else {
+          val mv = hit.sourceAsMap
+
+          Right(Study(mv("stid").toString,
+            mv("trait_code").toString,
+            mv("trait_reported").toString,
+            mv("trait_efos").asInstanceOf[Seq[String]],
+            Option(mv("pmid").asInstanceOf[String]),
+            Option(mv("pub_date").asInstanceOf[String]),
+            Option(mv("pub_journal").asInstanceOf[String]),
+            Option(mv("pub_title").asInstanceOf[String]),
+            Option(mv("pub_author").asInstanceOf[String])
+          )
+          )
+        }
+      }
+    }
+  }
+
+  object DBImplicits {
     implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] = Variant.apply(variantID)
 
     implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] =
