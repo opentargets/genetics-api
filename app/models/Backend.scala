@@ -2,6 +2,7 @@ package models
 
 import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
+import play.api.Configuration
 import clickhouse.ClickHouseProfile
 import com.sksamuel.elastic4s.ElasticsearchClientUri
 import models.Entities._
@@ -16,14 +17,15 @@ import scala.util.{Failure, Success, Try}
 import scala.concurrent._
 import com.sksamuel.elastic4s.http._
 
-class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) {
+class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, config: Configuration){
   val dbConfig = dbConfigProvider.get[ClickHouseProfile]
   val db = dbConfig.db
   import dbConfig.profile.api._
 
   // you must import the DSL to use the syntax helpers
   import com.sksamuel.elastic4s.http.ElasticDsl._
-  val esUri = ElasticsearchClientUri("127.0.0.1", 9200)
+  val esUri = ElasticsearchClientUri(config.get[String]("ot.elasticsearch.host"),
+    config.get[Int]("ot.elasticsearch.port"))
 
   def findAt(pos: DNAPosition) = {
     val founds = sql"""
