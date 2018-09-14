@@ -1,40 +1,11 @@
 package models
 
-import models.Entities.InputParameterCheckError
+import com.sksamuel.elastic4s.{Hit, HitReader}
 import slick.jdbc.GetResult
-
-import scala.util.{Failure, Success, Try}
-import scala.collection.breakOut
+import models.Violations._
 import models.Functions._
-import sangria.execution._
-import sangria.validation.{BaseViolation, Violation}
 
 object Entities {
-  val variantErrorMsg: String =
-    "Ouch! It failed to parse the variant '%s' you ask for. Maybe you didn't spell it correctly. " +
-      "Please, pay attention to what you wrote before as it could be missing a letter or something else. " +
-      "Let me illustrate this with an example: '1_12345_T_C'."
-
-  val chromosomeErrorMsg: String =
-    "Ouch! It failed to parse the chromosome '%s' you ask for. Maybe you didn't spell it correctly. " +
-      "It is only supported chromosomes in the range [1..22] and 'X', 'Y' and 'MT'."
-
-  val inChromosomeRegionErrorMsg: String =
-    "Ouch! The chromosome region was not properly specified. 'start' argument must be a positive number " +
-      "and < 'end' argument. Also, the argument 'end' must be a positive number and > 'start'."
-
-  case class VariantViolation(msg: String) extends BaseViolation(variantErrorMsg format(msg))
-  case class ChromosomeViolation(msg: String) extends BaseViolation(chromosomeErrorMsg format(msg))
-  case class InChromosomeRegionViolation() extends BaseViolation(inChromosomeRegionErrorMsg)
-
-  case class InputParameterCheckError(violations: Vector[Violation])
-    extends Exception(s"Error during input parameter check. " +
-      s"Violations:\n\n${violations map (_.errorMessage) mkString "\n\n"}")
-        with WithViolations
-        with UserFacingError
-
-
-
   case class DNAPosition(chrId: String, position: Long)
   case class Variant(locus: DNAPosition, refAllele: String, altAllele: String, rsId: Option[String]) {
     lazy val id: String = List(locus.chrId, locus.position.toString, refAllele, altAllele)
@@ -153,6 +124,12 @@ object Entities {
     }
   }
 
+  case class VariantSearchResult (variant: Variant, relatedGenes: Seq[String])
+
+  case class SearchResultSet(totalGenes: Long, genes: Seq[Gene],
+                             totalVariants: Long, variants: Seq[VariantSearchResult],
+                             totalStudies: Long, studies: Seq[Study])
+
   case class Tissue(id: String) {
     lazy val name: Option[String] = Option(id.replace("_", " ").toLowerCase.capitalize)
   }
@@ -185,7 +162,6 @@ object Entities {
 
       val qtls = grouped.filterKeys(k => defaultQtlTypes.contains(k._1))
         .mapValues(p => {
-          val tp = p.head.typeId
           val sc = p.head.sourceId
           G2VElement[QTLTissue](p.head.typeId, p.head.sourceId, None,
             p.head.sourceScores(sc), toQtlTissues(p))
@@ -193,7 +169,6 @@ object Entities {
 
       val intervals = grouped.filterKeys(k => defaultIntervalTypes.contains(k._1))
         .mapValues(p => {
-          val tp = p.head.typeId
           val sc = p.head.sourceId
           G2VElement[IntervalTissue](p.head.typeId, p.head.sourceId, None,
             p.head.sourceScores(sc), toIntervalTissues(p))
@@ -201,7 +176,6 @@ object Entities {
 
       val fpreds = grouped.filterKeys(k => defaultFPredTypes.contains(k._1))
         .mapValues(p => {
-          val tp = p.head.typeId
           val sc = p.head.sourceId
           G2VElement[FPredTissue](p.head.typeId, p.head.sourceId, None,
             p.head.sourceScores(sc), toFPredTissues(p))
@@ -224,7 +198,69 @@ object Entities {
                            qtlPval: Option[Double], intervalScore: Option[Double], qtlScoreQ: Double,
                            intervalScoreQ: Double)
 
-  object Implicits {
+  object ESImplicits {
+    implicit object GeneHitReader extends HitReader[Gene] {
+      override def read(hit: Hit): Either[Throwable, Gene] = {
+        if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
+        else {
+          val mv = hit.sourceAsMap
+
+          Right(Gene(mv("gene_id").toString,
+            Option(mv("gene_name").asInstanceOf[String]),
+            Option(mv("start").asInstanceOf[Int]),
+            Option(mv("end").asInstanceOf[Int]),
+            Option(mv("chr").toString),
+            Option(mv("tss").asInstanceOf[Int]),
+            Option(mv("biotype").asInstanceOf[String]),
+            Option(mv("fwdstrand").asInstanceOf[Int] match {
+              case 0 => false
+              case 1 => true
+              case _ => false
+            })
+            )
+          )
+        }
+      }
+    }
+
+    implicit object VariantHitReader extends HitReader[VariantSearchResult] {
+      override def read(hit: Hit): Either[Throwable, VariantSearchResult] = {
+        if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
+        else {
+          val mv = hit.sourceAsMap
+
+          val variant = Variant(DNAPosition(mv("chr_id").toString, mv("position").asInstanceOf[Int]),
+            mv("ref_allele").toString, mv("alt_allele").toString, Option(mv("rs_id").toString))
+          val relatedGenes = mv("gene_set_ids").asInstanceOf[Seq[String]]
+
+          Right(VariantSearchResult(variant, relatedGenes))
+        }
+      }
+    }
+
+    implicit object StudyHitReader extends HitReader[Study] {
+      override def read(hit: Hit): Either[Throwable, Study] = {
+        if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
+        else {
+          val mv = hit.sourceAsMap
+
+          Right(Study(mv("stid").toString,
+            mv("trait_code").toString,
+            mv("trait_reported").toString,
+            mv("trait_efos").asInstanceOf[Seq[String]],
+            Option(mv("pmid").asInstanceOf[String]),
+            Option(mv("pub_date").asInstanceOf[String]),
+            Option(mv("pub_journal").asInstanceOf[String]),
+            Option(mv("pub_title").asInstanceOf[String]),
+            Option(mv("pub_author").asInstanceOf[String])
+          )
+          )
+        }
+      }
+    }
+  }
+
+  object DBImplicits {
     implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] = Variant.apply(variantID)
 
     implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] =

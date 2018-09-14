@@ -4,7 +4,7 @@ package models
 import sangria.execution.deferred.{Fetcher, HasId}
 import sangria.schema._
 import Entities._
-import sangria.marshalling.ToInput
+import sangria.streaming.ValidOutStreamType
 
 object GQLSchema {
   val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
@@ -14,6 +14,7 @@ object GQLSchema {
   val pageSize = Argument("pageSize", OptionInputType(IntType), description = "pagination size > 0")
   val dnaPosStart = Argument("start", LongType, description = "Start position in a specified chromosome")
   val dnaPosEnd = Argument("end", LongType, description = "End position in a specified chromosome")
+  val queryString = Argument("queryString", StringType, description = "Query text to search for")
 
   val gene = ObjectType("Gene",
   "This element represents a simple gene object which contains id and name",
@@ -39,6 +40,9 @@ object GQLSchema {
       Field("bioType", OptionType(StringType),
         Some("Bio-type of the gene"),
         resolve = _.value.bioType),
+      Field("fwdStrand", OptionType(BooleanType),
+        Some("Forward strand true or false"),
+        resolve = _.value.fwd),
       Field("exons", ListType(LongType),
         Some("Approved symbol name of a gene"),
         resolve = _.value.exons)
@@ -515,8 +519,67 @@ object GQLSchema {
         resolve = _.value.fpreds)
     ))
 
+  //type SearchResultGene {
+  //    id: String!
+  //    symbol: String!
+  //    name: String
+  //    synonyms: [String!]!
+  //}
+  //type SearchResultVariant {
+  //    variantId: String!
+  //    rsId: String
+  //}
+  //type SearchResultStudy {
+  //    studyId: String!
+  //    traitReported: String!
+  //    pubAuthor: String
+  //    pubDate: String
+  //    pubJournal: String
+  //    # TBD: sample size
+  //    # TBD: loci count
+  //}
+
+  val variantSearchResult = ObjectType("VariantSearchResult",
+    "Variant search result object",
+    fields[Backend, VariantSearchResult](
+      Field("variant", variant,
+        Some("A variant"),
+        resolve = _.value.variant),
+      Field("relatedGenes", ListType(StringType),
+        Some("List of names of related genes from Variant to Gene"),
+        resolve = _.value.relatedGenes)
+    ))
+
+  val searchResult = ObjectType("SearchResult",
+    "Search data by a query string",
+    fields[Backend, SearchResultSet](
+      Field("totalGenes", LongType,
+        Some("Total number of genes found"),
+        resolve = _.value.totalGenes),
+      Field("totalVariants", LongType,
+        Some("Total number of variants found"),
+        resolve = _.value.totalVariants),
+      Field("totalStudies", LongType,
+        Some("Total number of studies found"),
+        resolve = _.value.totalStudies),
+      Field("genes", ListType(gene),
+        Some("Gene search result list"),
+        resolve = _.value.genes),
+      Field("variants", ListType(variantSearchResult),
+        Some("Variant search result list"),
+        resolve = _.value.variants),
+      Field("studies", ListType(study),
+        Some("Study search result list"),
+        resolve = _.value.studies)
+    ))
+
+  // TODO finish the get the searchresult
   val query = ObjectType(
     "Query", fields[Backend, Unit](
+      Field("search", searchResult,
+        arguments = queryString :: pageIndex :: pageSize :: Nil,
+        resolve = (ctx) =>
+          ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("studyInfo", OptionType(study),
         arguments = studyId :: Nil,
         resolve = (ctx) => ctx.ctx.getStudyInfo(ctx.arg(studyId))),

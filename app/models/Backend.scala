@@ -2,20 +2,30 @@ package models
 
 import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
+import play.api.Configuration
 import clickhouse.ClickHouseProfile
+import com.sksamuel.elastic4s.ElasticsearchClientUri
 import models.Entities._
 import models.Functions._
-import models.Entities.Implicits._
+import models.Entities.DBImplicits._
+import models.Entities.ESImplicits._
+import models.Violations.{InputParameterCheckError, SearchStringViolation}
 import sangria.validation.Violation
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 import scala.concurrent._
+import com.sksamuel.elastic4s.http._
 
-class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) {
+class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, config: Configuration){
   val dbConfig = dbConfigProvider.get[ClickHouseProfile]
   val db = dbConfig.db
   import dbConfig.profile.api._
+
+  // you must import the DSL to use the syntax helpers
+  import com.sksamuel.elastic4s.http.ElasticDsl._
+  val esUri = ElasticsearchClientUri(config.get[String]("ot.elasticsearch.host"),
+    config.get[Int]("ot.elasticsearch.port"))
 
   def findAt(pos: DNAPosition) = {
     val founds = sql"""
@@ -122,6 +132,38 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
         G2VSchema(qtlElems, intervalElems, fpredElems)
       case Failure(ex) => println(ex)
         G2VSchema(Seq.empty, Seq.empty, Seq.empty)
+    }
+  }
+
+  def getSearchResultSet(qString: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
+    val limitClause = parsePaginationTokensForES(pageIndex, pageSize)
+    val stoken = qString.toLowerCase
+    val cleanedTokens = stoken.replaceAll("-", " and ")
+
+    if (stoken.length > 0) {
+      val esQ = HttpClient(esUri)
+      esQ.execute {
+          search("studies") query boolQuery.should(prefixQuery("stid", stoken),
+            prefixQuery("pmid", stoken),
+            queryStringQuery(cleanedTokens)) start limitClause._1 limit limitClause._2
+      }.zip {
+        esQ.execute {
+          search("variant_*") query boolQuery.should(prefixQuery("variant_id", stoken),
+            prefixQuery("rs_id", stoken)) start limitClause._1 limit limitClause._2
+        }
+      }.zip {
+        esQ.execute {
+          search("genes") query boolQuery.should(prefixQuery("gene_id", stoken),
+            queryStringQuery(cleanedTokens)) start limitClause._1 limit limitClause._2
+        }
+      }.map{
+        case ((studiesRS, variantsRS), genesRS) =>
+          SearchResultSet(genesRS.totalHits, genesRS.to[Gene],
+            variantsRS.totalHits, variantsRS.to[VariantSearchResult],
+            studiesRS.totalHits, studiesRS.to[Study])
+      }
+    } else {
+      Future.failed(InputParameterCheckError(Vector(SearchStringViolation())))
     }
   }
 
