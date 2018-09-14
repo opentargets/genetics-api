@@ -136,11 +136,14 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
   def getSearchResultSet(qString: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
     val limitClause = parsePaginationTokensForES(pageIndex, pageSize)
     val stoken = qString.toLowerCase
+    val cleanedTokens = stoken.replaceAll("-", " and ")
+
     if (stoken.length > 0) {
       val esQ = HttpClient(esUri)
       esQ.execute {
           search("studies") query boolQuery.should(prefixQuery("stid", stoken),
-            prefixQuery("trait_reported", stoken)) start limitClause._1 limit limitClause._2
+            prefixQuery("pmid", stoken),
+            queryStringQuery(cleanedTokens)) start limitClause._1 limit limitClause._2
       }.zip {
         esQ.execute {
           search("variant_*") query boolQuery.should(prefixQuery("variant_id", stoken),
@@ -149,11 +152,12 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) 
       }.zip {
         esQ.execute {
           search("genes") query boolQuery.should(prefixQuery("gene_id", stoken),
-            prefixQuery("gene_name", stoken)) start limitClause._1 limit limitClause._2
+            queryStringQuery(cleanedTokens)) start limitClause._1 limit limitClause._2
         }
       }.map{
         case ((studiesRS, variantsRS), genesRS) =>
-          SearchResultSet(genesRS.totalHits, genesRS.to[Gene], variantsRS.totalHits, Seq.empty,
+          SearchResultSet(genesRS.totalHits, genesRS.to[Gene],
+            variantsRS.totalHits, variantsRS.to[VariantSearchResult],
             studiesRS.totalHits, studiesRS.to[Study])
       }
     } else {

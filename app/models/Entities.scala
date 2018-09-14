@@ -124,9 +124,7 @@ object Entities {
     }
   }
 
-  abstract class SearchResult(id: String)
-
-  case class VariantSearchResult (id: String) extends SearchResult(id)
+  case class VariantSearchResult (variant: Variant, relatedGenes: Seq[String])
 
   case class SearchResultSet(totalGenes: Long, genes: Seq[Gene],
                              totalVariants: Long, variants: Seq[VariantSearchResult],
@@ -221,6 +219,21 @@ object Entities {
             })
             )
           )
+        }
+      }
+    }
+
+    implicit object VariantHitReader extends HitReader[VariantSearchResult] {
+      override def read(hit: Hit): Either[Throwable, VariantSearchResult] = {
+        if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
+        else {
+          val mv = hit.sourceAsMap
+
+          val variant = Variant(DNAPosition(mv("chr_id").toString, mv("position").asInstanceOf[Int]),
+            mv("ref_allele").toString, mv("alt_allele").toString, Option(mv("rs_id").toString))
+          val relatedGenes = mv("gene_set_ids").asInstanceOf[Seq[String]]
+
+          Right(VariantSearchResult(variant, relatedGenes))
         }
       }
     }
