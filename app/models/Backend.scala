@@ -412,7 +412,8 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, 
                           |   gene_id,
                           |   overall_score
                           | from #$d2v2gOScoresTName
-                          | prewhere chr_id = $chr
+                          | prewhere chr_id = $chr and
+                          | overall_score > 0.
                           |) using (variant_id, gene_id)
           """.stripMargin.as[GeckoLine]
 
