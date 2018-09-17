@@ -16,10 +16,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 import scala.concurrent._
 import com.sksamuel.elastic4s.http._
+import play.db.NamedDatabase
 
-class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, config: Configuration){
+class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
+                        @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider, config: Configuration){
   val dbConfig = dbConfigProvider.get[ClickHouseProfile]
+  val dbConfigSumStats = dbConfigProviderSumStats.get[ClickHouseProfile]
   val db = dbConfig.db
+  val dbSS = dbConfigSumStats.db
+
   import dbConfig.profile.api._
 
   // you must import the DSL to use the syntax helpers
@@ -73,24 +78,26 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, 
 
     variant match {
       case Right(v) => {
+        val segment = (v.locus.position / 1e7).toLong
         val query =
           sql"""
                |select
-               | trait_reported,
-               | stid,
-               | any(pval),
+               | study_id,
+               | trait_code,
+               | pval,
                | any(n_initial),
                | any(n_replication)
-               |from #$v2dByChrPosTName
-               |prewhere chr_id = ${v.locus.chrId} and
-               |  position = ${v.locus.position} and
+               |from #$gwasSumStatsTName
+               |prewhere chrom = ${v.locus.chrId} and
+               |  pos_b37 = ${v.locus.position} and
+               |  segment = $segment and
                |  variant_id = ${v.id}
-               |group by trait_reported, stid
-               |order by trait_reported asc
+               |group by trait_code, study_id, pval
+               |order by trait_code, studi_id, pval
                |#$limitClause
          """.stripMargin.as[V2DByVariantPheWAS]
 
-        db.run(query.asTry).map {
+        dbSS.run(query.asTry).map {
           case Success(v) => PheWASTable(
             associations = v.map(el => {
               PheWASAssociation(el.stid, el.traitReported, Option.empty, el.pval, 0,
@@ -509,4 +516,5 @@ class Backend @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, 
   private val v2gOScoresTName: String = "v2g_score_by_overall"
   private val v2gStructureTName: String = "v2g_structure"
   private val studiesTName: String = "studies"
+  private val gwasSumStatsTName: String = "gwas"
 }
