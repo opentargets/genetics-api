@@ -79,7 +79,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     variant match {
       case Right(v) => {
-        val segment = (v.locus.position / 1e7).toLong
+        val segment = (v.locus.position / 1e6).toLong
         val query =
           sql"""
                |select
@@ -105,8 +105,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
         dbSS.run(query.asTry).map {
           case Success(v) => PheWASTable(v)
-          case _ =>
-            PheWASTable(associations = Vector.empty)
+          case _ => PheWASTable(associations = Vector.empty)
         }
       }
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
@@ -172,6 +171,29 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       }
     } else {
       Future.failed(InputParameterCheckError(Vector(SearchStringViolation())))
+    }
+  }
+
+  def getStudies(stids: Seq[String]) = {
+    val stidListString = stids.map("'" + _ + "'").mkString(",")
+    val studiesSQL = sql"""
+                      |select
+                      | stid,
+                      | trait_code,
+                      | trait_reported,
+                      | trait_efos,
+                      | pmid,
+                      | pub_date,
+                      | pub_journal,
+                      | pub_title,
+                      | pub_author
+                      |from #$studiesTName
+                      |where stid in (#${stidListString})
+      """.stripMargin.as[Study]
+
+    db.run(studiesSQL.asTry).map {
+      case Success(v) => v
+      case Failure(_) => Vector.empty
     }
   }
 

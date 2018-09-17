@@ -4,6 +4,7 @@ import com.sksamuel.elastic4s.{Hit, HitReader}
 import slick.jdbc.GetResult
 import models.Violations._
 import models.Functions._
+import sangria.execution.deferred.HasId
 
 object Entities {
   case class DNAPosition(chrId: String, position: Long)
@@ -79,6 +80,11 @@ object Entities {
                         credibleSetSize: Long, ldSetSize: Long, totalSetSize: Long, topGenes: Seq[(Gene, Double)])
 
   case class StudyInfo(study: Option[Study])
+
+  object Study {
+    implicit val hasId = HasId[Study, String](_.studyId)
+  }
+
   case class Study(studyId: String, traitCode: String, traitReported: String, traitEfos: Seq[String],
                    pubId: Option[String], pubDate: Option[String], pubJournal: Option[String], pubTitle: Option[String],
                    pubAuthor: Option[String])
