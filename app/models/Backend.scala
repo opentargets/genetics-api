@@ -76,6 +76,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
     val variant = Variant(variantID)
 
+
     variant match {
       case Right(v) => {
         val segment = (v.locus.position / 1e7).toLong
@@ -85,25 +86,25 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                | study_id,
                | trait_code,
                | pval,
-               | any(n_initial),
-               | any(n_replication)
+               | beta,
+               | se,
+               | eaf,
+               | maf,
+               | n_samples_variant_level,
+               | n_samples_study_level,
+               | n_cases_study_level,
+               | n_cases_variant_level,
+               | if(is_cc,exp(beta),NULL) as odds_ratio
                |from #$gwasSumStatsTName
                |prewhere chrom = ${v.locus.chrId} and
                |  pos_b37 = ${v.locus.position} and
                |  segment = $segment and
-               |  variant_id = ${v.id}
-               |group by trait_code, study_id, pval
-               |order by trait_code, studi_id, pval
+               |  variant_id_b37 = ${v.id}
                |#$limitClause
-         """.stripMargin.as[V2DByVariantPheWAS]
+         """.stripMargin.as[VariantPheWAS]
 
         dbSS.run(query.asTry).map {
-          case Success(v) => PheWASTable(
-            associations = v.map(el => {
-              PheWASAssociation(el.stid, el.traitReported, Option.empty, el.pval, 0,
-                el.nInitial + el.nRepeated, 0)
-            })
-          )
+          case Success(v) => PheWASTable(v)
           case _ =>
             PheWASTable(associations = Vector.empty)
         }
