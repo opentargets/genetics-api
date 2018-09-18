@@ -556,26 +556,6 @@ object GQLSchema {
         resolve = _.value.fpreds)
     ))
 
-  //type SearchResultGene {
-  //    id: String!
-  //    symbol: String!
-  //    name: String
-  //    synonyms: [String!]!
-  //}
-  //type SearchResultVariant {
-  //    variantId: String!
-  //    rsId: String
-  //}
-  //type SearchResultStudy {
-  //    studyId: String!
-  //    traitReported: String!
-  //    pubAuthor: String
-  //    pubDate: String
-  //    pubJournal: String
-  //    # TBD: sample size
-  //    # TBD: loci count
-  //}
-
   val variantSearchResult = ObjectType("VariantSearchResult",
     "Variant search result object",
     fields[Backend, VariantSearchResult](
@@ -610,7 +590,6 @@ object GQLSchema {
         resolve = _.value.studies)
     ))
 
-  // TODO finish the get the searchresult
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("search", searchResult,
