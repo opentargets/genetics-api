@@ -199,7 +199,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     db.run(studiesSQL.asTry).map {
       case Success(v) => v
-      case Failure(_) => Vector.empty
+      case Failure(ex) =>
+        println(ex)
+        Vector.empty
     }
   }
 

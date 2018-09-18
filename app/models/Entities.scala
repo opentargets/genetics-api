@@ -29,10 +29,6 @@ object Entities {
                   chromosome: Option[String] = None, tss: Option[Long] = None,
                   bioType: Option[String] = None, fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
 
-  case class PheWASTable(associations: Vector[VariantPheWAS])
-//  case class PheWASAssociation(studyId: String, traitReported: String, traitId: Option[String],
-//                               pval: Double, beta: Double, nTotal: Long, nCases: Long)
-
   case class TagVariantTable(associations: Vector[TagVariantAssociation])
   case class TagVariantAssociation(indexVariant: Variant,
                                      studyId: String,
@@ -91,6 +87,7 @@ object Entities {
                    nInitial: Option[Long], nReplication: Option[Long], nCases: Option[Long],
                    traitCategory: Option[String])
 
+  case class PheWASTable(associations: Vector[VariantPheWAS])
   case class VariantPheWAS(stid: String, traitCode: String, pval: Double, beta: Double, se: Double, eaf: Double, maf: Double,
                            nSamplesVariant: Option[Long], nSamplesStudy: Option[Long], nCasesStudy: Option[Long],
                            nCasesVariant: Option[Long], oddRatio: Option[Double])
