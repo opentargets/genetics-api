@@ -35,7 +35,7 @@ object Entities {
 
   case class TagVariantTable(associations: Vector[TagVariantAssociation])
   case class TagVariantAssociation(indexVariant: Variant,
-                                     study: Study,
+                                     studyId: String,
                                      pval: Double,
                                      nTotal: Int, // n_initial + n_replication which could be null as well both fields
                                      nCases: Int,
@@ -51,7 +51,7 @@ object Entities {
 
   case class IndexVariantTable(associations: Vector[IndexVariantAssociation])
   case class IndexVariantAssociation(tagVariant: Variant,
-                                     study: Study,
+                                     studyId: String,
                                      pval: Double,
                                      nTotal: Int, // n_initial + n_replication which could be null as well both fields
                                      nCases: Int,
@@ -87,7 +87,9 @@ object Entities {
 
   case class Study(studyId: String, traitCode: String, traitReported: String, traitEfos: Seq[String],
                    pubId: Option[String], pubDate: Option[String], pubJournal: Option[String], pubTitle: Option[String],
-                   pubAuthor: Option[String])
+                   pubAuthor: Option[String], ancestryInitial: Seq[String], ancestryReplication: Seq[String],
+                   nInitial: Option[Long], nReplication: Option[Long], nCases: Option[Long],
+                   traitCategory: Option[String])
 
   case class VariantPheWAS(stid: String, traitCode: String, pval: Double, beta: Double, se: Double, eaf: Double, maf: Double,
                            nSamplesVariant: Option[Long], nSamplesStudy: Option[Long], nCasesStudy: Option[Long],
@@ -97,9 +99,9 @@ object Entities {
   case class TagVariantIndexVariantStudy(tagVariantId: String, indexVariantId: String, studyId: String,
                                          r2: Option[Double], pval: Double, posteriorProb: Option[Double])
   case class Gecko(genes: Seq[Gene], tagVariants: Seq[Variant], indexVariants: Seq[Variant],
-                   studies: Seq[Study], geneTagVariants: Seq[GeneTagVariant],
+                   studies: Seq[String], geneTagVariants: Seq[GeneTagVariant],
                    tagVariantIndexVariantStudies: Seq[TagVariantIndexVariantStudy])
-  case class GeckoLine(gene: Gene, tagVariant: Variant, indexVariant: Variant, study: Study,
+  case class GeckoLine(gene: Gene, tagVariant: Variant, indexVariant: Variant, studyId: String,
                        geneTagVariant: GeneTagVariant, tagVariantIndexVariantStudy: TagVariantIndexVariantStudy)
 
   object Gecko {
@@ -110,7 +112,7 @@ object Entities {
         var genes: Set[Gene] = Set.empty
         var tagVariants: Set[Variant] = Set.empty
         var indexVariants: Set[Variant] = Set.empty
-        var studies: Set[Study] = Set.empty
+        var studies: Set[String] = Set.empty
         var tagVariantIndexVariantStudies: Set[TagVariantIndexVariantStudy] = Set.empty
         var geneTagVariants: Set[GeneTagVariant] = Set.empty
 
@@ -118,7 +120,7 @@ object Entities {
           genes += line.gene
           tagVariants += line.tagVariant
           indexVariants += line.indexVariant
-          studies += line.study
+          studies += line.studyId
           geneTagVariants += line.geneTagVariant
           tagVariantIndexVariantStudies += line.tagVariantIndexVariantStudy
         })
@@ -260,8 +262,13 @@ object Entities {
             Option(mv("pub_date").asInstanceOf[String]),
             Option(mv("pub_journal").asInstanceOf[String]),
             Option(mv("pub_title").asInstanceOf[String]),
-            Option(mv("pub_author").asInstanceOf[String])
-          )
+            Option(mv("pub_author").asInstanceOf[String]),
+            Seq.empty,
+            Seq.empty,
+            None,
+            None,
+            None,
+            None)
           )
         }
       }
@@ -269,7 +276,8 @@ object Entities {
   }
 
   object DBImplicits {
-    implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] = Variant.apply(variantID)
+    implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] =
+      Variant.apply(variantID)
 
     implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] =
       GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
@@ -297,13 +305,13 @@ object Entities {
       GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
 
     implicit val getStudy: GetResult[Study] =
-      GetResult(r => Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?))
+      GetResult(r => Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
+        toSeqString(r.<<), toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?))
 
     implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
       r => {
         val variant = Variant(r.<<, r.<<?)
-        val study = Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-        IndexVariantAssociation(variant.right.get, study,
+        IndexVariantAssociation(variant.right.get, r.<<,
           r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
       }
     )
@@ -311,8 +319,7 @@ object Entities {
     implicit val getTagVariantAssoc: GetResult[TagVariantAssociation] = GetResult(
       r => {
         val variant = Variant(r.<<, r.<<?)
-        val study = Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-        TagVariantAssociation(variant.right.get, study,
+        TagVariantAssociation(variant.right.get, r.<<,
           r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
       }
     )
@@ -327,9 +334,7 @@ object Entities {
           start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
           exons = toSeqLong(r.nextString()))
 
-        val study = Study(studyId = r.<<, pubId = r.<<?, pubDate = r.<<?, pubJournal = r.<<?,
-          pubTitle = r.<<?, pubAuthor = r.<<?, traitReported = r.<<, traitEfos = toSeqString(r.<<),
-          traitCode = r.<<)
+        val studyId: String = r.<<
 
         val r2 = r.nextDoubleOption()
         val posteriorProb = r.nextDoubleOption()
@@ -338,9 +343,9 @@ object Entities {
 
         val geneTagVariant = GeneTagVariant(gene.id, tagVariant.id, overallScore)
         val tagVariantIndexVariantStudy = TagVariantIndexVariantStudy(tagVariant.id, indexVariant.id,
-          study.studyId, r2, pval, posteriorProb)
+          studyId, r2, pval, posteriorProb)
 
-        GeckoLine(gene, tagVariant, indexVariant, study, geneTagVariant, tagVariantIndexVariantStudy)
+        GeckoLine(gene, tagVariant, indexVariant, studyId, geneTagVariant, tagVariantIndexVariantStudy)
       }
     )
 
