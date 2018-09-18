@@ -1,7 +1,7 @@
 package models
 
 
-import sangria.execution.deferred.{Fetcher, HasId}
+import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
 import sangria.streaming.ValidOutStreamType
@@ -81,6 +81,12 @@ object GQLSchema {
         Some("Alt allele"),
         resolve = _.value.altAllele)
     ))
+
+  val studiesFetcher = Fetcher(
+    config = FetcherConfig.maxBatchSize(50),
+    fetch = (ctx: Backend, stids: Seq[String]) => {ctx.getStudies(stids)})
+
+  val studiesResolver = DeferredResolver.fetchers(studiesFetcher)
 
   val study = ObjectType("Study",
   "This element contains all study fields",
@@ -236,30 +242,43 @@ object GQLSchema {
         resolve = _.value.totalSetSize)
     ))
 
+
   val pheWASAssociation = ObjectType("PheWASAssociation",
     "This element represents an association between a variant and a reported trait through a study",
-    fields[Backend, PheWASAssociation](
+    fields[Backend, VariantPheWAS](
       Field("studyId", StringType,
         Some("Study ID"),
-        resolve = _.value.studyId),
+        resolve = _.value.stid),
+      Field("study", OptionType(study),
+        Some("Study Object"),
+        resolve = rsl => studiesFetcher.deferOpt(rsl.value.stid)),
       Field("traitReported", StringType,
         Some("Trait reported"),
-        resolve = _.value.traitReported),
+        resolve = _.value.traitCode),
       Field("traitId", OptionType(StringType),
         Some("Trait ID reported"),
-        resolve = _.value.traitId),
+        resolve = _.value.traitCode),
       Field("pval", FloatType,
         Some("Computed p-Value"),
         resolve = _.value.pval),
       Field("beta", FloatType,
         Some("beta"),
         resolve = _.value.beta),
-      Field("nTotal", LongType,
+      Field("nTotal", OptionType(LongType),
         Some("total sample size (variant level)"),
-        resolve = _.value.nTotal),
-      Field("nCases", LongType,
+        resolve = _.value.nSamplesVariant),
+      Field("nCases", OptionType(LongType),
         Some("number of cases (variant level)"),
-        resolve = _.value.nCases)
+        resolve = _.value.nCasesVariant),
+      Field("nTotalStudy", OptionType(LongType),
+        Some("total sample size (study level, available when variant level is not provided)"),
+        resolve = _.value.nSamplesStudy),
+      Field("nCasesStudy", OptionType(LongType),
+        Some("number of cases (study level, available when variant level is not provided)"),
+        resolve = _.value.nCasesStudy),
+      Field("oddsRatio", OptionType(FloatType),
+        Some("Odds ratio (if case control)"),
+        resolve = _.value.oddRatio)
     ))
 
   val geneTagVariant = ObjectType("GeneTagVariant",
@@ -582,7 +601,8 @@ object GQLSchema {
           ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("studyInfo", OptionType(study),
         arguments = studyId :: Nil,
-        resolve = (ctx) => ctx.ctx.getStudyInfo(ctx.arg(studyId))),
+        // resolve = (ctx) => ctx.ctx.getStudyInfo(ctx.arg(studyId))),
+        resolve = (ctx) => studiesFetcher.deferOpt(ctx.arg(studyId))),
       Field("manhattan", manhattan,
         arguments = studyId :: pageIndex :: pageSize :: Nil,
         resolve = (ctx) => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
