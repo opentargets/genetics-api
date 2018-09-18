@@ -178,7 +178,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     val stidListString = stids.map("'" + _ + "'").mkString(",")
     val studiesSQL = sql"""
                       |select
-                      | stid,
+                      | study_id,
                       | trait_code,
                       | trait_reported,
                       | trait_efos,
@@ -194,7 +194,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                       | n_cases,
                       | trait_category
                       |from #$studiesTName
-                      |where stid in (#${stidListString})
+                      |where study_id in (#${stidListString})
       """.stripMargin.as[Study]
 
     db.run(studiesSQL.asTry).map {
