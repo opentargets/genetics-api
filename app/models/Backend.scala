@@ -186,7 +186,13 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                       | pub_date,
                       | pub_journal,
                       | pub_title,
-                      | pub_author
+                      | pub_author,
+                      | ancestry_initial,
+                      | ancestry_replication,
+                      | n_initial,
+                      | n_replication,
+                      | n_cases,
+                      | trait_category
                       |from #$studiesTName
                       |where stid in (#${stidListString})
       """.stripMargin.as[Study]
@@ -194,28 +200,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     db.run(studiesSQL.asTry).map {
       case Success(v) => v
       case Failure(_) => Vector.empty
-    }
-  }
-
-  def getStudyInfo(studyID: String) = {
-    val studyQ = sql"""
-                 |select
-                 | stid,
-                 | trait_code,
-                 | trait_reported,
-                 | trait_efos,
-                 | pmid,
-                 | pub_date,
-                 | pub_journal,
-                 | pub_title,
-                 | pub_author
-                 |from #$studiesTName
-                 |where stid = $studyID
-      """.stripMargin.as[Study]
-
-    db.run(studyQ.asTry).map {
-      case Success(v) => v.headOption
-      case Failure(_) => None
     }
   }
 
@@ -287,14 +271,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                        | variant_id,
                        | rs_id,
                        | stid,
-                       | trait_code,
-                       | trait_reported,
-                       | trait_efos,
-                       | pmid,
-                       | pub_date,
-                       | pub_journal,
-                       | pub_title,
-                       | pub_author,
                        | pval,
                        | ifNull(n_initial,0) + ifNull(n_replication,0),
                        | ifNull(n_cases, 0),
@@ -336,14 +312,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           | index_variant_id,
                           | index_rs_id,
                           | stid,
-                          | trait_code,
-                          | trait_reported,
-                          | trait_efos,
-                          | pmid,
-                          | pub_date,
-                          | pub_journal,
-                          | pub_title,
-                          | pub_author,
                           | pval,
                           | ifNull(n_initial,0) + ifNull(n_replication,0),
                           | ifNull(n_cases, 0),
@@ -395,14 +363,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |  dictGetUInt8('gene','fwdstrand',tuple(gene_id)) as gene_fwd,
                           |  cast(dictGetString('gene','exons',tuple(gene_id)), 'Array(UInt32)') as gene_exons,
                           |  stid,
-                          |  pmid,
-                          |  pub_date ,
-                          |  pub_journal ,
-                          |  pub_title ,
-                          |  pub_author ,
-                          |  trait_reported ,
-                          |  trait_efos ,
-                          |  trait_code ,
                           |  r2,
                           |  posterior_prob ,
                           |  pval,
@@ -415,14 +375,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |  index_variant_id,
                           |  any(index_variant_rsid) as index_variant_rsid,
                           |  gene_id,
-                          |  any(pmid) as pmid,
-                          |  any(pub_date) as pub_date,
-                          |  any(pub_journal) as pub_journal,
-                          |  any(pub_title) as pub_title,
-                          |  any(pub_author) as pub_author,
-                          |  any(trait_reported) as trait_reported,
-                          |  any(trait_efos) as trait_efos,
-                          |  any(trait_code) as trait_code,
                           |  any(r2) as r2,
                           |  any(posterior_prob) as posterior_prob,
                           |  any(pval) as pval
