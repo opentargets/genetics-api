@@ -151,7 +151,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     if (stoken.length > 0) {
       val esQ = HttpClient(esUri)
       esQ.execute {
-          search("studies") query boolQuery.should(prefixQuery("stid", stoken),
+          search("studies") query boolQuery.should(prefixQuery("study_id", stoken),
             prefixQuery("pmid", stoken),
             queryStringQuery(cleanedTokens)) start limitClause._1 limit limitClause._2
       }.zip {

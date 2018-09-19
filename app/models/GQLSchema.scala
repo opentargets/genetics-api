@@ -485,7 +485,7 @@ object GQLSchema {
   val qtlElement = ObjectType("QTLElement",
     "A list of rows with each link",
     fields[Backend, G2VElement[QTLTissue]](
-      Field("id", StringType,
+      Field("typeId", StringType,
         Some(""),
         resolve = _.value.id),
       Field("sourceId", StringType,
@@ -502,7 +502,7 @@ object GQLSchema {
   val intervalElement = ObjectType("IntervalElement",
     "A list of rows with each link",
     fields[Backend, G2VElement[IntervalTissue]](
-      Field("id", StringType,
+      Field("typeId", StringType,
         Some(""),
         resolve = _.value.id),
       Field("sourceId", StringType,
@@ -519,7 +519,7 @@ object GQLSchema {
   val fPredElement = ObjectType("FunctionalPredictionElement",
     "A list of rows with each link",
     fields[Backend, G2VElement[FPredTissue]](
-      Field("id", StringType,
+      Field("typeId", StringType,
         Some(""),
         resolve = _.value.id),
       Field("sourceId", StringType,
