@@ -76,15 +76,14 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
     val variant = Variant(variantID)
 
-
     variant match {
       case Right(v) => {
-        val segment = (v.locus.position / 1e6).toLong
+        val segment = toSumStatsSegment(v.locus.position)
+        val tableName = gwasSumStatsTName format (v.locus.chrId)
         val query =
           sql"""
                |select
                | study_id,
-               | trait_code,
                | pval,
                | beta,
                | se,
@@ -94,8 +93,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                | n_samples_study_level,
                | n_cases_study_level,
                | n_cases_variant_level,
-               | if(is_cc,exp(beta),NULL) as odds_ratio
-               |from #$gwasSumStatsTName
+               | if(is_cc,exp(beta),NULL) as odds_ratio,
+               | chip,
+               | info
+               |from #$tableName
                |prewhere chrom = ${v.locus.chrId} and
                |  pos_b37 = ${v.locus.position} and
                |  segment = $segment and
@@ -493,5 +494,5 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   private val v2gOScoresTName: String = "v2g_score_by_overall"
   private val v2gStructureTName: String = "v2g_structure"
   private val studiesTName: String = "studies"
-  private val gwasSumStatsTName: String = "gwas"
+  private val gwasSumStatsTName: String = "gwas_chr_%s"
 }

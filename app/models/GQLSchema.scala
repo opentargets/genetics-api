@@ -264,18 +264,9 @@ object GQLSchema {
   val pheWASAssociation = ObjectType("PheWASAssociation",
     "This element represents an association between a variant and a reported trait through a study",
     fields[Backend, VariantPheWAS](
-      Field("studyId", StringType,
-        Some("Study ID"),
-        resolve = _.value.stid),
       Field("study", OptionType(study),
         Some("Study Object"),
         resolve = rsl => studiesFetcher.deferOpt(rsl.value.stid)),
-      Field("traitReported", StringType,
-        Some("Trait reported"),
-        resolve = _.value.traitCode),
-      Field("traitId", OptionType(StringType),
-        Some("Trait ID reported"),
-        resolve = _.value.traitCode),
       Field("pval", FloatType,
         Some("Computed p-Value"),
         resolve = _.value.pval),
@@ -296,7 +287,13 @@ object GQLSchema {
         resolve = _.value.nCasesStudy),
       Field("oddsRatio", OptionType(FloatType),
         Some("Odds ratio (if case control)"),
-        resolve = _.value.oddRatio)
+        resolve = _.value.oddRatio),
+      Field("chip", StringType,
+        Some("Chip type: 'metabochip' 'inmunochip', 'genome wide'"),
+        resolve = _.value.chip),
+      Field("info", OptionType(FloatType),
+        Some("Info"),
+        resolve = _.value.info)
     ))
 
   val geneTagVariant = ObjectType("GeneTagVariant",
