@@ -29,10 +29,6 @@ object Entities {
                   chromosome: Option[String] = None, tss: Option[Long] = None,
                   bioType: Option[String] = None, fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
 
-  case class PheWASTable(associations: Vector[VariantPheWAS])
-//  case class PheWASAssociation(studyId: String, traitReported: String, traitId: Option[String],
-//                               pval: Double, beta: Double, nTotal: Long, nCases: Long)
-
   case class TagVariantTable(associations: Vector[TagVariantAssociation])
   case class TagVariantAssociation(indexVariant: Variant,
                                      studyId: String,
@@ -91,9 +87,10 @@ object Entities {
                    nInitial: Option[Long], nReplication: Option[Long], nCases: Option[Long],
                    traitCategory: Option[String])
 
-  case class VariantPheWAS(stid: String, traitCode: String, pval: Double, beta: Double, se: Double, eaf: Double, maf: Double,
+  case class PheWASTable(associations: Vector[VariantPheWAS])
+  case class VariantPheWAS(stid: String, pval: Double, beta: Double, se: Double, eaf: Double, maf: Double,
                            nSamplesVariant: Option[Long], nSamplesStudy: Option[Long], nCasesStudy: Option[Long],
-                           nCasesVariant: Option[Long], oddRatio: Option[Double])
+                           nCasesVariant: Option[Long], oddRatio: Option[Double], chip: String, info: Option[Double])
 
   case class GeneTagVariant(geneId: String, tagVariantId: String, overallScore: Double)
   case class TagVariantIndexVariantStudy(tagVariantId: String, indexVariantId: String, studyId: String,
@@ -298,8 +295,9 @@ object Entities {
         toGeneScoreTuple(toSeqString(r.<<), toSeqString(r.<<), toSeqDouble(r.<<))))
     }
 
-    implicit val getV2DByVariantPheWAS: GetResult[VariantPheWAS] =
-      GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?))
+    implicit val getSumStatsByVariantPheWAS: GetResult[VariantPheWAS] =
+      GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<,
+        r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
 
     implicit val getD2V2GRegionSummary: GetResult[D2V2GRegionSummary] =
       GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
