@@ -94,8 +94,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                | n_cases_study_level,
                | n_cases_variant_level,
                | if(is_cc,exp(beta),NULL) as odds_ratio,
-               | chip,
-               | info
+               | chip
                |from #$tableName
                |prewhere chrom = ${v.locus.chrId} and
                |  pos_b37 = ${v.locus.position} and
