@@ -12,6 +12,10 @@ object Functions {
   val defaultQtlTypes: List[String] = List("eqtl", "pqtl")
   val defaultIntervalTypes: List[String] = List("dhscor", "fantom5", "pchic")
   val defaultFPredTypes: List[String] = List("fpred")
+  val defaultSegmentDivFactor: Double = 1e6
+
+  def toSumStatsSegment(from: Long, factor: Double = defaultSegmentDivFactor): Long =
+    (from / factor).toLong
 
   /** Both numbers must be positive numbers and absolute chromosome coords,
     * start >= 0 and end > 0. Also, (end - start) > 0 and the diff between end and start
