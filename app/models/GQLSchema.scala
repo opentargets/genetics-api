@@ -485,7 +485,7 @@ object GQLSchema {
   val qtlElement = ObjectType("QTLElement",
     "A list of rows with each link",
     fields[Backend, G2VElement[QTLTissue]](
-      Field("id", StringType,
+      Field("typeId", StringType,
         Some(""),
         resolve = _.value.id),
       Field("sourceId", StringType,
@@ -502,7 +502,7 @@ object GQLSchema {
   val intervalElement = ObjectType("IntervalElement",
     "A list of rows with each link",
     fields[Backend, G2VElement[IntervalTissue]](
-      Field("id", StringType,
+      Field("typeId", StringType,
         Some(""),
         resolve = _.value.id),
       Field("sourceId", StringType,
@@ -519,7 +519,7 @@ object GQLSchema {
   val fPredElement = ObjectType("FunctionalPredictionElement",
     "A list of rows with each link",
     fields[Backend, G2VElement[FPredTissue]](
-      Field("id", StringType,
+      Field("typeId", StringType,
         Some(""),
         resolve = _.value.id),
       Field("sourceId", StringType,
@@ -552,26 +552,6 @@ object GQLSchema {
         Some(""),
         resolve = _.value.fpreds)
     ))
-
-  //type SearchResultGene {
-  //    id: String!
-  //    symbol: String!
-  //    name: String
-  //    synonyms: [String!]!
-  //}
-  //type SearchResultVariant {
-  //    variantId: String!
-  //    rsId: String
-  //}
-  //type SearchResultStudy {
-  //    studyId: String!
-  //    traitReported: String!
-  //    pubAuthor: String
-  //    pubDate: String
-  //    pubJournal: String
-  //    # TBD: sample size
-  //    # TBD: loci count
-  //}
 
   val variantSearchResult = ObjectType("VariantSearchResult",
     "Variant search result object",
@@ -607,7 +587,6 @@ object GQLSchema {
         resolve = _.value.studies)
     ))
 
-  // TODO finish the get the searchresult
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("search", searchResult,

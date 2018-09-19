@@ -251,21 +251,21 @@ object Entities {
         else {
           val mv = hit.sourceAsMap
 
-          Right(Study(mv("stid").toString,
-            mv("trait_code").toString,
-            mv("trait_reported").toString,
-            mv("trait_efos").asInstanceOf[Seq[String]],
-            Option(mv("pmid").asInstanceOf[String]),
-            Option(mv("pub_date").asInstanceOf[String]),
-            Option(mv("pub_journal").asInstanceOf[String]),
-            Option(mv("pub_title").asInstanceOf[String]),
-            Option(mv("pub_author").asInstanceOf[String]),
-            Seq.empty,
-            Seq.empty,
-            None,
-            None,
-            None,
-            None)
+          Right(Study(mv("study_id").toString,
+            mv.get("trait_code").map(_.toString).get,
+            mv.get("trait_reported").map(_.toString).get,
+            mv.get("trait_efos").map(_.asInstanceOf[Seq[String]]).get,
+            mv.get("pmid").map(_.asInstanceOf[String]),
+            mv.get("pub_date").map(_.asInstanceOf[String]),
+            mv.get("pub_journal").map(_.asInstanceOf[String]),
+            mv.get("pub_title").map(_.asInstanceOf[String]),
+            mv.get("pub_author").map(_.asInstanceOf[String]),
+            mv.get("ancestry_initial").map(_.asInstanceOf[Seq[String]]).get,
+            mv.get("ancestry_replication").map(_.asInstanceOf[Seq[String]]).get,
+            mv.get("n_initial").map(_.asInstanceOf[Int].toLong),
+            mv.get("n_replication").map(_.asInstanceOf[Int].toLong),
+            mv.get("n_cases").map(_.asInstanceOf[Int].toLong),
+            mv.get("trait_category").map(_.asInstanceOf[String]))
           )
         }
       }
