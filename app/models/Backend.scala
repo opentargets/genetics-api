@@ -72,7 +72,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     db.run(founds.asTry)
   }
 
-  def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
+  def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
+  Future[Entities.PheWASTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
     val variant = Variant(variantID)
 
@@ -113,7 +114,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def getG2VSchema = {
+  def getG2VSchema: Future[Entities.G2VSchema] = {
     def toSeqStruct(elems: Map[String, Map[String, String]]) = {
       (for {
         triple <- elems
@@ -143,7 +144,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def getSearchResultSet(qString: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
+  def getSearchResultSet(qString: String, pageIndex: Option[Int], pageSize: Option[Int]):
+  Future[Entities.SearchResultSet] = {
     val limitClause = parsePaginationTokensForES(pageIndex, pageSize)
     val stoken = qString.toLowerCase
     val cleanedTokens = stoken.replaceAll("-", " and ")
@@ -175,7 +177,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def getStudies(stids: Seq[String]) = {
+  def getStudies(stids: Seq[String]): Future[Vector[Entities.Study]] = {
     val stidListString = stids.map("'" + _ + "'").mkString(",")
     val studiesSQL = sql"""
                       |select
@@ -206,7 +208,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def buildManhattanTable(studyID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
+  def buildManhattanTable(studyID: String, pageIndex: Option[Int], pageSize: Option[Int]):
+  Future[Entities.ManhattanTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
 
     val idxVariants = sql"""
@@ -263,7 +266,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
+  def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
+  Future[Entities.IndexVariantTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
     val variant = Variant(variantID)
 
@@ -304,7 +308,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def buildTagVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
+  def buildTagVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
+  Future[TagVariantTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
     val variant = Variant(variantID)
 
@@ -346,7 +351,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def buildGecko(chromosome: String, posStart: Long, posEnd: Long) = {
+  def buildGecko(chromosome: String, posStart: Long, posEnd: Long): Future[Option[Entities.Gecko]] = {
     // TODO voy por aqui intentando unir dos Either juntos
     (parseChromosome(chromosome), parseRegion(posStart, posEnd)) match {
       case (Right(chr), Right((start, end))) =>
@@ -412,7 +417,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def buildG2V(variantID: String) = {
+  def buildG2V(variantID: String): Future[Seq[Entities.G2VAssociation]] = {
     val variant = Variant(variantID)
 
     variant match {
