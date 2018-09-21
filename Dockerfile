@@ -5,8 +5,7 @@ COPY target/universal/ot-genetics-api-latest.zip /srv/app/ot-genetics-api-latest
 COPY production.conf /srv/app/production.conf
 
 WORKDIR /srv/app
-
-RUN cd /srv/app && unzip ot-genetics-api-latest.zip
+RUN unzip ot-genetics-api-latest.zip
 
 RUN echo ${CH_URL} ${PLAY_SECRET}
 
