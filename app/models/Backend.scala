@@ -13,7 +13,7 @@ import models.Violations.{InputParameterCheckError, SearchStringViolation}
 import sangria.validation.Violation
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 import scala.concurrent._
 import com.sksamuel.elastic4s.http._
 import play.db.NamedDatabase
@@ -32,45 +32,45 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   val esUri = ElasticsearchClientUri(config.get[String]("ot.elasticsearch.host"),
     config.get[Int]("ot.elasticsearch.port"))
 
-  def findAt(pos: DNAPosition) = {
-    val founds = sql"""
-      |select
-      | feature,
-      | round(avg(position)) as avg_v_position,
-      | uniq(gene_id),
-      | uniq(variant_id)
-      |from #$v2gTName
-      |where chr_id = ${pos.chrId} and
-      | position >= ${pos.position - 1000000} and
-      | position <= ${pos.position + 1000000}
-      |group by feature
-      |order by avg_v_position asc
-     """.stripMargin.as[V2GRegionSummary]
+//  def findAt(pos: DNAPosition): Future[Try[Vector[Entities.V2GRegionSummary]]] = {
+//    val founds = sql"""
+//      |select
+//      | feature,
+//      | round(avg(position)) as avg_v_position,
+//      | uniq(gene_id),
+//      | uniq(variant_id)
+//      |from #$v2gTName
+//      |where chr_id = ${pos.chrId} and
+//      | position >= ${pos.position - 1000000} and
+//      | position <= ${pos.position + 1000000}
+//      |group by feature
+//      |order by avg_v_position asc
+//     """.stripMargin.as[V2GRegionSummary]
+//
+//    db.run(founds.asTry)
+//  }
 
-    db.run(founds.asTry)
-  }
-
-  def summaryAt(pos: DNAPosition) = {
-    val founds = sql"""
-      |select
-      | any(index_chr_id) as index_chr_id,
-      | any(index_position) as index_position,
-      | any(index_ref_allele) as index_ref_allele,
-      | any(index_alt_allele) as index_alt_allele,
-      | uniq(gene_id) as uniq_genes,
-      | uniq(variant_id) as uniq_tag_variants,
-      | count() as count_evs
-      |from #$d2v2gTName
-      |where
-      | chr_id = ${pos.chrId} and
-      | position >= ${pos.position - 1000000} and
-      | position <= ${pos.position + 1000000}
-      |group by index_variant_id
-      |order by index_position asc
-    """.stripMargin.as[D2V2GRegionSummary]
-
-    db.run(founds.asTry)
-  }
+//  def summaryAt(pos: DNAPosition): Future[Try[Vector[Entities.D2V2GRegionSummary]]] = {
+//    val founds = sql"""
+//      |select
+//      | any(index_chr_id) as index_chr_id,
+//      | any(index_position) as index_position,
+//      | any(index_ref_allele) as index_ref_allele,
+//      | any(index_alt_allele) as index_alt_allele,
+//      | uniq(gene_id) as uniq_genes,
+//      | uniq(variant_id) as uniq_tag_variants,
+//      | count() as count_evs
+//      |from #$d2v2gTName
+//      |where
+//      | chr_id = ${pos.chrId} and
+//      | position >= ${pos.position - 1000000} and
+//      | position <= ${pos.position + 1000000}
+//      |group by index_variant_id
+//      |order by index_position asc
+//    """.stripMargin.as[D2V2GRegionSummary]
+//
+//    db.run(founds.asTry)
+//  }
 
   def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.PheWASTable] = {
@@ -78,9 +78,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     val variant = Variant(variantID)
 
     variant match {
-      case Right(v) => {
+      case Right(v) =>
         val segment = toSumStatsSegment(v.locus.position)
-        val tableName = gwasSumStatsTName format (v.locus.chrId)
+        val tableName = gwasSumStatsTName format v.locus.chrId
         val query =
           sql"""
                |select
@@ -106,10 +106,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
          """.stripMargin.as[VariantPheWAS]
 
         dbSS.run(query.asTry).map {
-          case Success(v) => PheWASTable(v)
-          case _ => PheWASTable(associations = Vector.empty)
+          case Success(traitVector) => PheWASTable(traitVector)
+          case Failure(_) => PheWASTable(associations = Vector.empty)
         }
-      }
+
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
     }
   }
@@ -202,9 +202,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     db.run(studiesSQL.asTry).map {
       case Success(v) => v
-      case Failure(ex) =>
-        println(ex)
-        Vector.empty
+      case Failure(_) => Vector.empty
     }
   }
 
@@ -262,7 +260,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
             el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
-      case Failure(ex) => ManhattanTable(associations = Vector.empty)
+      case Failure(_) => ManhattanTable(associations = Vector.empty)
     }
   }
 
@@ -300,7 +298,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
         db.run(assocs.asTry).map {
           case Success(r) => Entities.IndexVariantTable(r)
-          case Failure(ex) => Entities.IndexVariantTable(associations = Vector.empty)
+          case Failure(_) => Entities.IndexVariantTable(associations = Vector.empty)
         }
       // case Failure(_) => Future.successful(Entities.IndexVariantTable(associations = Vector.empty))
       case Left(violation) =>
@@ -343,7 +341,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         // map to proper manhattan association with needed fields
         db.run(assocs.asTry).map {
           case Success(r) => Entities.TagVariantTable(r)
-          case Failure(ex) => Entities.TagVariantTable(associations = Vector.empty)
+          case Failure(_) => Entities.TagVariantTable(associations = Vector.empty)
         }
       // case Failure(_) => Future.successful(Entities.TagVariantTable(associations = Vector.empty))
       case Left(violation) =>
@@ -352,7 +350,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def buildGecko(chromosome: String, posStart: Long, posEnd: Long): Future[Option[Entities.Gecko]] = {
-    // TODO voy por aqui intentando unir dos Either juntos
     (parseChromosome(chromosome), parseRegion(posStart, posEnd)) match {
       case (Right(chr), Right((start, end))) =>
         val assocs = sql"""
@@ -409,7 +406,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
         db.run(assocs.asTry).map {
           case Success(r) => Entities.Gecko(r.view)
-          case Failure(ex) => Entities.Gecko(Seq.empty)
+          case Failure(_) => Entities.Gecko(Seq.empty)
         }
       case (chrEither, rangeEither) =>
         Future.failed(InputParameterCheckError(
@@ -485,7 +482,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
         db.run(assocs.asTry).map {
           case Success(r) => r.view.groupBy(_.gene.id).mapValues(G2VAssociation(_)).values.toSeq
-          case Failure(ex) => Seq.empty
+          case Failure(_) => Seq.empty
         }
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
     }

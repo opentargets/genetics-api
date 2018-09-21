@@ -25,25 +25,25 @@ class HomeController @Inject()(implicit ec: ExecutionContext, backend: Backend, 
     Ok(views.html.index())
   }
 
-  def interval(chr: String, position: Long) = {
-    Action.async { implicit request: Request[AnyContent] =>
-      backend.findAt(DNAPosition(chr, position)).map {
-        case Success(f) => Ok(views.html.interval(f))
-        case Failure(ex) => InternalServerError(ex.toString)
-      }
-    }
-  }
-
-  def summary(chr: String, position: Long) = {
-    Action.async { implicit request: Request[AnyContent] =>
-      backend.summaryAt(DNAPosition(chr, position)).map {
-        case Success(f) => Ok(views.html.summary(f))
-        case Failure(ex) => InternalServerError(ex.toString)
-      }
-    }
-  }
+//  def interval(chr: String, position: Long) = {
+//    Action.async { implicit request: Request[AnyContent] =>
+//      backend.findAt(DNAPosition(chr, position)).map {
+//        case Success(f) => Ok(views.html.interval(f))
+//        case Failure(ex) => InternalServerError(ex.toString)
+//      }
+//    }
+//  }
+//
+//  def summary(chr: String, position: Long) = {
+//    Action.async { implicit request: Request[AnyContent] =>
+//      backend.summaryAt(DNAPosition(chr, position)).map {
+//        case Success(f) => Ok(views.html.summary(f))
+//        case Failure(ex) => InternalServerError(ex.toString)
+//      }
+//    }
+//  }
 
   def healthcheck() = Action { request =>
-    Ok("working")
+    Ok("alive!")
   }
 }
