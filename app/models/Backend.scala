@@ -32,46 +32,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   val esUri = ElasticsearchClientUri(config.get[String]("ot.elasticsearch.host"),
     config.get[Int]("ot.elasticsearch.port"))
 
-//  def findAt(pos: DNAPosition): Future[Try[Vector[Entities.V2GRegionSummary]]] = {
-//    val founds = sql"""
-//      |select
-//      | feature,
-//      | round(avg(position)) as avg_v_position,
-//      | uniq(gene_id),
-//      | uniq(variant_id)
-//      |from #$v2gTName
-//      |where chr_id = ${pos.chrId} and
-//      | position >= ${pos.position - 1000000} and
-//      | position <= ${pos.position + 1000000}
-//      |group by feature
-//      |order by avg_v_position asc
-//     """.stripMargin.as[V2GRegionSummary]
-//
-//    db.run(founds.asTry)
-//  }
-
-//  def summaryAt(pos: DNAPosition): Future[Try[Vector[Entities.D2V2GRegionSummary]]] = {
-//    val founds = sql"""
-//      |select
-//      | any(index_chr_id) as index_chr_id,
-//      | any(index_position) as index_position,
-//      | any(index_ref_allele) as index_ref_allele,
-//      | any(index_alt_allele) as index_alt_allele,
-//      | uniq(gene_id) as uniq_genes,
-//      | uniq(variant_id) as uniq_tag_variants,
-//      | count() as count_evs
-//      |from #$d2v2gTName
-//      |where
-//      | chr_id = ${pos.chrId} and
-//      | position >= ${pos.position - 1000000} and
-//      | position <= ${pos.position + 1000000}
-//      |group by index_variant_id
-//      |order by index_position asc
-//    """.stripMargin.as[D2V2GRegionSummary]
-//
-//    db.run(founds.asTry)
-//  }
-
   def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.PheWASTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
