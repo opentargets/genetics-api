@@ -6,8 +6,8 @@
 
 # An example controller showing a sample home page
 GET     /                               controllers.HomeController.index
-GET     /v2g/:chr/:position             controllers.HomeController.interval(chr: String, position: Long)
-GET     /d2v2g/:chr/:position           controllers.HomeController.summary(chr: String, position: Long)
+# GET     /v2g/:chr/:position             controllers.HomeController.interval(chr: String, position: Long)
+# GET     /d2v2g/:chr/:position           controllers.HomeController.summary(chr: String, position: Long)
 
 # graphql uris
 OPTIONS /graphql                        controllers.GraphQLController.options
