@@ -7,7 +7,7 @@ COPY production.conf /srv/app/production.conf
 WORKDIR /srv/app
 RUN unzip ot-genetics-api-latest.zip
 
-RUN echo ${CH_URL} ${PLAY_SECRET}
+RUN echo "${CH_URL} ${PLAY_SECRET}"
 
 RUN chmod +x ot-genetics-api-latest/bin/ot-genetics-api
 ENTRYPOINT ot-genetics-api-latest/bin/ot-genetics-api -Dconfig.file=/srv/app/production.conf
