@@ -65,12 +65,12 @@ object Entities {
                                   bestGenes: Seq[(Gene, Double)], crediblbeSetSize: Long,
                                   ldSetSize: Long, totalSetSize: Long)
 
-  case class V2GRegionSummary(feature: String, avg_position: Long, uniq_genes: Long, uniq_variants: Long)
-
-
-  case class D2V2GRegionSummary(index_chr_id: String, index_position: Long, index_ref_allele: String,
-                                index_alt_allele: String, uniq_genes: Long, uniq_tag_variants: Long,
-                                count_evs: Long)
+//  case class V2GRegionSummary(feature: String, avg_position: Long, uniq_genes: Long, uniq_variants: Long)
+//
+//
+//  case class D2V2GRegionSummary(index_chr_id: String, index_position: Long, index_ref_allele: String,
+//                                index_alt_allele: String, uniq_genes: Long, uniq_tag_variants: Long,
+//                                count_evs: Long)
 
   case class V2DByStudy(index_variant_id: String, index_rs_id: Option[String], pval: Double,
                         credibleSetSize: Long, ldSetSize: Long, totalSetSize: Long, topGenes: Seq[(Gene, Double)])
@@ -276,8 +276,8 @@ object Entities {
     implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] =
       Variant.apply(variantID)
 
-    implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] =
-      GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
+//    implicit val getV2GRegionSummary: GetResult[V2GRegionSummary] =
+//      GetResult(r => V2GRegionSummary(r.<<, r.<<, r.<<, r.<<))
 
     implicit val getV2DByStudy: GetResult[V2DByStudy] = {
       def toGeneScoreTuple(geneIds: Seq[String], geneNames: Seq[String],
@@ -299,8 +299,8 @@ object Entities {
       GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<,
         r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
 
-    implicit val getD2V2GRegionSummary: GetResult[D2V2GRegionSummary] =
-      GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
+//    implicit val getD2V2GRegionSummary: GetResult[D2V2GRegionSummary] =
+//      GetResult(r => D2V2GRegionSummary(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
 
     implicit val getStudy: GetResult[Study] =
       GetResult(r => Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
