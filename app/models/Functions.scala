@@ -68,6 +68,34 @@ object Functions {
     }
   }
 
+  sealed abstract class SeqRep[+T](val from: String) {
+    type SeqT = Seq[T]
+    def parse: SeqT
+  }
+
+  abstract class NumSeqRep[+T](override val from: String, val f: String => T) extends SeqRep[T](from) {
+    override def parse: SeqT = {
+      if (from.length > 2)
+        from.slice(1, from.length - 1).split(",").map(f(_))
+      else
+        Seq.empty
+    }
+  }
+
+  case class DSeqRep(override val from: String) extends NumSeqRep[Double](from, f => f.toDouble)
+  case class ISeqRep(override val from: String) extends NumSeqRep[Int](from, f => f.toInt)
+  case class LSeqRep(override val from: String) extends NumSeqRep[Long](from, f => f.toLong)
+
+
+  case class StrSeqRep(override val from: String) extends SeqRep[String](from) {
+    override def parse: SeqT = {
+      if (from.length > 2)
+        from.slice(1, from.length - 1).split(",").map(t => t.slice(1, t.length - 1))
+      else
+        Seq.empty
+    }
+  }
+
   /** https://stackoverflow.com/questions/12218641/scala-what-is-a-typetag-and-how-do-i-use-it/12232195#12232195 */
   def toSeqString(s: String): Seq[String] = {
     if (s.length > 2)
