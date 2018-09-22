@@ -81,7 +81,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         tuple <- triple._2
 
       } yield Entities.G2VSchemaElement(triple._1, tuple._1,
-        toSeqString(tuple._2).map(el => Tissue(el)))).toSeq
+        StrSeqRep(tuple._2).rep.map(el => Tissue(el)))).toSeq
     }
     val studyQ = sql"""
                       |select

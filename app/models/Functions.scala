@@ -68,33 +68,40 @@ object Functions {
     }
   }
 
-  /** https://stackoverflow.com/questions/12218641/scala-what-is-a-typetag-and-how-do-i-use-it/12232195#12232195 */
-  def toSeqString(s: String): Seq[String] = {
-    if (s.length > 2)
-      s.slice(1, s.length - 1).split(",").map(t => t.slice(1, t.length - 1))
-    else
-      Seq.empty
+  sealed abstract class SeqRep[T](val from: String) {
+    lazy val rep = parse(from)
+    type SeqT = Seq[T]
+    protected def parse(from: String): SeqT
   }
 
-  def toSeqDouble(s: String): Seq[Double] = {
-    if (s.length > 2)
-      s.slice(1, s.length - 1).split(",").map(_.toDouble)
-    else
-      Seq.empty
+  sealed abstract class NumSeqRep[T](override val from: String, val f: String => T) extends SeqRep[T](from) {
+    override protected def parse(from: String): SeqT = {
+      if (from.nonEmpty) {
+        from.length match {
+          case n if n > 2 =>
+            from.slice(1, n - 1).split(",").map(f(_))
+          case _ => Seq.empty
+        }
+      } else
+        Seq.empty
+    }
   }
 
-  def toSeqInt(s: String): Seq[Int] = {
-    if (s.length > 2)
-      s.slice(1, s.length - 1).split(",").map(_.toInt)
-    else
-      Seq.empty
-  }
+  case class DSeqRep(override val from: String) extends NumSeqRep[Double](from, _.toDouble)
+  case class ISeqRep(override val from: String) extends NumSeqRep[Int](from, _.toInt)
+  case class LSeqRep(override val from: String) extends NumSeqRep[Long](from, _.toLong)
 
-  def toSeqLong(s: String): Seq[Long] = {
-    if (s.length > 2)
-      s.slice(1, s.length - 1).split(",").map(_.toLong)
-    else
-      Seq.empty
+  case class StrSeqRep(override val from: String) extends SeqRep[String](from) {
+    override protected def parse(from: String): SeqT = {
+      if (from.nonEmpty) {
+        from.length match {
+          case n if n > 4 =>
+            from.slice(1, n - 1).split(",").map(t => t.slice(1, t.length - 1))
+          case _ => Seq.empty
+        }
+      } else
+        Seq.empty
+    }
   }
 
   /** parse and return the proper chromosome string or None */
