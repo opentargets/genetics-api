@@ -282,7 +282,7 @@ object Entities {
       }
 
       GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<,
-        toGeneScoreTuple(toSeqString(r.<<), toSeqString(r.<<), toSeqDouble(r.<<))))
+        toGeneScoreTuple(StrSeqRep(r.<<).rep, StrSeqRep(r.<<).rep, DSeqRep(r.<<).rep)))
     }
 
     implicit val getSumStatsByVariantPheWAS: GetResult[VariantPheWAS] =
@@ -290,8 +290,8 @@ object Entities {
         r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
 
     implicit val getStudy: GetResult[Study] =
-      GetResult(r => Study(r.<<, r.<<, r.<<, toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
-        toSeqString(r.<<), toSeqString(r.<<), r.<<?, r.<<?, r.<<?, r.<<?))
+      GetResult(r => Study(r.<<, r.<<, r.<<, StrSeqRep(r.<<).rep, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
+        StrSeqRep(r.<<).rep, StrSeqRep(r.<<).rep, r.<<?, r.<<?, r.<<?, r.<<?))
 
     implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
       r => {
@@ -317,7 +317,7 @@ object Entities {
         val gene = Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
           chromosome = r.nextStringOption(), tss = r.nextLongOption(),
           start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
-          exons = toSeqLong(r.nextString()))
+          exons = LSeqRep(r.nextString()).rep)
 
         val studyId: String = r.<<
 
@@ -339,10 +339,10 @@ object Entities {
         val gene = Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
           chromosome = r.nextStringOption(), tss = r.nextLongOption(),
           start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
-          exons = toSeqLong(r.nextString()))
+          exons = LSeqRep(r.nextString()).rep)
 
         ScoredG2VLine(gene, r.<<, (
-          toSeqString(r.nextString()) zip toSeqDouble(r.nextString())).toMap, r.<<, r.<<, r.<<,
+          StrSeqRep(r.nextString()).rep zip DSeqRep(r.nextString()).rep).toMap, r.<<, r.<<, r.<<,
           r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<)
       }
     )
