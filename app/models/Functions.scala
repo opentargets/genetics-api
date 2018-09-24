@@ -68,42 +68,6 @@ object Functions {
     }
   }
 
-  sealed abstract class SeqRep[T](val from: String) {
-    lazy val rep = parse(from)
-    type SeqT = Seq[T]
-    protected def parse(from: String): SeqT
-  }
-
-  sealed abstract class NumSeqRep[T](override val from: String, val f: String => T) extends SeqRep[T](from) {
-    override protected def parse(from: String): SeqT = {
-      if (from.nonEmpty) {
-        from.length match {
-          case n if n > 2 =>
-            from.slice(1, n - 1).split(",").map(f(_))
-          case _ => Seq.empty
-        }
-      } else
-        Seq.empty
-    }
-  }
-
-  case class DSeqRep(override val from: String) extends NumSeqRep[Double](from, _.toDouble)
-  case class ISeqRep(override val from: String) extends NumSeqRep[Int](from, _.toInt)
-  case class LSeqRep(override val from: String) extends NumSeqRep[Long](from, _.toLong)
-
-  case class StrSeqRep(override val from: String) extends SeqRep[String](from) {
-    override protected def parse(from: String): SeqT = {
-      if (from.nonEmpty) {
-        from.length match {
-          case n if n > 4 =>
-            from.slice(1, n - 1).split(",").map(t => t.slice(1, t.length - 1))
-          case _ => Seq.empty
-        }
-      } else
-        Seq.empty
-    }
-  }
-
   /** parse and return the proper chromosome string or None */
   def parseChromosome(chromosome: String): Either[ChromosomeViolation,String] =
     defaultChromosomes.find(_.equalsIgnoreCase(chromosome)) match {

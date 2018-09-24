@@ -5,6 +5,8 @@ import slick.jdbc.GetResult
 import models.Violations._
 import models.Functions._
 import sangria.execution.deferred.HasId
+import clickhouse.rep.SeqRep._
+import clickhouse.rep.SeqRep.Implicits._
 
 object Entities {
   case class DNAPosition(chrId: String, position: Long)
@@ -282,7 +284,7 @@ object Entities {
       }
 
       GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<,
-        toGeneScoreTuple(StrSeqRep(r.<<).rep, StrSeqRep(r.<<).rep, DSeqRep(r.<<).rep)))
+        toGeneScoreTuple(StrSeqRep(r.<<), StrSeqRep(r.<<), DSeqRep(r.<<))))
     }
 
     implicit val getSumStatsByVariantPheWAS: GetResult[VariantPheWAS] =
@@ -290,8 +292,8 @@ object Entities {
         r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
 
     implicit val getStudy: GetResult[Study] =
-      GetResult(r => Study(r.<<, r.<<, r.<<, StrSeqRep(r.<<).rep, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
-        StrSeqRep(r.<<).rep, StrSeqRep(r.<<).rep, r.<<?, r.<<?, r.<<?, r.<<?))
+      GetResult(r => Study(r.<<, r.<<, r.<<, StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
+        StrSeqRep(r.<<), StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?))
 
     implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
       r => {
@@ -317,7 +319,7 @@ object Entities {
         val gene = Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
           chromosome = r.nextStringOption(), tss = r.nextLongOption(),
           start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
-          exons = LSeqRep(r.nextString()).rep)
+          exons = LSeqRep(r.nextString()))
 
         val studyId: String = r.<<
 
@@ -339,7 +341,7 @@ object Entities {
         val gene = Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
           chromosome = r.nextStringOption(), tss = r.nextLongOption(),
           start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
-          exons = LSeqRep(r.nextString()).rep)
+          exons = LSeqRep(r.nextString()))
 
         ScoredG2VLine(gene, r.<<, (
           StrSeqRep(r.nextString()).rep zip DSeqRep(r.nextString()).rep).toMap, r.<<, r.<<, r.<<,
