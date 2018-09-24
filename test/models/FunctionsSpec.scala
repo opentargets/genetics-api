@@ -1,16 +1,16 @@
 package models
 
-import models.Functions.{ISeqRep, StrSeqRep}
+import clickhouse.rep.SeqRep._
 import org.scalatestplus.play._
 import org.scalatestplus.play.guice._
 import play.api.test._
 
 /**
- * Add your spec here.
- * You can mock out a whole application including requests, plugins etc.
- *
- * For more information, see https://www.playframework.com/documentation/latest/ScalaTestingWithScalaTest
- */
+  * Add your spec here.
+  * You can mock out a whole application including requests, plugins etc.
+  *
+  * For more information, see https://www.playframework.com/documentation/latest/ScalaTestingWithScalaTest
+  */
 class FunctionsSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
   // "A Stack" must {
   //    "pop values in last-in-first-out order" in {

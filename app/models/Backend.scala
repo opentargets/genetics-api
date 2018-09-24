@@ -10,6 +10,8 @@ import models.Functions._
 import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
 import models.Violations.{InputParameterCheckError, SearchStringViolation}
+import clickhouse.rep.SeqRep.StrSeqRep
+
 import sangria.validation.Violation
 
 import scala.concurrent.ExecutionContext.Implicits.global
