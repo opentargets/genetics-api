@@ -90,7 +90,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                | eaf,
                | maf,
                | ifNull(n_samples_variant_level,n_samples_study_level) as n_samples,
-               | ifNull(n_cases_variant_level, n_cases_study_level) as n_cases,
+               | if(is_cc,ifNull(n_cases_variant_level, n_cases_study_level),NULL) as n_cases,
                | if(is_cc,exp(beta),NULL) as odds_ratio,
                | chip
                |from #$tableName
