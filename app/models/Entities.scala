@@ -27,6 +27,10 @@ object Entities {
     }
   }
 
+  case class OverlappedStudy(studyId: String, overlaps: Seq[Overlap])
+  case class Overlap(variantIdA: String, variantIdB: String, setType: String, overlapAB: Int,
+                     distinctA: Int, distinctB: Int)
+
   case class Gene(id: String, symbol: Option[String] = None, start: Option[Long] = None, end: Option[Long] = None,
                   chromosome: Option[String] = None, tss: Option[Long] = None,
                   bioType: Option[String] = None, fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
@@ -62,7 +66,7 @@ object Entities {
                                      log10Abf: Option[Double],
                                      posteriorProbability: Option[Double])
 
-  case class ManhattanTable(associations: Vector[ManhattanAssociation])
+  case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
   case class ManhattanAssociation(variant: Variant, pval: Double,
                                   bestGenes: Seq[(Gene, Double)], crediblbeSetSize: Long,
                                   ldSetSize: Long, totalSetSize: Long)

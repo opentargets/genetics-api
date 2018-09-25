@@ -4,10 +4,12 @@ package models
 import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
+import sangria.schema
 import sangria.streaming.ValidOutStreamType
 
 object GQLSchema {
   val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
+  val studyIds = Argument("studyIds", ListInputType(StringType), description = "List of study IDs")
   val variantId = Argument("variantId", StringType, description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
   val chromosome = Argument("chromosome", StringType, description = "Chromosome as String between 1..22 or X, Y, MT")
   val pageIndex = Argument("pageIndex", OptionInputType(IntType), description = "pagination index >= 0")
@@ -356,12 +358,39 @@ object GQLSchema {
         resolve = _.value.tagVariantIndexVariantStudies)
     ))
 
+  val overlap = ObjectType("Overlap",
+  "This element represent an overlap between two variants for two studies",
+    fields[Backend, Overlap](
+      Field("variantIdA", StringType, None, resolve = _.value.variantIdA),
+      Field("variantIdB", StringType, None, resolve = _.value.variantIdB),
+      Field("setType", StringType, None, resolve = _.value.setType),
+      Field("overlapAB", IntType, None, resolve = _.value.overlapAB),
+      Field("distinctA", IntType, None, resolve = _.value.distinctA),
+      Field("distinctB", IntType, None, resolve = _.value.distinctB),
+    ))
+
+  val overlappedStudy = ObjectType("OverlappedStudy",
+  "This element represent a overlap between two stduies",
+    fields[Backend, OverlappedStudy](
+      Field("study", study,
+        Some("A study object"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.studyId)),
+      Field("overlaps", ListType(overlap),
+        Some("Orig variant id which is been used for computing the " +
+          "overlap with the referenced study"),
+        resolve = _.value.overlaps)
+    ))
+
   val manhattan = ObjectType("Manhattan",
     "This element represents a Manhattan like plot",
     fields[Backend, ManhattanTable](
       Field("associations", ListType(manhattanAssociation),
         Some("A list of associations"),
-        resolve = _.value.associations)
+        resolve = _.value.associations),
+      Field("overlappedStudies", ListType(overlappedStudy),
+        Some("A list of overlapped studies"),
+        arguments = studyIds :: Nil,
+        resolve = ctx => ctx.ctx.getOverlapsForStudyID(ctx.value.studyId, ctx.args.arg(studyIds)))
     ))
 
   val studyInfo = ObjectType("StudyInfo",
@@ -591,34 +620,37 @@ object GQLSchema {
     "Query", fields[Backend, Unit](
       Field("search", searchResult,
         arguments = queryString :: pageIndex :: pageSize :: Nil,
-        resolve = (ctx) =>
+        resolve = ctx =>
           ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("studyInfo", OptionType(study),
         arguments = studyId :: Nil,
-        resolve = (ctx) => studiesFetcher.deferOpt(ctx.arg(studyId))),
+        resolve = ctx => studiesFetcher.deferOpt(ctx.arg(studyId))),
       Field("manhattan", manhattan,
         arguments = studyId :: pageIndex :: pageSize :: Nil,
-        resolve = (ctx) => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+        resolve = ctx => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("overlappedStudiesForStudy", ListType(overlappedStudy),
+        arguments = studyId :: studyIds :: Nil,
+        resolve = ctx => ctx.ctx.getOverlapsForStudyID(ctx.arg(studyId), ctx.arg(studyIds))),
       Field("tagVariantsAndStudiesForIndexVariant", tagVariantsAndStudiesForIndexVariant,
         arguments = variantId :: pageIndex :: pageSize :: Nil,
-        resolve = (ctx) =>
+        resolve = ctx =>
           ctx.ctx.buildIndexVariantAssocTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("indexVariantsAndStudiesForTagVariant", indexVariantsAndStudiesForTagVariant,
         arguments = variantId :: pageIndex :: pageSize :: Nil,
-        resolve = (ctx) =>
+        resolve = ctx =>
           ctx.ctx.buildTagVariantAssocTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("pheWAS", pheWAS,
         arguments = variantId :: pageIndex :: pageSize :: Nil,
-        resolve = (ctx) => ctx.ctx.buildPheWASTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+        resolve = ctx => ctx.ctx.buildPheWASTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("gecko", OptionType(gecko),
         arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
-        resolve = (ctx) => ctx.ctx.buildGecko(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
+        resolve = ctx => ctx.ctx.buildGecko(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
       Field("genesForVariantSchema", v2gSchema,
         arguments = Nil,
-        resolve = (ctx) => ctx.ctx.getG2VSchema),
+        resolve = ctx => ctx.ctx.getG2VSchema),
       Field("genesForVariant", ListType(geneForVariant),
         arguments = variantId :: Nil,
-        resolve = (ctx) => ctx.ctx.buildG2V(ctx.arg(variantId)))
+        resolve = ctx => ctx.ctx.buildG2V(ctx.arg(variantId)))
     ))
 
   val schema = Schema(query)

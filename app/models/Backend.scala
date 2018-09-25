@@ -19,6 +19,7 @@ import scala.util.{Failure, Success}
 import scala.concurrent._
 import com.sksamuel.elastic4s.http._
 import play.db.NamedDatabase
+import play.api.Logger
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider, config: Configuration){
@@ -26,6 +27,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   val dbConfigSumStats = dbConfigProviderSumStats.get[ClickHouseProfile]
   val db = dbConfig.db
   val dbSS = dbConfigSumStats.db
+  val logger = Logger(this.getClass)
 
   import dbConfig.profile.api._
 
@@ -69,7 +71,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
         dbSS.run(query.asTry).map {
           case Success(traitVector) => PheWASTable(traitVector)
-          case Failure(_) => PheWASTable(associations = Vector.empty)
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            PheWASTable(associations = Vector.empty)
         }
 
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
@@ -101,7 +105,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains(_)))
 
         G2VSchema(qtlElems, intervalElems, fpredElems)
-      case Failure(ex) => println(ex)
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
         G2VSchema(Seq.empty, Seq.empty, Seq.empty)
     }
   }
@@ -139,6 +144,42 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  def getOverlapsForStudyID(stid: String, stids: Seq[String]): Future[Vector[Entities.OverlappedStudy]] = {
+    val stidListString = stids.map("'" + _ + "'").mkString(",")
+    val overlapSQL = sql"""
+                          |SELECT
+                          |  study_id_b,
+                          |  index_variant_id_a,
+                          |  index_variant_id_b,
+                          |  any(set_type) as set_type,
+                          |  any(overlap_AB) AS overlap_AB,
+                          |  any(distinct_A) AS distinct_A,
+                          |  any(distinct_B) AS distinct_B
+                          |FROM #$studiesOverlapTName
+                          |PREWHERE (study_id_a = $stid) AND
+                          |  (study_id_b IN (#${stidListString}))
+                          |GROUP BY
+                          |  study_id_a,
+                          |  study_id_b,
+                          |  index_variant_id_a,
+                          |  index_variant_id_b
+      """.stripMargin.as[(String, String, String, String, Int, Int, Int)]
+
+    db.run(overlapSQL.asTry).map {
+      case Success(v) =>
+        if (v.nonEmpty) {
+          v.view.groupBy(_._1).map(pair =>
+            OverlappedStudy(pair._1,
+              pair._2.drop(1).map(t => Overlap(t._2, t._3, t._4, t._5, t._6,t._7)))).toVector
+        } else {
+          Vector.empty
+        }
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Vector.empty
+    }
+  }
+
   def getStudies(stids: Seq[String]): Future[Vector[Entities.Study]] = {
     val stidListString = stids.map("'" + _ + "'").mkString(",")
     val studiesSQL = sql"""
@@ -164,11 +205,13 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     db.run(studiesSQL.asTry).map {
       case Success(v) => v
-      case Failure(_) => Vector.empty
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Vector.empty
     }
   }
 
-  def buildManhattanTable(studyID: String, pageIndex: Option[Int], pageSize: Option[Int]):
+  def buildManhattanTable(studyId: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.ManhattanTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
 
@@ -193,7 +236,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       |        uniqIf(variant_id, r2 > 0) AS ldSetSize,
       |        uniq(variant_id) AS uniq_variants
       |    FROM #$v2dByStTName
-      |    PREWHERE stid = $studyID
+      |    PREWHERE stid = $studyId
       |    GROUP BY index_variant_id
       |)
       |ALL LEFT OUTER JOIN
@@ -212,7 +255,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     // map to proper manhattan association with needed fields
     db.run(idxVariants.asTry).map {
-      case Success(v) => ManhattanTable(
+      case Success(v) => ManhattanTable(studyId,
         v.map(el => {
           // we got the line so correct variant must exist
           val variant = Variant(el.index_variant_id)
@@ -222,7 +265,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
             el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
-      case Failure(_) => ManhattanTable(associations = Vector.empty)
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        ManhattanTable(studyId, associations = Vector.empty)
     }
   }
 
@@ -260,9 +305,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
         db.run(assocs.asTry).map {
           case Success(r) => Entities.IndexVariantTable(r)
-          case Failure(_) => Entities.IndexVariantTable(associations = Vector.empty)
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Entities.IndexVariantTable(associations = Vector.empty)
         }
-      // case Failure(_) => Future.successful(Entities.IndexVariantTable(associations = Vector.empty))
       case Left(violation) =>
         Future.failed(InputParameterCheckError(Vector(violation)))
     }
@@ -303,9 +349,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         // map to proper manhattan association with needed fields
         db.run(assocs.asTry).map {
           case Success(r) => Entities.TagVariantTable(r)
-          case Failure(_) => Entities.TagVariantTable(associations = Vector.empty)
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Entities.TagVariantTable(associations = Vector.empty)
         }
-      // case Failure(_) => Future.successful(Entities.TagVariantTable(associations = Vector.empty))
       case Left(violation) =>
         Future.failed(InputParameterCheckError(Vector(violation)))
     }
@@ -368,7 +415,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
         db.run(assocs.asTry).map {
           case Success(r) => Entities.Gecko(r.view)
-          case Failure(_) => Entities.Gecko(Seq.empty)
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Entities.Gecko(Seq.empty)
         }
       case (chrEither, rangeEither) =>
         Future.failed(InputParameterCheckError(
@@ -444,7 +493,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
         db.run(assocs.asTry).map {
           case Success(r) => r.view.groupBy(_.gene.id).mapValues(G2VAssociation(_)).values.toSeq
-          case Failure(_) => Seq.empty
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Seq.empty
         }
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
     }
@@ -458,5 +509,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   private val v2gOScoresTName: String = "v2g_score_by_overall"
   private val v2gStructureTName: String = "v2g_structure"
   private val studiesTName: String = "studies"
+  private val studiesOverlapTName: String = "studies_overlap"
   private val gwasSumStatsTName: String = "gwas_chr_%s"
 }
