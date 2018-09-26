@@ -156,7 +156,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |  study_id_b,
                           |  uniq(index_variant_id_a) AS num_overlap_loci
                           |FROM #$studiesOverlapTName
-                          |PREWHERE (study_id_a = $stid)
+                          |PREWHERE (study_id_a = $stid) and
+                          |  set_type = 'combined'
                           |GROUP BY
                           |  study_id_a,
                           |  study_id_b
@@ -177,33 +178,60 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def getOverlapsForStudyID(stid: String, stids: Seq[String]): Future[Vector[Entities.OverlappedStudy]] = {
+  def getOverlapVariantsIntersectionForStudies(stid: String, stids: Seq[String]): Future[Vector[String]] = {
+    val stidListString = stids.map("'" + _ + "'").mkString(",")
+    val numStids = if (stids.nonEmpty) stids.length else 0
+    val overlapSQL = sql"""
+                          |SELECT index_variant_id_a
+                          |FROM
+                          |(
+                          |    SELECT
+                          |        index_variant_id_a,
+                          |        uniq(study_id_b) AS num_studies
+                          |    FROM #$studiesOverlapTName
+                          |    PREWHERE (study_id_a = $stid) AND
+                          |        (study_id_b IN (#${stidListString})) AND
+                          |        (set_type = 'combined')
+                          |    GROUP BY index_variant_id_a
+                          |    HAVING num_studies = ${numStids}
+                          |)
+      """.stripMargin.as[String]
+
+    db.run(overlapSQL.asTry).map {
+      case Success(v) => v
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Vector.empty
+    }
+  }
+
+  def getOverlapVariantsForStudies(stid: String, stids: Seq[String]): Future[Vector[Entities.OverlappedVariantsStudy]] = {
     val stidListString = stids.map("'" + _ + "'").mkString(",")
     val overlapSQL = sql"""
                           |SELECT
                           |  study_id_b,
                           |  index_variant_id_a,
                           |  index_variant_id_b,
-                          |  any(set_type) as set_type,
                           |  any(overlap_AB) AS overlap_AB,
                           |  any(distinct_A) AS distinct_A,
                           |  any(distinct_B) AS distinct_B
                           |FROM #$studiesOverlapTName
                           |PREWHERE (study_id_a = $stid) AND
-                          |  (study_id_b IN (#${stidListString}))
+                          |  (study_id_b IN (#${stidListString})) AND
+                          |  (set_type = 'combined')
                           |GROUP BY
                           |  study_id_a,
                           |  study_id_b,
                           |  index_variant_id_a,
                           |  index_variant_id_b
-      """.stripMargin.as[(String, String, String, String, Int, Int, Int)]
+      """.stripMargin.as[(String, String, String, Int, Int, Int)]
 
     db.run(overlapSQL.asTry).map {
       case Success(v) =>
         if (v.nonEmpty) {
           v.view.groupBy(_._1).map(pair =>
-            OverlappedStudy(pair._1,
-              pair._2.drop(1).map(t => Overlap(t._2, t._3, t._4, t._5, t._6,t._7)))).toVector
+            OverlappedVariantsStudy(pair._1,
+              pair._2.drop(1).map(t => OverlappedVariant(t._2, t._3, t._4, t._5, t._6)))).toVector
         } else {
           Vector.empty
         }

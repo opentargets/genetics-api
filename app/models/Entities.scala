@@ -30,9 +30,9 @@ object Entities {
   case class OverlapRow(stid: String, numOverlapLoci: Int)
   case class OverlappedLociStudy(studyId: String, topOverlappedStudies: IndexedSeq[OverlapRow])
 
-  case class OverlappedStudy(studyId: String, overlaps: Seq[Overlap])
-  case class Overlap(variantIdA: String, variantIdB: String, setType: String, overlapAB: Int,
-                     distinctA: Int, distinctB: Int)
+  case class OverlappedVariantsStudy(studyId: String, overlaps: Seq[OverlappedVariant])
+  case class OverlappedVariant(variantIdA: String, variantIdB: String, overlapAB: Int,
+                               distinctA: Int, distinctB: Int)
 
   case class Gene(id: String, symbol: Option[String] = None, start: Option[Long] = None, end: Option[Long] = None,
                   chromosome: Option[String] = None, tss: Option[Long] = None,
