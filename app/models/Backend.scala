@@ -538,7 +538,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |    PREWHERE
                           |       (chr_id = ${v.locus.chrId}) AND
                           |       (position = ${v.locus.position}) AND
-                          |       (variant_id = ${v.id})
+                          |       (variant_id = ${v.id}) AND
+                          |       (isNull(fpred_max_score) OR fpred_max_score > 0.)
                           |)
                           |ALL INNER JOIN
                           |(
