@@ -13,6 +13,7 @@ object Functions {
   val defaultIntervalTypes: List[String] = List("dhscor", "fantom5", "pchic")
   val defaultFPredTypes: List[String] = List("fpred")
   val defaultSegmentDivFactor: Double = 1e6
+  val defaultTopOverlapStudiesSize: Int = 10
 
   def toSumStatsSegment(from: Long, factor: Double = defaultSegmentDivFactor): Long =
     (from / factor).toLong

@@ -144,6 +144,39 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  /** get top Functions.defaultTopOverlapStudiesSize studies sorted desc by
+    * the number of overlapped loci
+    *
+    * @param stid given a study ID
+    * @return a Entities.OverlappedLociStudy which could contain empty list of ovelapped studies
+    */
+  def getTopOverlappedStudies(stid: String): Future[Entities.OverlappedLociStudy] = {
+    val topOverlappedsSQL = sql"""
+                          |SELECT
+                          |  study_id_b,
+                          |  uniq(index_variant_id_a) AS num_overlap_loci
+                          |FROM #$studiesOverlapTName
+                          |PREWHERE (study_id_a = $stid)
+                          |GROUP BY
+                          |  study_id_a,
+                          |  study_id_b
+                          |ORDER BY num_overlap_loci desc
+                          |LIMIT $defaultTopOverlapStudiesSize
+      """.stripMargin.as[(String, Int)]
+
+    db.run(topOverlappedsSQL.asTry).map {
+      case Success(v) =>
+        if (v.nonEmpty) {
+          OverlappedLociStudy(stid, v.map(t => OverlapRow(t._1, t._2)))
+        } else {
+          OverlappedLociStudy(stid, Vector.empty)
+        }
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        OverlappedLociStudy(stid, Vector.empty)
+    }
+  }
+
   def getOverlapsForStudyID(stid: String, stids: Seq[String]): Future[Vector[Entities.OverlappedStudy]] = {
     val stidListString = stids.map("'" + _ + "'").mkString(",")
     val overlapSQL = sql"""

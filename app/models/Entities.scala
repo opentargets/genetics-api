@@ -27,6 +27,9 @@ object Entities {
     }
   }
 
+  case class OverlapRow(stid: String, numOverlapLoci: Int)
+  case class OverlappedLociStudy(studyId: String, topOverlappedStudies: IndexedSeq[OverlapRow])
+
   case class OverlappedStudy(studyId: String, overlaps: Seq[Overlap])
   case class Overlap(variantIdA: String, variantIdB: String, setType: String, overlapAB: Int,
                      distinctA: Int, distinctB: Int)

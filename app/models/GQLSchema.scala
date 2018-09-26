@@ -85,7 +85,7 @@ object GQLSchema {
     ))
 
   val studiesFetcher = Fetcher(
-    config = FetcherConfig.maxBatchSize(50),
+    config = FetcherConfig.maxBatchSize(100),
     fetch = (ctx: Backend, stids: Seq[String]) => {ctx.getStudies(stids)})
 
   val studiesResolver = DeferredResolver.fetchers(studiesFetcher)
@@ -370,16 +370,39 @@ object GQLSchema {
     ))
 
   val overlappedStudy = ObjectType("OverlappedStudy",
-  "This element represent a overlap between two stduies",
-    fields[Backend, OverlappedStudy](
+    "This element represent a overlap between two stduies",
+    fields[Backend, OverlapRow](
+      Field("study", study,
+        Some("A study object"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.stid)),
+      Field("numOverlapLoci", IntType,
+        Some("Orig variant id which is been used for computing the " +
+          "overlap with the referenced study"),
+        resolve = _.value.numOverlapLoci)
+    ))
+
+  val topOverlappedStudies = ObjectType("TopOverlappedStudies",
+    "This element represent a overlap between two stduies",
+    fields[Backend, OverlappedLociStudy](
       Field("study", study,
         Some("A study object"),
         resolve = rsl => studiesFetcher.defer(rsl.value.studyId)),
-      Field("overlaps", ListType(overlap),
-        Some("Orig variant id which is been used for computing the " +
-          "overlap with the referenced study"),
-        resolve = _.value.overlaps)
+      Field("topStudiesByLociOverlap", ListType(overlappedStudy),
+        Some("Top N studies ordered by loci overlap"),
+        resolve = _.value.topOverlappedStudies)
     ))
+
+//  val overlappedStudyB = ObjectType("OverlappedStudy",
+//  "This element represent a overlap between two stduies",
+//    fields[Backend, OverlappedStudy](
+//      Field("study", study,
+//        Some("A study object"),
+//        resolve = rsl => studiesFetcher.defer(rsl.value.studyId)),
+//      Field("overlaps", ListType(overlap),
+//        Some("Orig variant id which is been used for computing the " +
+//          "overlap with the referenced study"),
+//        resolve = _.value.overlaps)
+//    ))
 
   val manhattan = ObjectType("Manhattan",
     "This element represents a Manhattan like plot",
@@ -387,10 +410,9 @@ object GQLSchema {
       Field("associations", ListType(manhattanAssociation),
         Some("A list of associations"),
         resolve = _.value.associations),
-      Field("overlappedStudies", ListType(overlappedStudy),
+      Field("topOverlappedStudies", topOverlappedStudies,
         Some("A list of overlapped studies"),
-        arguments = studyIds :: Nil,
-        resolve = ctx => ctx.ctx.getOverlapsForStudyID(ctx.value.studyId, ctx.args.arg(studyIds)))
+        resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.value.studyId))
     ))
 
   val studyInfo = ObjectType("StudyInfo",
@@ -628,9 +650,12 @@ object GQLSchema {
       Field("manhattan", manhattan,
         arguments = studyId :: pageIndex :: pageSize :: Nil,
         resolve = ctx => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
-      Field("overlappedStudiesForStudy", ListType(overlappedStudy),
-        arguments = studyId :: studyIds :: Nil,
-        resolve = ctx => ctx.ctx.getOverlapsForStudyID(ctx.arg(studyId), ctx.arg(studyIds))),
+      Field("topOverlappedStudies", topOverlappedStudies,
+        arguments = studyId :: Nil,
+        resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.arg(studyId))),
+//      Field("overlappedStudiesForStudy", ListType(overlappedStudyB),
+//        arguments = studyId :: studyIds :: Nil,
+//        resolve = ctx => ctx.ctx.getOverlapsForStudyID(ctx.arg(studyId), ctx.arg(studyIds))),
       Field("tagVariantsAndStudiesForIndexVariant", tagVariantsAndStudiesForIndexVariant,
         arguments = variantId :: pageIndex :: pageSize :: Nil,
         resolve = ctx =>
