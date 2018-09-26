@@ -424,7 +424,8 @@ object GQLSchema {
         resolve = _.value.associations),
       Field("topOverlappedStudies", topOverlappedStudies,
         Some("A list of overlapped studies"),
-        resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.value.studyId))
+        arguments = pageIndex :: pageSize :: Nil,
+        resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.value.studyId, ctx.arg(pageIndex), ctx.arg(pageSize)))
     ))
 
   val studyInfo = ObjectType("StudyInfo",
@@ -663,8 +664,8 @@ object GQLSchema {
         arguments = studyId :: pageIndex :: pageSize :: Nil,
         resolve = ctx => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("topOverlappedStudies", topOverlappedStudies,
-        arguments = studyId :: Nil,
-        resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.arg(studyId))),
+        arguments = studyId :: pageIndex :: pageSize :: Nil,
+        resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("overlapInfoForStudy", overlappedInfoForStudy,
         arguments = studyId :: studyIds :: Nil,
         resolve = ctx => (ctx.arg(studyId),  ctx.arg(studyIds))),
