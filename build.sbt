@@ -7,6 +7,12 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 scalaVersion := "2.12.6"
 
+scalacOptions in ThisBuild ++= Seq(
+  "-language:_",
+  "-Ypartial-unification",
+  "-Xfatal-warnings"
+)
+
 resolvers += Resolver.sonatypeRepo("releases")
 
 libraryDependencies += guice

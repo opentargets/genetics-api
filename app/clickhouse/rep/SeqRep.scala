@@ -12,11 +12,14 @@ sealed abstract class SeqRep[T](val from: String) {
 }
 
 object SeqRep {
+  private val minLenTokensForStr = 4
+  private val minLenTokensForNum = 2
+
   sealed abstract class NumSeqRep[T](override val from: String, val f: String => T) extends SeqRep[T](from) {
     override protected def parse(from: String): SeqT = {
       if (from.nonEmpty) {
         from.length match {
-          case n if n > 2 =>
+          case n if n > minLenTokensForNum =>
             from.slice(1, n - 1).split(",").map(f(_))
           case _ => Seq.empty
         }
@@ -33,7 +36,7 @@ object SeqRep {
     override protected def parse(from: String): SeqT = {
       if (from.nonEmpty) {
         from.length match {
-          case n if n > 4 =>
+          case n if n > minLenTokensForStr =>
             from.slice(1, n - 1).split(",").map(t => t.slice(1, t.length - 1))
           case _ => Seq.empty
         }
