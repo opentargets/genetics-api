@@ -71,11 +71,11 @@ object Entities {
 
   case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
   case class ManhattanAssociation(variant: Variant, pval: Double,
-                                  bestGenes: Seq[(Gene, Double)], crediblbeSetSize: Long,
-                                  ldSetSize: Long, totalSetSize: Long)
+                                  bestGenes: Seq[(Gene, Double)], crediblbeSetSize: Option[Long],
+                                  ldSetSize: Option[Long], totalSetSize: Long)
 
   case class V2DByStudy(index_variant_id: String, index_rs_id: Option[String], pval: Double,
-                        credibleSetSize: Long, ldSetSize: Long, totalSetSize: Long, topGenes: Seq[(Gene, Double)])
+                        credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long, topGenes: Seq[(Gene, Double)])
 
   case class StudyInfo(study: Option[Study])
 
