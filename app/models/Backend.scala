@@ -150,7 +150,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     * @param stid given a study ID
     * @return a Entities.OverlappedLociStudy which could contain empty list of ovelapped studies
     */
-  def getTopOverlappedStudies(stid: String): Future[Entities.OverlappedLociStudy] = {
+  def getTopOverlappedStudies(stid: String, pageIndex: Option[Int] = Some(0), pageSize: Option[Int] = Some(defaultTopOverlapStudiesSize)):
+  Future[Entities.OverlappedLociStudy] = {
+    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+
     val topOverlappedsSQL = sql"""
                           |SELECT
                           |  study_id_b,
@@ -162,7 +165,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |  study_id_a,
                           |  study_id_b
                           |ORDER BY num_overlap_loci desc
-                          |LIMIT $defaultTopOverlapStudiesSize
+                          |#$limitClause
       """.stripMargin.as[(String, Int)]
 
     db.run(topOverlappedsSQL.asTry).map {
