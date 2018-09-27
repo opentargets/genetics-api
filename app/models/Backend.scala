@@ -8,6 +8,7 @@ import com.sksamuel.elastic4s.ElasticsearchClientUri
 import models.Entities._
 import models.Functions._
 import models.DNA._
+import models.DNA.Implicits._
 import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
 import models.Violations.{InputParameterCheckError, SearchStringViolation}
@@ -247,8 +248,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getGenes(geneIds: Seq[String]): Future[Vector[DNA.Gene]] = {
     val geneIdsList = geneIds.map("'" + _ + "'").mkString(",")
-    val studiesSQL = sql"""
-                          |select
+    val genesSql = sql"""
+                          |SELECT
                           | gene_id,
                           | gene_name,
                           | biotype,
@@ -257,12 +258,12 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           | start,
                           | end,
                           | fwdstrand,
-                          | cast(exons, 'Array(UInt32)') as exons
-                          |from #$genesTName
-                          |where study_id in (#${geneIdsList})
+                          | cast(exons, 'Array(UInt32)') AS exons
+                          |FROM #$genesTName
+                          |WHERE gene_id IN (#${geneIdsList})
       """.stripMargin.as[DNA.Gene]
 
-    db.run(studiesSQL.asTry).map {
+    db.run(genesSql.asTry).map {
       case Success(v) => v
       case Failure(ex) =>
         logger.error(ex.getMessage)
@@ -314,7 +315,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       |    ldSetSize,
       |    uniq_variants,
       |    top_genes_ids,
-      |    top_genes_names,
       |    top_genes_scores
       |FROM
       |(
@@ -334,7 +334,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       |    SELECT
       |        variant_id AS index_variant_id,
       |        groupArray(gene_id) AS top_genes_ids,
-      |        groupArray(dictGetString('gene','gene_name',tuple(gene_id))) AS top_genes_names,
       |        groupArray(overall_score) AS top_genes_scores
       |    FROM ot.d2v2g_score_by_overall
       |    PREWHERE (variant_id = index_variant_id) AND (overall_score > 0.)
@@ -451,28 +450,30 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def buildGecko(chromosome: String, posStart: Long, posEnd: Long): Future[Option[Entities.Gecko]] = {
     (parseChromosome(chromosome), parseRegion(posStart, posEnd)) match {
       case (Right(chr), Right((start, end))) =>
+        val geneIdsInLoci = sql"""
+                                  |SELECT
+                                  | gene_id
+                                  |FROM ot.gene
+                                  |WHERE
+                                  | chr = $chr and (
+                                  | (start >= $start and start <= $end) or
+                                  | (end >= $start and end <= $end))
+          """.stripMargin.as[String]
+
         val assocs = sql"""
-                          |select
+                          |SELECT
                           |  variant_id,
-                          |  rs_id ,
-                          |  index_variant_id ,
-                          |  index_variant_rsid ,
-                          |  gene_id ,
-                          |  dictGetString('gene','gene_name',tuple(gene_id)) as gene_name,
-                          |  dictGetString('gene','biotype',tuple(gene_id)) as gene_type,
-                          |  dictGetString('gene','chr',tuple(gene_id)) as gene_chr,
-                          |  dictGetUInt32('gene','tss',tuple(gene_id)) as gene_tss,
-                          |  dictGetUInt32('gene','start',tuple(gene_id)) as gene_start,
-                          |  dictGetUInt32('gene','end',tuple(gene_id)) as gene_end,
-                          |  dictGetUInt8('gene','fwdstrand',tuple(gene_id)) as gene_fwd,
-                          |  cast(dictGetString('gene','exons',tuple(gene_id)), 'Array(UInt32)') as gene_exons,
+                          |  rs_id,
+                          |  index_variant_id,
+                          |  index_variant_rsid,
+                          |  gene_id,
                           |  stid,
                           |  r2,
-                          |  posterior_prob ,
+                          |  posterior_prob,
                           |  pval,
                           |  overall_score
-                          |from (
-                          | select
+                          |FROM (
+                          | SELECT
                           |  stid,
                           |  variant_id,
                           |  any(rs_id) as rs_id,
@@ -482,8 +483,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |  any(r2) as r2,
                           |  any(posterior_prob) as posterior_prob,
                           |  any(pval) as pval
-                          | from #$d2v2gTName
-                          | prewhere
+                          | FROM #$d2v2gTName
+                          | PREWHERE
                           |   chr_id = $chr and (
                           |   (position >= $start and position <= $end) or
                           |   (index_position >= $start and index_position <= $end) or
@@ -493,21 +494,25 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |     dictGetUInt32('gene','end',tuple(gene_id)) <= $end))
                           | group by stid, index_variant_id, variant_id, gene_id
                           |) all inner join (
-                          | select
+                          | SELECT
                           |   variant_id,
                           |   gene_id,
                           |   overall_score
-                          | from #$d2v2gOScoresTName
-                          | prewhere chr_id = $chr and
+                          | FROM #$d2v2gOScoresTName
+                          | PREWHERE chr_id = $chr and
                           | overall_score > 0.
-                          |) using (variant_id, gene_id)
+                          |) USING (variant_id, gene_id)
           """.stripMargin.as[GeckoLine]
 
-        db.run(assocs.asTry).map {
-          case Success(r) => Entities.Gecko(r.view)
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Entities.Gecko(Seq.empty)
+        db.run(geneIdsInLoci.asTry zip assocs.asTry).map {
+          case (Success(geneIds), Success(assocs)) => Entities.Gecko(assocs.view, geneIds.toSet)
+          case (Success(geneIds), Failure(asscsEx)) =>
+            logger.error(asscsEx.getMessage)
+            Entities.Gecko(Seq.empty, geneIds.toSet)
+          case (_, _) =>
+            logger.error("Something really wrong happened while getting geneIds from gene " +
+              "dictionary and also from d2v2g table")
+            Entities.Gecko(Seq.empty, Set.empty)
         }
       case (chrEither, rangeEither) =>
         Future.failed(InputParameterCheckError(

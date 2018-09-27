@@ -54,11 +54,11 @@ object Entities {
 
   case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
   case class ManhattanAssociation(variant: Variant, pval: Double,
-                                  bestGenes: Seq[(Gene, Double)], crediblbeSetSize: Option[Long],
+                                  bestGenes: Seq[(String, Double)], crediblbeSetSize: Option[Long],
                                   ldSetSize: Option[Long], totalSetSize: Long)
 
   case class V2DByStudy(index_variant_id: String, index_rs_id: Option[String], pval: Double,
-                        credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long, topGenes: Seq[(Gene, Double)])
+                        credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long, topGenes: Seq[(String, Double)])
 
   case class StudyInfo(study: Option[Study])
 
@@ -80,18 +80,18 @@ object Entities {
   case class GeneTagVariant(geneId: String, tagVariantId: String, overallScore: Double)
   case class TagVariantIndexVariantStudy(tagVariantId: String, indexVariantId: String, studyId: String,
                                          r2: Option[Double], pval: Double, posteriorProb: Option[Double])
-  case class Gecko(genes: Seq[Gene], tagVariants: Seq[Variant], indexVariants: Seq[Variant],
+  case class Gecko(geneIds: Seq[String], tagVariants: Seq[Variant], indexVariants: Seq[Variant],
                    studies: Seq[String], geneTagVariants: Seq[GeneTagVariant],
                    tagVariantIndexVariantStudies: Seq[TagVariantIndexVariantStudy])
-  case class GeckoLine(gene: Gene, tagVariant: Variant, indexVariant: Variant, studyId: String,
+  case class GeckoLine(geneId: String, tagVariant: Variant, indexVariant: Variant, studyId: String,
                        geneTagVariant: GeneTagVariant, tagVariantIndexVariantStudy: TagVariantIndexVariantStudy)
 
   object Gecko {
-    def apply(geckoLines: Seq[GeckoLine]): Option[Gecko] = {
+    def apply(geckoLines: Seq[GeckoLine], geneIdsInLoci: Set[String] = Set.empty): Option[Gecko] = {
       if (geckoLines.isEmpty)
         Some(Gecko(Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty))
       else {
-        var genes: Set[Gene] = Set.empty
+        var geneIds: Set[String] = Set.empty
         var tagVariants: Set[Variant] = Set.empty
         var indexVariants: Set[Variant] = Set.empty
         var studies: Set[String] = Set.empty
@@ -99,7 +99,7 @@ object Entities {
         var geneTagVariants: Set[GeneTagVariant] = Set.empty
 
         geckoLines.foreach(line => {
-          genes += line.gene
+          geneIds += line.geneId
           tagVariants += line.tagVariant
           indexVariants += line.indexVariant
           studies += line.studyId
@@ -110,8 +110,8 @@ object Entities {
         // breakOut could be a good way to map virtually to a other collection of a different type
         // https://stackoverflow.com/questions/46509951/how-do-i-efficiently-count-distinct-fields-in-a-collection
         // val genes = geckoLines.map(_.gene)(breakOut).toSet.toSeq
-         Some(Gecko(genes.toStream, tagVariants.toStream, indexVariants.toStream, studies.toStream,
-                  geneTagVariants.toStream, tagVariantIndexVariantStudies.toStream))
+         Some(Gecko((geneIds union geneIdsInLoci).toSeq, tagVariants.toSeq, indexVariants.toSeq, studies.toSeq,
+                  geneTagVariants.toSeq, tagVariantIndexVariantStudies.toSeq))
       }
     }
   }
@@ -258,13 +258,9 @@ object Entities {
   }
 
   object DBImplicits {
-    implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] =
-      Variant.apply(variantID)
-
     implicit val getV2DByStudy: GetResult[V2DByStudy] = {
-      def toGeneScoreTuple(geneIds: Seq[String], geneNames: Seq[String],
-                           geneScores: Seq[Double]) = {
-        val ordScored = ((geneIds zip geneNames).map(t => Gene(id = t._1, symbol = Some(t._2))) zip geneScores)
+      def toGeneScoreTuple(geneIds: Seq[String], geneScores: Seq[Double]): Seq[(String, Double)] = {
+        val ordScored = (geneIds zip geneScores)
           .sortBy(_._2)(Ordering[Double].reverse)
 
         if (ordScored.isEmpty) ordScored
@@ -274,7 +270,7 @@ object Entities {
       }
 
       GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<,
-        toGeneScoreTuple(StrSeqRep(r.<<), StrSeqRep(r.<<), DSeqRep(r.<<))))
+        toGeneScoreTuple(StrSeqRep(r.<<), DSeqRep(r.<<))))
     }
 
     implicit val getSumStatsByVariantPheWAS: GetResult[VariantPheWAS] =
@@ -306,11 +302,7 @@ object Entities {
         val tagVariant = Variant(r.<<, r.<<?).right.get
         val indexVariant = Variant(r.<<, r.<<?).right.get
 
-        val gene = Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
-          chromosome = r.nextStringOption(), tss = r.nextLongOption(),
-          start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
-          exons = LSeqRep(r.nextString()))
-
+        val geneId = r.nextString()
         val studyId: String = r.<<
 
         val r2 = r.nextDoubleOption()
@@ -318,11 +310,11 @@ object Entities {
         val pval = r.nextDouble()
         val overallScore = r.nextDouble()
 
-        val geneTagVariant = GeneTagVariant(gene.id, tagVariant.id, overallScore)
+        val geneTagVariant = GeneTagVariant(geneId, tagVariant.id, overallScore)
         val tagVariantIndexVariantStudy = TagVariantIndexVariantStudy(tagVariant.id, indexVariant.id,
           studyId, r2, pval, posteriorProb)
 
-        GeckoLine(gene, tagVariant, indexVariant, studyId, geneTagVariant, tagVariantIndexVariantStudy)
+        GeckoLine(geneId, tagVariant, indexVariant, studyId, geneTagVariant, tagVariantIndexVariantStudy)
       }
     )
 

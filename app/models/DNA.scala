@@ -38,7 +38,10 @@ object DNA {
     implicit val hasId = HasId[Gene, String](_.id)
   }
 
-  object DBImplicits {
+  object Implicits {
+    implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] =
+      Variant.apply(variantID)
+
     implicit val getGeneFromDB: GetResult[Gene] =
       GetResult(r => Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
         chromosome = r.nextStringOption(), tss = r.nextLongOption(),
