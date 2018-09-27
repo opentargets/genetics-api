@@ -245,6 +245,31 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  def getGenes(geneIds: Seq[String]): Future[Vector[DNA.Gene]] = {
+    val geneIdsList = geneIds.map("'" + _ + "'").mkString(",")
+    val studiesSQL = sql"""
+                          |select
+                          | gene_id,
+                          | gene_name,
+                          | biotype,
+                          | chr,
+                          | tss,
+                          | start,
+                          | end,
+                          | fwdstrand,
+                          | cast(exons, 'Array(UInt32)') as exons
+                          |from #$genesTName
+                          |where study_id in (#${geneIdsList})
+      """.stripMargin.as[DNA.Gene]
+
+    db.run(studiesSQL.asTry).map {
+      case Success(v) => v
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Vector.empty
+    }
+  }
+
   def getStudies(stids: Seq[String]): Future[Vector[Entities.Study]] = {
     val stidListString = stids.map("'" + _ + "'").mkString(",")
     val studiesSQL = sql"""
@@ -577,4 +602,5 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   private val studiesTName: String = "studies"
   private val studiesOverlapTName: String = "studies_overlap"
   private val gwasSumStatsTName: String = "gwas_chr_%s"
+  private val genesTName: String = "gene"
 }

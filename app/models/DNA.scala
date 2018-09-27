@@ -1,8 +1,14 @@
 package models
 
+import clickhouse.rep.SeqRep.LSeqRep
+import clickhouse.rep.SeqRep.Implicits._
 import models.Violations.VariantViolation
 import sangria.execution.deferred.HasId
 import sangria.schema.{Field, LongType, ObjectType, OptionType, StringType, fields}
+
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
+import slick.jdbc.{GetResult, PositionedParameters, SQLActionBuilder, SetParameter}
 
 object DNA {
   case class Locus(chrId: String, position: Long)
@@ -30,5 +36,13 @@ object DNA {
 
   object Gene {
     implicit val hasId = HasId[Gene, String](_.id)
+  }
+
+  object DBImplicits {
+    implicit val getGeneFromDB: GetResult[Gene] =
+      GetResult(r => Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
+        chromosome = r.nextStringOption(), tss = r.nextLongOption(),
+        start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
+        exons = LSeqRep(r.nextString())))
   }
 }
