@@ -4,6 +4,7 @@ package models
 import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
+import DNA._
 import sangria.schema
 import sangria.streaming.ValidOutStreamType
 
@@ -88,7 +89,7 @@ object GQLSchema {
     config = FetcherConfig.maxBatchSize(100),
     fetch = (ctx: Backend, stids: Seq[String]) => {ctx.getStudies(stids)})
 
-  val studiesResolver = DeferredResolver.fetchers(studiesFetcher)
+  val resolvers = DeferredResolver.fetchers(studiesFetcher)
 
   val study = ObjectType("Study",
   "This element contains all study fields",

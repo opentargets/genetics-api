@@ -7,6 +7,7 @@ import clickhouse.ClickHouseProfile
 import com.sksamuel.elastic4s.ElasticsearchClientUri
 import models.Entities._
 import models.Functions._
+import models.DNA._
 import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
 import models.Violations.{InputParameterCheckError, SearchStringViolation}

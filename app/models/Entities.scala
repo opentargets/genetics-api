@@ -4,28 +4,13 @@ import com.sksamuel.elastic4s.{Hit, HitReader}
 import slick.jdbc.GetResult
 import models.Violations._
 import models.Functions._
+import models.DNA._
 import sangria.execution.deferred.HasId
 import clickhouse.rep.SeqRep._
 import clickhouse.rep.SeqRep.Implicits._
 
 object Entities {
-  case class DNAPosition(chrId: String, position: Long)
-  case class Variant(locus: DNAPosition, refAllele: String, altAllele: String, rsId: Option[String]) {
-    lazy val id: String = List(locus.chrId, locus.position.toString, refAllele, altAllele)
-      .map(_.toUpperCase)
-      .mkString("_")
-  }
 
-  object Variant {
-    def apply(variantId: String, rsId: Option[String] = None): Either[VariantViolation, Variant] = {
-      variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
-        case List(chr: String, pos: String, ref: String, alt: String) =>
-          Right(Variant(DNAPosition(chr, pos.toLong), ref, alt, rsId))
-        case _ =>
-          Left(VariantViolation(variantId))
-      }
-    }
-  }
 
   case class OverlapRow(stid: String, numOverlapLoci: Int)
   case class OverlappedLociStudy(studyId: String, topOverlappedStudies: IndexedSeq[OverlapRow])
@@ -34,9 +19,7 @@ object Entities {
   case class OverlappedVariant(variantIdA: String, variantIdB: String, overlapAB: Int,
                                distinctA: Int, distinctB: Int)
 
-  case class Gene(id: String, symbol: Option[String] = None, start: Option[Long] = None, end: Option[Long] = None,
-                  chromosome: Option[String] = None, tss: Option[Long] = None,
-                  bioType: Option[String] = None, fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
+
 
   case class TagVariantTable(associations: Vector[TagVariantAssociation])
   case class TagVariantAssociation(indexVariant: Variant,
@@ -238,7 +221,7 @@ object Entities {
         else {
           val mv = hit.sourceAsMap
 
-          val variant = Variant(DNAPosition(mv("chr_id").toString, mv("position").asInstanceOf[Int]),
+          val variant = Variant(Locus(mv("chr_id").toString, mv("position").asInstanceOf[Int]),
             mv("ref_allele").toString, mv("alt_allele").toString, Option(mv("rs_id").toString))
           val relatedGenes = mv("gene_set_ids").asInstanceOf[Seq[String]]
 
