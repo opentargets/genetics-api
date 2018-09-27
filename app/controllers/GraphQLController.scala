@@ -53,7 +53,7 @@ class GraphQLController @Inject()(implicit ec: ExecutionContext, dbTables: Backe
         Executor.execute(GQLSchema.schema, queryAst, dbTables,
           operationName = operation,
           variables = variables getOrElse Json.obj(),
-          deferredResolver = GQLSchema.studiesResolver,
+          deferredResolver = GQLSchema.resolvers,
           exceptionHandler = exceptionHandler,
           queryReducers = List(
             QueryReducer.rejectMaxDepth[Backend](15),

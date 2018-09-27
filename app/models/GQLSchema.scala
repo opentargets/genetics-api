@@ -4,6 +4,7 @@ package models
 import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
+import DNA._
 import sangria.schema
 import sangria.streaming.ValidOutStreamType
 
@@ -52,10 +53,10 @@ object GQLSchema {
 
   val scoredGene = ObjectType("ScoredGene",
   "This object link a Gene with a score",
-    fields[Backend, (Gene, Double)](
+    fields[Backend, (String, Double)](
       Field("gene", gene,
         Some("Gene Info"),
-        resolve = _.value._1),
+        resolve = rsl => genesFetcher.defer(rsl.value._1)),
       Field("score", FloatType,
         Some("Score a Float number between [0. .. 1.]"),
         resolve = _.value._2)
@@ -88,7 +89,11 @@ object GQLSchema {
     config = FetcherConfig.maxBatchSize(100),
     fetch = (ctx: Backend, stids: Seq[String]) => {ctx.getStudies(stids)})
 
-  val studiesResolver = DeferredResolver.fetchers(studiesFetcher)
+  val genesFetcher = Fetcher(
+    config = FetcherConfig.maxBatchSize(100),
+    fetch = (ctx: Backend, geneIds: Seq[String]) => {ctx.getGenes(geneIds)})
+
+  val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher)
 
   val study = ObjectType("Study",
   "This element contains all study fields",
@@ -340,7 +345,7 @@ object GQLSchema {
     fields[Backend, Gecko](
       Field("genes", ListType(gene),
         Some(""),
-        resolve = _.value.genes),
+        resolve = rsl => genesFetcher.deferSeq(rsl.value.geneIds)),
       Field("tagVariants", ListType(variant),
         Some(""),
         resolve = _.value.tagVariants),
