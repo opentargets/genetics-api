@@ -4,7 +4,7 @@ import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.Configuration
 import clickhouse.ClickHouseProfile
-import com.sksamuel.elastic4s.ElasticsearchClientUri
+import com.sksamuel.elastic4s.{ElasticsearchClientUri, analyzers}
 import models.Entities._
 import models.Functions._
 import models.DNA._
@@ -13,13 +13,14 @@ import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
 import models.Violations.{InputParameterCheckError, SearchStringViolation}
 import clickhouse.rep.SeqRep.StrSeqRep
-
+import com.sksamuel.elastic4s.analyzers.WhitespaceAnalyzer
 import sangria.validation.Violation
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 import scala.concurrent._
 import com.sksamuel.elastic4s.http._
+import org.elasticsearch.index.query.MultiMatchQueryBuilder
 import play.db.NamedDatabase
 import play.api.Logger
 
@@ -117,23 +118,43 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   Future[Entities.SearchResultSet] = {
     val limitClause = parsePaginationTokensForES(pageIndex, pageSize)
     val stoken = qString.toLowerCase
-    val cleanedTokens = stoken.replaceAll("-", " and ")
+    // val stoken = qString
+    val cleanedTokens = stoken.replaceAll("-", " ")
 
     if (stoken.length > 0) {
       val esQ = HttpClient(esUri)
       esQ.execute {
-          search("studies") query boolQuery.should(prefixQuery("study_id", stoken),
-            prefixQuery("pmid", stoken),
-            queryStringQuery(cleanedTokens)) start limitClause._1 limit limitClause._2
+          search("studies") query boolQuery.should(matchQuery("study_id", stoken),
+            matchQuery("pmid", stoken),
+            multiMatchQuery(cleanedTokens)
+              .matchType(MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
+              .lenient(true)
+              .slop(10)
+              .prefixLength(2)
+              .maxExpansions(50)
+              .operator("OR")
+              .analyzer(WhitespaceAnalyzer)
+              .fields(Map("trait_reported" -> 1.5F,
+                "pub_author" -> 1.2F,
+                "_all" -> 1.0F))
+            ) start limitClause._1 limit limitClause._2 sortByFieldDesc "n_initial"
       }.zip {
         esQ.execute {
-          search("variant_*") query boolQuery.should(prefixQuery("variant_id", stoken),
-            prefixQuery("rs_id", stoken)) start limitClause._1 limit limitClause._2
+          search("variant_*") query boolQuery.should(matchQuery("variant_id", stoken),
+            matchQuery("rs_id", stoken)) start limitClause._1 limit limitClause._2
         }
       }.zip {
         esQ.execute {
-          search("genes") query boolQuery.should(prefixQuery("gene_id", stoken),
-            queryStringQuery(cleanedTokens)) start limitClause._1 limit limitClause._2
+          search("genes") query boolQuery.should(matchQuery("gene_id", stoken),
+            multiMatchQuery(cleanedTokens)
+              .matchType(MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
+              .lenient(true)
+              .slop(10)
+              .prefixLength(2)
+              .maxExpansions(50)
+              .operator("OR")
+              .analyzer(WhitespaceAnalyzer)
+              .fields("gene_name")) start limitClause._1 limit limitClause._2
         }
       }.map{
         case ((studiesRS, variantsRS), genesRS) =>
