@@ -45,8 +45,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     variant match {
       case Right(v) =>
-        val segment = toSumStatsSegment(v.locus.position)
-        val tableName = gwasSumStatsTName format v.locus.chrId
+        val segment = toSumStatsSegment(v.position.position)
+        val tableName = gwasSumStatsTName format v.position.chrId
         val query =
           sql"""
                |select
@@ -64,8 +64,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                | chip,
                | info
                |from #$tableName
-               |prewhere chrom = ${v.locus.chrId} and
-               |  pos_b37 = ${v.locus.position} and
+               |prewhere chrom = ${v.position.chrId} and
+               |  pos_b37 = ${v.position.position} and
                |  segment = $segment and
                |  variant_id_b37 = ${v.id}
                |#$limitClause
@@ -236,7 +236,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         if (v.nonEmpty) {
           v.view.groupBy(_._1).map(pair =>
             OverlappedVariantsStudy(pair._1,
-              pair._2.drop(1).map(t => OverlappedVariant(t._2, t._3, t._4, t._5, t._6)))).toVector
+              pair._2.map(t => OverlappedVariant(t._2, t._3, t._4, t._5, t._6)))).toVector
         } else {
           Vector.empty
         }
@@ -348,7 +348,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         v.map(el => {
           // we got the line so correct variant must exist
           val variant = Variant(el.index_variant_id)
-          val completedV = variant.map(v => Variant(v.locus, v.refAllele, v.altAllele, el.index_rs_id))
+          val completedV = variant.map(v => Variant(v.position, v.refAllele, v.altAllele, el.index_rs_id))
 
           ManhattanAssociation(completedV.right.get, el.pval, el.topGenes,
             el.credibleSetSize, el.ldSetSize, el.totalSetSize)
@@ -385,8 +385,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                        | posterior_prob
                        |from #$v2dByChrPosTName
                        |prewhere
-                       |  chr_id = ${v.locus.chrId} and
-                       |  index_position = ${v.locus.position} and
+                       |  chr_id = ${v.position.chrId} and
+                       |  index_position = ${v.position.position} and
                        |  index_ref_allele = ${v.refAllele} and
                        |  index_alt_allele = ${v.altAllele}
                        |#$limitClause
@@ -428,8 +428,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           | posterior_prob
                           |from #$v2dByChrPosTName
                           |prewhere
-                          |  chr_id = ${v.locus.chrId} and
-                          |  position = ${v.locus.position} and
+                          |  chr_id = ${v.position.chrId} and
+                          |  position = ${v.position.position} and
                           |  ref_allele = ${v.refAllele} and
                           |  alt_allele = ${v.altAllele}
                           |#$limitClause
@@ -567,8 +567,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |        interval_score_q
                           |    FROM #$v2gTName
                           |    PREWHERE
-                          |       (chr_id = ${v.locus.chrId}) AND
-                          |       (position = ${v.locus.position}) AND
+                          |       (chr_id = ${v.position.chrId}) AND
+                          |       (position = ${v.position.position}) AND
                           |       (variant_id = ${v.id}) AND
                           |       (isNull(fpred_max_score) OR fpred_max_score > 0.)
                           |)
@@ -581,7 +581,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |        source_score_list,
                           |        overall_score
                           |    FROM #$v2gOScoresTName
-                          |    PREWHERE (chr_id = ${v.locus.chrId}) AND
+                          |    PREWHERE (chr_id = ${v.position.chrId}) AND
                           |       (variant_id = ${v.id})
                           |) USING (gene_id)
                           |ORDER BY gene_id ASC

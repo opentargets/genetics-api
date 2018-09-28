@@ -11,10 +11,13 @@ import scala.util.{Failure, Success}
 import slick.jdbc.{GetResult, PositionedParameters, SQLActionBuilder, SetParameter}
 
 object DNA {
-  case class Locus(chrId: String, position: Long)
+  case class Locus(pos1: Position, pos2: Position)
+  case class Loci(locus: Locus, restLocus: Locus*)
 
-  case class Variant(locus: Locus, refAllele: String, altAllele: String, rsId: Option[String]) {
-    lazy val id: String = List(locus.chrId, locus.position.toString, refAllele, altAllele)
+  case class Position(chrId: String, position: Long)
+
+  case class Variant(position: Position, refAllele: String, altAllele: String, rsId: Option[String]) {
+    lazy val id: String = List(position.chrId, position.position.toString, refAllele, altAllele)
       .map(_.toUpperCase)
       .mkString("_")
   }
@@ -23,7 +26,7 @@ object DNA {
     def apply(variantId: String, rsId: Option[String] = None): Either[VariantViolation, Variant] = {
       variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
         case List(chr: String, pos: String, ref: String, alt: String) =>
-          Right(Variant(Locus(chr, pos.toLong), ref, alt, rsId))
+          Right(Variant(Position(chr, pos.toLong), ref, alt, rsId))
         case _ =>
           Left(VariantViolation(variantId))
       }
