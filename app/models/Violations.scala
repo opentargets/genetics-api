@@ -19,7 +19,8 @@ object Violations {
 
   val inChromosomeRegionErrorMsg: String =
     "Ouch! The chromosome region was not properly specified. 'start' argument must be a positive number " +
-      "and < 'end' argument. Also, the argument 'end' must be a positive number and > 'start'."
+      "and < 'end' argument. Also, the argument 'end' must be a positive number and > 'start'. And 'end' " +
+      "- 'start' <= 2Mbs."
 
   case class VariantViolation(msg: String) extends BaseViolation(variantErrorMsg format(msg))
   case class ChromosomeViolation(msg: String) extends BaseViolation(chromosomeErrorMsg format(msg))
