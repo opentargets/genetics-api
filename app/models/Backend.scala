@@ -267,6 +267,23 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  def getStudiesForGene(geneId: String): Future[Vector[String]] = {
+    val studiesSQL = sql"""
+                           |SELECT DISTINCT stid
+                           |FROM #$d2v2gTName
+                           |PREWHERE
+                           |  (gene_id = $geneId) AND
+                           |  (chr_id = dictGetString('gene','chr',tuple($geneId)))
+      """.stripMargin.as[String]
+
+    db.run(studiesSQL.asTry).map {
+      case Success(v) => v
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Vector.empty
+    }
+  }
+
   def getGenes(geneIds: Seq[String]): Future[Vector[DNA.Gene]] = {
     val geneIdsList = geneIds.map("'" + _ + "'").mkString(",")
     val genesSql = sql"""

@@ -14,6 +14,7 @@ object Functions {
   val defaultFPredTypes: List[String] = List("fpred")
   val defaultSegmentDivFactor: Double = 1e6
   val defaultTopOverlapStudiesSize: Int = 10
+  val defaultStudiesForGeneSize: Int = 10
 
   def toSumStatsSegment(from: Long, factor: Double = defaultSegmentDivFactor): Long =
     (from / factor).toLong
