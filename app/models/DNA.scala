@@ -2,7 +2,7 @@ package models
 
 import clickhouse.rep.SeqRep.LSeqRep
 import clickhouse.rep.SeqRep.Implicits._
-import models.Violations.VariantViolation
+import models.Violations.{GeneViolation, VariantViolation}
 import sangria.execution.deferred.HasId
 import sangria.schema.{Field, LongType, ObjectType, OptionType, StringType, fields}
 
@@ -33,11 +33,20 @@ object DNA {
     }
   }
 
-  case class Gene(id: String, symbol: Option[String] = None, start: Option[Long] = None, end: Option[Long] = None,
+  case class Gene(id: String, symbol: Option[String], start: Option[Long] = None, end: Option[Long] = None,
                   chromosome: Option[String] = None, tss: Option[Long] = None,
                   bioType: Option[String] = None, fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
 
   object Gene {
+    def apply(geneId: String): Either[GeneViolation, Gene] = {
+      geneId.toUpperCase.split("\\.").toList.filter(_.nonEmpty) match {
+        case ensemblId :: xs =>
+          Right(Gene(ensemblId, None))
+        case Nil =>
+          Left(GeneViolation(geneId))
+      }
+    }
+
     implicit val hasId = HasId[Gene, String](_.id)
   }
 

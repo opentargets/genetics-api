@@ -131,7 +131,7 @@ object Entities {
   case class G2VSchema(qtls: Seq[G2VSchemaElement], intervals: Seq[G2VSchemaElement],
                        functionalPredictions: Seq[G2VSchemaElement])
 
-  case class G2VAssociation(gene: Gene, overallScore: Double, qtls: Seq[G2VElement[QTLTissue]],
+  case class G2VAssociation(geneId: String, variantId: String, overallScore: Double, qtls: Seq[G2VElement[QTLTissue]],
                             intervals: Seq[G2VElement[IntervalTissue]], fpreds: Seq[G2VElement[FPredTissue]])
 
   object G2VAssociation {
@@ -148,7 +148,8 @@ object Entities {
         Entities.FPredTissue(Tissue(el.feature), el.fpredMaxLabel, el.fpredMaxScore))
 
     def apply(groupedGene: Seq[ScoredG2VLine]): G2VAssociation = {
-      val gene = groupedGene.head.gene
+      val geneId = groupedGene.head.geneId
+      val variantId = groupedGene.head.variantId
       val score = groupedGene.head.overallScore
       val grouped = groupedGene.view.groupBy(r => (r.typeId, r.sourceId))
 
@@ -173,7 +174,7 @@ object Entities {
             p.head.sourceScores(sc), toFPredTissues(p))
         }).values.toStream
 
-      G2VAssociation(gene, score, qtls, intervals, fpreds)
+      G2VAssociation(geneId, variantId, score, qtls, intervals, fpreds)
     }
   }
 
@@ -184,7 +185,7 @@ object Entities {
   case class IntervalTissue(tissue: Tissue, quantile: Double, score: Option[Double])
   case class FPredTissue(tissue: Tissue, maxEffectLabel: Option[String], maxEffectScore: Option[Double])
 
-  case class ScoredG2VLine(gene: Gene, overallScore: Double, sourceScores: Map[String, Double],
+  case class ScoredG2VLine(geneId: String, variantId: String, overallScore: Double, sourceScores: Map[String, Double],
                            typeId: String, sourceId: String, feature: String, fpredMaxLabel: Option[String],
                            fpredMaxScore: Option[Double], qtlBeta: Option[Double], qtlSE: Option[Double],
                            qtlPval: Option[Double], intervalScore: Option[Double], qtlScoreQ: Double,
@@ -320,14 +321,9 @@ object Entities {
 
     implicit val getScoredG2VLine: GetResult[ScoredG2VLine] = GetResult(
       r => {
-        val gene = Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
-          chromosome = r.nextStringOption(), tss = r.nextLongOption(),
-          start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
-          exons = LSeqRep(r.nextString()))
-
-        ScoredG2VLine(gene, r.<<, (
-          StrSeqRep(r.nextString()).rep zip DSeqRep(r.nextString()).rep).toMap, r.<<, r.<<, r.<<,
-          r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<)
+        ScoredG2VLine(r.<<, r.<<, r.<<,
+          (StrSeqRep(r.nextString()).rep zip DSeqRep(r.nextString()).rep).toMap,
+          r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<)
       }
     )
   }

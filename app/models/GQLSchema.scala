@@ -615,7 +615,10 @@ object GQLSchema {
     fields[Backend, G2VAssociation](
       Field("gene", gene,
         Some("Associated scored gene"),
-        resolve = _.value.gene),
+        resolve = rsl => genesFetcher.defer(rsl.value.geneId)),
+      Field("variant", StringType,
+        Some("Associated scored variant"),
+        resolve = _.value.variantId),
       Field("overallScore", FloatType,
         Some(""),
         resolve = _.value.overallScore),
@@ -704,7 +707,10 @@ object GQLSchema {
         resolve = ctx => ctx.ctx.getG2VSchema),
       Field("genesForVariant", ListType(geneForVariant),
         arguments = variantId :: Nil,
-        resolve = ctx => ctx.ctx.buildG2V(ctx.arg(variantId)))
+        resolve = ctx => ctx.ctx.buildG2VByVariant(ctx.arg(variantId))),
+      Field("variantsForGene", ListType(geneForVariant),
+        arguments = geneId :: Nil,
+        resolve = ctx => ctx.ctx.buildG2VByGene(ctx.arg(geneId)))
     ))
 
   val schema = Schema(query)
