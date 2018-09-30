@@ -9,7 +9,7 @@ object Functions {
   val defaultPaginationSizeES: Option[Int] = Some(10)
   val defaultChromosomes: Seq[String] = (1 to 22).map(_.toString) ++ Seq("X", "Y", "MT")
   val defaultMaxRegionSize: Long = 2000000L
-  val defaultMaxDistantFromTSS: Long = 10000000L
+  val defaultMaxDistantFromTSS: Long = 500000L
   val defaultQtlTypes: List[String] = List("eqtl", "pqtl")
   val defaultIntervalTypes: List[String] = List("dhscor", "fantom5", "pchic")
   val defaultFPredTypes: List[String] = List("fpred")
