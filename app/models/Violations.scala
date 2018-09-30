@@ -8,10 +8,16 @@ object Violations {
     "I see. You didn't search for anything. I am really sorry but we are not Google with its " +
       "button 'I'm Feeling Lucky'. You may want to search for a gene or a variant or even " +
       "a trait."
+
   val variantErrorMsg: String =
     "Ouch! It failed to parse the variant '%s' you ask for. Maybe you didn't spell it correctly. " +
       "Please, pay attention to what you wrote before as it could be missing a letter or something else. " +
       "Let me illustrate this with an example: '1_12345_T_C'."
+
+  val geneErrorMsg: String =
+    "Ouch! It failed to parse the gene '%s' you ask for. Maybe you didn't spell it correctly. " +
+      "Please, pay attention to what you wrote before as it could be missing a letter or something else. " +
+      "Let me illustrate this with an example: 'ENSG00000132485'."
 
   val chromosomeErrorMsg: String =
     "Ouch! It failed to parse the chromosome '%s' you ask for. Maybe you didn't spell it correctly. " +
@@ -23,6 +29,7 @@ object Violations {
       "- 'start' <= 2Mbs."
 
   case class VariantViolation(msg: String) extends BaseViolation(variantErrorMsg format(msg))
+  case class GeneViolation(msg: String) extends BaseViolation(geneErrorMsg format(msg))
   case class ChromosomeViolation(msg: String) extends BaseViolation(chromosomeErrorMsg format(msg))
   case class InChromosomeRegionViolation() extends BaseViolation(inChromosomeRegionErrorMsg)
   case class SearchStringViolation() extends BaseViolation(searchStringErrorMsg)

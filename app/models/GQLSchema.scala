@@ -10,6 +10,7 @@ import sangria.streaming.ValidOutStreamType
 
 object GQLSchema {
   val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
+  val geneId = Argument("geneId", StringType, description = "Gene ID using Ensembl identifier")
   val studyIds = Argument("studyIds", ListInputType(StringType), description = "List of study IDs")
   val variantId = Argument("variantId", StringType, description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
   val chromosome = Argument("chromosome", StringType, description = "Chromosome as String between 1..22 or X, Y, MT")
@@ -408,6 +409,13 @@ object GQLSchema {
         resolve = _.value.topOverlappedStudies)
     ))
 
+  val studyForGene = ObjectType("StudyForGene", "",
+    fields[Backend, String](
+      Field("study", study,
+        Some("A study object"),
+        resolve = rsl => studiesFetcher.defer(rsl.value))
+    ))
+
   val overlappedInfoForStudy = ObjectType("OverlappedInfoForStudy", "",
     fields[Backend, (String, Seq[String])](
       Field("study", study,
@@ -607,7 +615,10 @@ object GQLSchema {
     fields[Backend, G2VAssociation](
       Field("gene", gene,
         Some("Associated scored gene"),
-        resolve = _.value.gene),
+        resolve = rsl => genesFetcher.defer(rsl.value.geneId)),
+      Field("variant", StringType,
+        Some("Associated scored variant"),
+        resolve = _.value.variantId),
       Field("overallScore", FloatType,
         Some(""),
         resolve = _.value.overallScore),
@@ -665,6 +676,9 @@ object GQLSchema {
       Field("studyInfo", OptionType(study),
         arguments = studyId :: Nil,
         resolve = ctx => studiesFetcher.deferOpt(ctx.arg(studyId))),
+      Field("studiesForGene", ListType(studyForGene),
+        arguments = geneId :: Nil,
+        resolve = ctx => ctx.ctx.getStudiesForGene(ctx.arg(geneId))),
       Field("manhattan", manhattan,
         arguments = studyId :: pageIndex :: pageSize :: Nil,
         resolve = ctx => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
@@ -693,7 +707,10 @@ object GQLSchema {
         resolve = ctx => ctx.ctx.getG2VSchema),
       Field("genesForVariant", ListType(geneForVariant),
         arguments = variantId :: Nil,
-        resolve = ctx => ctx.ctx.buildG2V(ctx.arg(variantId)))
+        resolve = ctx => ctx.ctx.buildG2VByVariant(ctx.arg(variantId))),
+      Field("variantsForGene", ListType(geneForVariant),
+        arguments = geneId :: Nil,
+        resolve = ctx => ctx.ctx.buildG2VByGene(ctx.arg(geneId)))
     ))
 
   val schema = Schema(query)
