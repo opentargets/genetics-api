@@ -6,8 +6,8 @@ jdk:
   - oraclejdk8
 branches:
   only:
-    - master
-      #    - "/\\d+\\.\\d+\\.\\d+/"
+  - master
+  - /\d+\.\d+\.\d+/
 
 script:
   - sbt ++$TRAVIS_SCALA_VERSION compile
@@ -23,7 +23,6 @@ deploy:
   on:
     repo: opentargets/genetics-api
     tags: true
-    all_branches: true
   skip_cleanup: true
 notifications:
   email:
