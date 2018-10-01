@@ -15,8 +15,7 @@ script:
   - sbt ++$TRAVIS_SCALA_VERSION dist
 deploy:
   provider: releases
-  api_key:
-    secure: gF8CP2EHCxRH334f+0r79mS/deFcsA89TKuFHp5dwlenHOElT06K2tkUl6MO0RoM+1rNgLD5Hn6emz4nCUe3P0YvxHQcNeO0xajHK/5LGJgKJBSU5GWJ8NSlQtdIoqNojSqLTagrXwA2DJvcfdLx0YKQECWtqAaD6AmjAVXBPm//2kvqx5EyphEKcbDeZwNcMh0v+MFZ/ozZzKccABauPbga6p4f4SG5OYU85O3moDAhx/S0jgjIJ3LSTH7BR/ZREx53vxSKFqGir39UgZcTXvgjwewuD7BlCIpL7v0AflZsrrxf0n9f0TddCgCiWdop0IV1g0A0E3t7mzhRXPPu+xVrDtNbVN9MCdrmntBCRKwkBjc/AvdYuZXKb2bSQQZGzhwNOpKIolKPHBKxyg6Q6pLEPY/2dxe3y7Jh4RAjd3cE5FQkJkKjJn5qdmqfevgr9baz4s4rV7Gs/68TAGyV7VrFdc/csKJtrFwn0vMcMiPsgcsAkAUwNBri7CR+lcxOuXk+RlGV5yS8m+63wpMAuKrrMNPVI3jtNjQ54K3XbCUq0KwrUp40/4nYFAh4/ZBLYPQrdiBIx2lsKKP2zEJne5XxeopV0NkuNIbasSIf3BehpXOGg3MFDXhcj+ThGrB8GmSPbCvqO+G84vpl4/cFpxBrQ8q8CM28cBJQ/EU+WSI=
+  api_key: ${GITHUB_KEY}
   file_glob: true
   file:
     - "target/universal/ot-genetics-api-latest.zip"
