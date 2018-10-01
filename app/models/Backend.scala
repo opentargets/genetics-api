@@ -309,6 +309,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  /** query variants table with a list of variant ids and get all related information */
   def getVariants(variantIds: Seq[String]): Future[Vector[DNA.Variant]] = {
     val vList = variantIds.map(DNA.Variant(_)).filter(_.isRight).map(_.right.get)
       .map(v => s"(chr_id = '${v.position.chrId}' AND position = ${v.position.position} AND variant_id = '${v.id}')")
