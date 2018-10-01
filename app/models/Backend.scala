@@ -309,6 +309,31 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  def getVariants(variantIds: Seq[String]): Future[Vector[DNA.Variant]] = {
+    val vList = variantIds.map(DNA.Variant(_)).filter(_.isRight).map(_.right.get)
+      .map(v => s"(chr_id = '${v.position.chrId}' AND position = ${v.position.position} AND variant_id = '${v.id}')")
+      .fold("")((v1, v2) => v1 + " OR " + v2)
+    val vListQ = sql"""
+                          |select
+                          | chr_id,
+                          | position,
+                          | ref_allele,
+                          | alt_allele,
+                          | rs_id,
+                          | gene_id_prot_coding,
+                          | gene_id
+                          |from #$variantsTName
+                          |prewhere #${vList}
+      """.stripMargin.as[Variant]
+
+    db.run(vListQ.asTry).map {
+      case Success(v) => v
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Vector.empty
+    }
+  }
+
   def getStudies(stids: Seq[String]): Future[Vector[Entities.Study]] = {
     val stidListString = stids.map("'" + _ + "'").mkString(",")
     val studiesSQL = sql"""
@@ -707,6 +732,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   private val v2gOScoresTName: String = "v2g_score_by_overall"
   private val v2gStructureTName: String = "v2g_structure"
   private val studiesTName: String = "studies"
+  private val variantsTName: String = "variants"
   private val studiesOverlapTName: String = "studies_overlap"
   private val gwasSumStatsTName: String = "gwas_chr_%s"
   private val genesTName: String = "gene"

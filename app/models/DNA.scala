@@ -16,7 +16,8 @@ object DNA {
 
   case class Position(chrId: String, position: Long)
 
-  case class Variant(position: Position, refAllele: String, altAllele: String, rsId: Option[String]) {
+  case class Variant(position: Position, refAllele: String, altAllele: String, rsId: Option[String],
+                     nearestGeneId: Option[String] = None, nearestCodingGeneId: Option[String] = None) {
     lazy val id: String = List(position.chrId, position.position.toString, refAllele, altAllele)
       .map(_.toUpperCase)
       .mkString("_")
@@ -53,6 +54,11 @@ object DNA {
   object Implicits {
     implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] =
       Variant.apply(variantID)
+
+    implicit val getVariantFromDB: GetResult[Variant] =
+      GetResult(r => Variant(Position(r.nextString, r.nextLong), refAllele = r.nextString,
+        altAllele = r.nextString, rsId = r.nextStringOption, nearestGeneId = r.nextStringOption,
+        nearestCodingGeneId = r.nextStringOption))
 
     implicit val getGeneFromDB: GetResult[Gene] =
       GetResult(r => Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
