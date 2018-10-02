@@ -17,17 +17,25 @@ object DNA {
   case class Position(chrId: String, position: Long)
 
   case class Variant(position: Position, refAllele: String, altAllele: String, rsId: Option[String],
-                     nearestGeneId: Option[String] = None, nearestCodingGeneId: Option[String] = None) {
+                     nearestGeneId: Option[String] = None, nearestCodingGeneId: Option[String] = None)
+    extends Comparable[Variant] {
     lazy val id: String = List(position.chrId, position.position.toString, refAllele, altAllele)
       .map(_.toUpperCase)
       .mkString("_")
+
+    override def compareTo(o: Variant): Int = ???
   }
 
+  case class VariantInfo(variant: Option[Variant])
+
   object Variant {
-    def apply(variantId: String, rsId: Option[String] = None): Either[VariantViolation, Variant] = {
+    implicit val hasId = HasId[Variant, String](_.id)
+
+    def apply(variantId: String): Either[VariantViolation, Variant] = Variant.apply(variantId, None)
+    def apply(variantId: String, rsId: Option[String]): Either[VariantViolation, Variant] = {
       variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
         case List(chr: String, pos: String, ref: String, alt: String) =>
-          Right(Variant(Position(chr, pos.toLong), ref, alt, rsId))
+          Right(Variant(Position(chr, pos.toLong), ref, alt, rsId, None, None))
         case _ =>
           Left(VariantViolation(variantId))
       }
