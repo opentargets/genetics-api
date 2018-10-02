@@ -309,6 +309,42 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  /** query variants table with a list of variant ids and get all related information */
+  def getVariants(variantIds: Seq[String]): Future[Vector[DNA.Variant]] = {
+    if (variantIds.nonEmpty) {
+      val variantIdsSet = variantIds.map("'" + _ + "'").mkString(",")
+      val variants = variantIds.map(Variant(_)).withFilter(_.isRight).map(_.right.get)
+
+      val vListQ = sql"""
+                        |select
+                        | chr_id,
+                        | position,
+                        | ref_allele,
+                        | alt_allele,
+                        | rs_id,
+                        | gene_id,
+                        | gene_id_prot_coding
+                        |from #$variantsTName
+                        |prewhere variant_id IN (#${variantIdsSet})
+        """.stripMargin.as[Variant]
+
+      db.run(vListQ.asTry).map {
+        case Success(v) =>
+          /*
+          NOTE this is a hack as we have toploci variants wihch are not coming from
+          the vcf file provided by Ensembl see 3_194061907_G_A as an example
+           */
+          val vIds = v.map(_.id)
+          v ++ variants.filter(vv => (variantIds diff vIds).contains(vv.id))
+        case Failure(ex) =>
+          logger.error(ex.getMessage)
+          Vector.empty
+      }
+    } else {
+      Future.successful(Vector.empty)
+    }
+  }
+
   def getStudies(stids: Seq[String]): Future[Vector[Entities.Study]] = {
     val stidListString = stids.map("'" + _ + "'").mkString(",")
     val studiesSQL = sql"""
@@ -347,7 +383,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     val idxVariants = sql"""
       |SELECT
       |    index_variant_id,
-      |    index_rs_id,
       |    pval,
       |    credibleSetSize,
       |    ldSetSize,
@@ -358,7 +393,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       |(
       |    SELECT
       |        index_variant_id,
-      |        any(index_rs_id) AS index_rs_id,
       |        any(pval) AS pval,
       |        uniqIf(variant_id, posterior_prob > 0) AS credibleSetSize,
       |        uniqIf(variant_id, r2 > 0) AS ldSetSize,
@@ -384,11 +418,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     db.run(idxVariants.asTry).map {
       case Success(v) => ManhattanTable(studyId,
         v.map(el => {
-          // we got the line so correct variant must exist
-          val variant = Variant(el.index_variant_id)
-          val completedV = variant.map(v => Variant(v.position, v.refAllele, v.altAllele, el.index_rs_id))
-
-          ManhattanAssociation(completedV.right.get, el.pval, el.topGenes,
+          ManhattanAssociation(el.index_variant_id, el.pval, el.topGenes,
             el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
@@ -707,6 +737,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   private val v2gOScoresTName: String = "v2g_score_by_overall"
   private val v2gStructureTName: String = "v2g_structure"
   private val studiesTName: String = "studies"
+  private val variantsTName: String = "variants"
   private val studiesOverlapTName: String = "studies_overlap"
   private val gwasSumStatsTName: String = "gwas_chr_%s"
   private val genesTName: String = "gene"

@@ -53,11 +53,11 @@ object Entities {
                                      posteriorProbability: Option[Double])
 
   case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
-  case class ManhattanAssociation(variant: Variant, pval: Double,
+  case class ManhattanAssociation(variantId: String, pval: Double,
                                   bestGenes: Seq[(String, Double)], crediblbeSetSize: Option[Long],
                                   ldSetSize: Option[Long], totalSetSize: Long)
 
-  case class V2DByStudy(index_variant_id: String, index_rs_id: Option[String], pval: Double,
+  case class V2DByStudy(index_variant_id: String, pval: Double,
                         credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long, topGenes: Seq[(String, Double)])
 
   case class StudyInfo(study: Option[Study])
@@ -270,7 +270,7 @@ object Entities {
         }
       }
 
-      GetResult(r => V2DByStudy(r.<<, r.<<?, r.<<, r.<<, r.<<, r.<<,
+      GetResult(r => V2DByStudy(r.<<, r.<<, r.<<?, r.<<?, r.<<,
         toGeneScoreTuple(StrSeqRep(r.<<), DSeqRep(r.<<))))
     }
 

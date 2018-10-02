@@ -13,6 +13,7 @@ object GQLSchema {
   val geneId = Argument("geneId", StringType, description = "Gene ID using Ensembl identifier")
   val studyIds = Argument("studyIds", ListInputType(StringType), description = "List of study IDs")
   val variantId = Argument("variantId", StringType, description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
+  val variantIds = Argument("variantIds", ListInputType(StringType), description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
   val chromosome = Argument("chromosome", StringType, description = "Chromosome as String between 1..22 or X, Y, MT")
   val pageIndex = Argument("pageIndex", OptionInputType(IntType), description = "pagination index >= 0")
   val pageSize = Argument("pageSize", OptionInputType(IntType), description = "pagination size > 0")
@@ -83,7 +84,23 @@ object GQLSchema {
         resolve = _.value.refAllele),
       Field("altAllele", StringType,
         Some("Alt allele"),
-        resolve = _.value.altAllele)
+        resolve = _.value.altAllele),
+      Field("nearestGene", OptionType(gene),
+        Some("Nearest gene"),
+        resolve = r => {
+          r.value.nearestGeneId match {
+            case Some(ng) => genesFetcher.deferOpt(ng)
+            case _ => None
+          }
+        }),
+      Field("nearestCodingGene", OptionType(gene),
+        Some("Nearest protein-coding gene"),
+        resolve = r => {
+          r.value.nearestCodingGeneId match {
+            case Some(ng) => genesFetcher.deferOpt(ng)
+            case _ => None
+          }
+        })
     ))
 
   val studiesFetcher = Fetcher(
@@ -94,7 +111,11 @@ object GQLSchema {
     config = FetcherConfig.maxBatchSize(100),
     fetch = (ctx: Backend, geneIds: Seq[String]) => {ctx.getGenes(geneIds)})
 
-  val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher)
+  val variantsFetcher = Fetcher(
+    config = FetcherConfig.maxBatchSize(1000),
+    fetch = (ctx: Backend, variantIds: Seq[String]) => {ctx.getVariants(variantIds)})
+
+  val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
 
   val study = ObjectType("Study",
   "This element contains all study fields",
@@ -239,21 +260,12 @@ object GQLSchema {
   val manhattanAssociation = ObjectType("ManhattanAssociation",
   "This element represents an association between a trait and a variant through a study",
     fields[Backend, ManhattanAssociation](
-      Field("variantId", StringType,
-        Some("Index variant ID as ex. 1_12345_A_T"),
-        resolve = _.value.variant.id),
-      Field("variantRsId", OptionType(StringType),
-        Some("RSID code for the given index variant as ex. rs12345"),
-        resolve = _.value.variant.rsId),
+      Field("variant", variant,
+        Some("Index variant"),
+        resolve = r => variantsFetcher.defer(r.value.variantId)),
       Field("pval", FloatType,
         Some("Computed p-Value"),
         resolve = _.value.pval),
-      Field("chromosome", StringType,
-        Some("Chromosome letter from a set of (1-22, X, Y, MT)"),
-        resolve = _.value.variant.position.chrId),
-      Field("position", LongType,
-        Some("absolute position p of the variant i in the chromosome j"),
-        resolve = _.value.variant.position.position),
       Field("bestGenes", ListType(scoredGene),
         Some("A list of best genes associated"),
         resolve = _.value.bestGenes),
@@ -439,14 +451,6 @@ object GQLSchema {
         Some("A list of overlapped studies"),
         arguments = pageIndex :: pageSize :: Nil,
         resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.value.studyId, ctx.arg(pageIndex), ctx.arg(pageSize)))
-    ))
-
-  val studyInfo = ObjectType("StudyInfo",
-  "This element represents a Study with a reported trait",
-    fields[Backend, StudyInfo](
-      Field("study", OptionType(study),
-        Some("A Study object"),
-        resolve = _.value.study)
     ))
 
   val pheWAS = ObjectType("PheWAS",
@@ -676,6 +680,9 @@ object GQLSchema {
       Field("studyInfo", OptionType(study),
         arguments = studyId :: Nil,
         resolve = ctx => studiesFetcher.deferOpt(ctx.arg(studyId))),
+      Field("variantInfo", OptionType(variant),
+        arguments = variantId :: Nil,
+        resolve = ctx => variantsFetcher.deferOpt(ctx.arg(variantId))),
       Field("studiesForGene", ListType(studyForGene),
         arguments = geneId :: Nil,
         resolve = ctx => ctx.ctx.getStudiesForGene(ctx.arg(geneId))),
