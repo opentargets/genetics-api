@@ -10,7 +10,28 @@ http.port = 8080
 
 # sbt command playGenerateSecret
 play.http.secret.key = "changeme"
-slick.dbs.default.db.url = "jdbc:clickhouse://clickhouseinternalnodename:8123/ot"
+slick.dbs {
+  default {
+    profile = "clickhouse.ClickHouseProfile$"
+    db {
+      driver = "ru.yandex.clickhouse.ClickHouseDriver"
+      url = "jdbc:clickhouse://clickhouseinternalnodename1:8123/ot"
+    }
+  }
+  sumstats {
+    profile = "clickhouse.ClickHouseProfile$"
+    db {
+      driver = "ru.yandex.clickhouse.ClickHouseDriver"
+      url = "jdbc:clickhouse://clickhouseinternalnodename2:8123/sumstats"
+    }
+  }
+}
+
+ot.elasticsearch {
+  host = "clickhouseinternalnodename3.c.open-targets-genetics.internal"
+  port = 9200
+}
+# slick.dbs.default.db.url = "jdbc:clickhouse://clickhouseinternalnodename:8123/ot"
 ```
 
 # Copyright
