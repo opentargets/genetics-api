@@ -401,9 +401,9 @@ object GQLSchema {
   val overlappedVariantsStudies = ObjectType("OverlappedVariantsStudies",
     "This element represent a overlap between two stduies",
     fields[Backend, OverlappedVariantsStudy](
-      Field("study", study,
+      Field("study", OptionType(study),
         Some("A study object"),
-        resolve = rsl => studiesFetcher.defer(rsl.value.studyId)),
+        resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
       Field("overlaps", ListType(overlap),
         Some("Orig variant id which is been used for computing the " +
           "overlap with the referenced study"),
@@ -413,9 +413,9 @@ object GQLSchema {
   val topOverlappedStudies = ObjectType("TopOverlappedStudies",
     "This element represent a overlap between two stduies",
     fields[Backend, OverlappedLociStudy](
-      Field("study", study,
+      Field("study", OptionType(study),
         Some("A study object"),
-        resolve = rsl => studiesFetcher.defer(rsl.value.studyId)),
+        resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
       Field("topStudiesByLociOverlap", ListType(overlappedStudy),
         Some("Top N studies ordered by loci overlap"),
         resolve = _.value.topOverlappedStudies)
@@ -430,9 +430,9 @@ object GQLSchema {
 
   val overlappedInfoForStudy = ObjectType("OverlappedInfoForStudy", "",
     fields[Backend, (String, Seq[String])](
-      Field("study", study,
+      Field("study", OptionType(study),
         Some("A study object"),
-        resolve = rsl => studiesFetcher.defer(rsl.value._1)),
+        resolve = rsl => studiesFetcher.deferOpt(rsl.value._1)),
       Field("overlappedVariantsForStudies", ListType(overlappedVariantsStudies),
         Some(""),
         resolve = rsl => rsl.ctx.getOverlapVariantsForStudies(rsl.value._1, rsl.value._2)),
@@ -447,7 +447,7 @@ object GQLSchema {
       Field("associations", ListType(manhattanAssociation),
         Some("A list of associations"),
         resolve = _.value.associations),
-      Field("topOverlappedStudies", topOverlappedStudies,
+      Field("topOverlappedStudies", OptionType(topOverlappedStudies),
         Some("A list of overlapped studies"),
         arguments = pageIndex :: pageSize :: Nil,
         resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.value.studyId, ctx.arg(pageIndex), ctx.arg(pageSize)))
