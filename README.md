@@ -31,8 +31,13 @@ ot.elasticsearch {
   host = "clickhouseinternalnodename3.c.open-targets-genetics.internal"
   port = 9200
 }
-# slick.dbs.default.db.url = "jdbc:clickhouse://clickhouseinternalnodename:8123/ot"
+
+
+# slick.dbs.default.db.url=${?SLICK_CLICKHOUSE_URL}
+# ot.elasticsearch.host=${?ELASTICSEARCH_HOST}
+
 ```
+
 
 # Copyright
 Copyright 2014-2018 Biogen, Celgene Corporation, EMBL - European Bioinformatics Institute, GlaxoSmithKline, Takeda Pharmaceutical Company and Wellcome Sanger Institute
