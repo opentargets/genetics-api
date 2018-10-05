@@ -642,10 +642,7 @@ object GQLSchema {
     fields[Backend, VariantSearchResult](
       Field("variant", variant,
         Some("A variant"),
-        resolve = _.value.variant),
-      Field("relatedGenes", ListType(StringType),
-        Some("List of names of related genes from Variant to Gene"),
-        resolve = _.value.relatedGenes)
+        resolve = _.value.variant)
     ))
 
   val searchResult = ObjectType("SearchResult",

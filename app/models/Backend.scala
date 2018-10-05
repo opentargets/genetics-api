@@ -146,6 +146,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       }.zip {
         esQ.execute {
           search("genes") query boolQuery.should(matchQuery("gene_id", stoken),
+            matchQuery("gene_name", stoken),
             multiMatchQuery(cleanedTokens)
               .matchType(MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
               .lenient(true)

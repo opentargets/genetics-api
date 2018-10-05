@@ -17,10 +17,12 @@ resolvers += Resolver.sonatypeRepo("releases")
 
 libraryDependencies += guice
 libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
-libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.9"
-libraryDependencies += "com.typesafe.play" %% "play-slick" % "3.0.0"
+libraryDependencies += "com.typesafe.play" %% "play" % "2.6.19"
+libraryDependencies += "com.typesafe.play" %% "play-logback" % "2.6.19"
+libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10"
+libraryDependencies += "com.typesafe.play" %% "play-slick" % "3.0.3"
 libraryDependencies += "ru.yandex.clickhouse" % "clickhouse-jdbc" % "0.1.41"
-libraryDependencies += "org.sangria-graphql" %% "sangria" % "1.4.1"
+libraryDependencies += "org.sangria-graphql" %% "sangria" % "1.4.2"
 // libraryDependencies += "org.sangria-graphql" %% "sangria-relay" % "1.4.1"
 libraryDependencies += "org.sangria-graphql" %% "sangria-play-json" % "1.0.4"
 
