@@ -38,6 +38,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   import com.sksamuel.elastic4s.http.ElasticDsl._
   val esUri = ElasticsearchClientUri(config.get[String]("ot.elasticsearch.host"),
     config.get[Int]("ot.elasticsearch.port"))
+  val esQ = HttpClient(esUri)
 
   def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.PheWASTable] = {
@@ -122,7 +123,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     val cleanedTokens = stoken.replaceAll("-", " ")
 
     if (stoken.length > 0) {
-      val esQ = HttpClient(esUri)
       esQ.execute {
           search("studies") query boolQuery.should(matchQuery("study_id", stoken),
             matchQuery("pmid", stoken),
