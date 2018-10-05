@@ -6,11 +6,31 @@ import models.Violations.{GeneViolation, VariantViolation}
 import sangria.execution.deferred.HasId
 import sangria.schema.{Field, LongType, ObjectType, OptionType, StringType, fields}
 
+import scala.io.Source
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
-import slick.jdbc.{GetResult, PositionedParameters, SQLActionBuilder, SetParameter}
+import slick.jdbc.GetResult
+import kantan.csv._
+import kantan.csv.ops._
+import kantan.csv.generic._
 
 object DNA {
+  case class Region(chrId: String, start: Long, end: Long)
+  implicit val regionDecoder: RowDecoder[Region] = RowDecoder.decoder(0, 1, 2)(Region.apply)
+  val denseRegionsRaw = Source.fromFile("conf/dense_regions.tsv").mkString
+  val denseRegions = denseRegionsRaw.asCsvReader[Region](rfc.withHeader.withCellSeparator('\t'))
+    .filter(_.isRight).map(_.right.get).toList.groupBy(_.chrId)
+
+  def matchDenseRegion(region: Region): Boolean = {
+    denseRegions get(region.chrId) match {
+      case Some(r) => r.exists(p => {
+        ((region.start >= p.start) && (region.start <= p.end)) ||
+          ((region.end >= p.start) && (region.end <= p.end))
+      })
+      case None => false
+    }
+  }
+
   case class Locus(pos1: Position, pos2: Position)
   case class Loci(locus: Locus, restLocus: Locus*)
 

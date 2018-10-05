@@ -25,6 +25,8 @@ libraryDependencies += "ru.yandex.clickhouse" % "clickhouse-jdbc" % "0.1.41"
 libraryDependencies += "org.sangria-graphql" %% "sangria" % "1.4.2"
 // libraryDependencies += "org.sangria-graphql" %% "sangria-relay" % "1.4.1"
 libraryDependencies += "org.sangria-graphql" %% "sangria-play-json" % "1.0.4"
+libraryDependencies += "com.nrinaudo" %% "kantan.csv" % "0.4.0"
+libraryDependencies += "com.nrinaudo" %% "kantan.csv-generic" % "0.4.0"
 
 val elastic4sVersion = "5.6.7"
 libraryDependencies ++= Seq(
