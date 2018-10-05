@@ -11,7 +11,7 @@ import models.DNA._
 import models.DNA.Implicits._
 import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
-import models.Violations.{InputParameterCheckError, SearchStringViolation}
+import models.Violations.{InputParameterCheckError, RegionViolation, SearchStringViolation}
 import clickhouse.rep.SeqRep.StrSeqRep
 import com.sksamuel.elastic4s.analyzers.WhitespaceAnalyzer
 import sangria.validation.Violation
@@ -519,6 +519,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def buildGecko(chromosome: String, posStart: Long, posEnd: Long): Future[Option[Entities.Gecko]] = {
     (parseChromosome(chromosome), parseRegion(posStart, posEnd)) match {
       case (Right(chr), Right((start, end))) =>
+        val inRegion = Region(chr, start, end)
+        if (DNA.matchDenseRegion(inRegion))
+          return Future.failed(InputParameterCheckError(Vector(RegionViolation(inRegion))))
+
         val geneIdsInLoci = sql"""
                                   |SELECT
                                   | gene_id
