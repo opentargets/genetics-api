@@ -116,7 +116,7 @@ object Entities {
     }
   }
 
-  case class VariantSearchResult (variant: Variant, relatedGenes: Seq[String])
+  case class VariantSearchResult (variant: Variant)
 
   case class SearchResultSet(totalGenes: Long, genes: Seq[Gene],
                              totalVariants: Long, variants: Seq[VariantSearchResult],
@@ -224,9 +224,8 @@ object Entities {
 
           val variant = Variant(Position(mv("chr_id").toString, mv("position").asInstanceOf[Int]),
             mv("ref_allele").toString, mv("alt_allele").toString, Option(mv("rs_id").toString))
-          val relatedGenes = mv("gene_set_ids").asInstanceOf[Seq[String]]
 
-          Right(VariantSearchResult(variant, relatedGenes))
+          Right(VariantSearchResult(variant))
         }
       }
     }

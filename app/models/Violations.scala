@@ -2,6 +2,7 @@ package models
 
 import sangria.execution.{UserFacingError, WithViolations}
 import sangria.validation.{BaseViolation, Violation}
+import models.DNA.Region
 
 object Violations {
   val searchStringErrorMsg: String =
@@ -28,7 +29,12 @@ object Violations {
       "and < 'end' argument. Also, the argument 'end' must be a positive number and > 'start'. And 'end' " +
       "- 'start' <= 2Mbs."
 
+  val denseRegionErrorMsg: String =
+    "Ouch! The region '(%s:%d-%d)' is too dense to be shown."
+
   case class VariantViolation(msg: String) extends BaseViolation(variantErrorMsg format(msg))
+  case class RegionViolation(region: Region) extends BaseViolation(denseRegionErrorMsg format(region.chrId,
+    region.start, region.end))
   case class GeneViolation(msg: String) extends BaseViolation(geneErrorMsg format(msg))
   case class ChromosomeViolation(msg: String) extends BaseViolation(chromosomeErrorMsg format(msg))
   case class InChromosomeRegionViolation() extends BaseViolation(inChromosomeRegionErrorMsg)
