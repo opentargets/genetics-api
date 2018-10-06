@@ -520,7 +520,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     (parseChromosome(chromosome), parseRegion(posStart, posEnd)) match {
       case (Right(chr), Right((start, end))) =>
         val inRegion = Region(chr, start, end)
-        if (DNA.matchDenseRegion(inRegion))
+        if (matchDenseRegion(inRegion))
           return Future.failed(InputParameterCheckError(Vector(RegionViolation(inRegion))))
 
         val geneIdsInLoci = sql"""

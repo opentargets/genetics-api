@@ -16,6 +16,7 @@ scalacOptions in ThisBuild ++= Seq(
 resolvers += Resolver.sonatypeRepo("releases")
 
 libraryDependencies += guice
+libraryDependencies += "com.typesafe.slick" %% "slick" % "3.2.3"
 libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
 libraryDependencies += "com.typesafe.play" %% "play" % "2.6.19"
 libraryDependencies += "com.typesafe.play" %% "play-logback" % "2.6.19"
