@@ -2,32 +2,61 @@ package models
 
 import clickhouse.rep.SeqRep.LSeqRep
 import clickhouse.rep.SeqRep.Implicits._
-import models.Violations.{GeneViolation, VariantViolation}
+import javax.inject.Inject
+import models.Violations.{GeneViolation, RegionViolation, VariantViolation}
 import sangria.execution.deferred.HasId
-import sangria.schema.{Field, LongType, ObjectType, OptionType, StringType, fields}
 
 import scala.io.Source
-import scala.concurrent.Future
-import scala.util.{Failure, Success}
 import slick.jdbc.GetResult
 import kantan.csv._
 import kantan.csv.ops._
 import kantan.csv.generic._
+import play.api.Logger
 
 object DNA {
   case class Region(chrId: String, start: Long, end: Long)
-  implicit val regionDecoder: RowDecoder[Region] = RowDecoder.decoder(0, 1, 2)(Region.apply)
-  val denseRegionsRaw = Source.fromFile("conf/dense_regions.tsv").mkString
-  val denseRegions = denseRegionsRaw.asCsvReader[Region](rfc.withHeader.withCellSeparator('\t'))
-    .filter(_.isRight).map(_.right.get).toList.groupBy(_.chrId)
 
-  def matchDenseRegion(region: Region): Boolean = {
-    denseRegions get(region.chrId) match {
-      case Some(r) => r.exists(p => {
-        ((region.start >= p.start) && (region.start <= p.end)) ||
-          ((region.end >= p.start) && (region.end <= p.end))
-      })
-      case None => false
+  abstract class DenseRegionChecker {
+    val denseRegions: Option[Map[String, List[Region]]]
+    def matchRegion(r: Region): Option[Boolean]
+  }
+
+  object DenseRegionChecker {
+    val logger = Logger(DenseRegionChecker.getClass)
+
+    implicit val regionDecoder: RowDecoder[Region] = RowDecoder.decoder(0, 1, 2)(Region.apply)
+
+    private def loadDenseRegionFromTSV(filename: String): Option[String] =
+      Option(Source.fromFile(filename).mkString)
+    private def parseTSV2Map(regions: Option[String]): Option[Map[String, List[Region]]] =
+      regions.map(_.asCsvReader[Region](rfc.withHeader.withCellSeparator('\t'))
+        .filter(_.isRight).map(_.right.get).toList.groupBy(_.chrId))
+
+    def apply(filename: String): DenseRegionChecker = new DenseRegionChecker {
+      override val denseRegions: Option[Map[String, List[Region]]] =
+        parseTSV2Map(loadDenseRegionFromTSV(filename))
+
+      /** match a region (chr:start-end) in a list of highly dense regions true if overlaps false otherwise
+        *
+        * @param region the region to match against dense regions
+        * @return Some matched or not | None if denseregion map is None too
+        */
+      override def matchRegion(region: Region): Option[Boolean] = {
+        denseRegions match {
+          case Some(rMap) =>
+            rMap.get(region.chrId) match {
+              case Some(r) => Some(r.exists(p => {
+                logger.debug(s"dense region found at $region")
+                ((region.start >= p.start) && (region.start <= p.end)) ||
+                  ((region.end >= p.start) && (region.end <= p.end))
+              }))
+              case None => Some(false)
+            }
+          case None =>
+            logger.error("denseRegions does not contain the regions map so tsv file is unreachable")
+            None
+        }
+      }
     }
   }
 

@@ -23,14 +23,22 @@ import com.sksamuel.elastic4s.http._
 import org.elasticsearch.index.query.MultiMatchQueryBuilder
 import play.db.NamedDatabase
 import play.api.Logger
+import play.api.Environment
+import java.nio.file.{Paths, Path}
+
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
-                        @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider, config: Configuration){
+                        @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
+                        config: Configuration,
+                        env: Environment) {
   val dbConfig = dbConfigProvider.get[ClickHouseProfile]
   val dbConfigSumStats = dbConfigProviderSumStats.get[ClickHouseProfile]
   val db = dbConfig.db
   val dbSS = dbConfigSumStats.db
   val logger = Logger(this.getClass)
+
+  val denseRegionsPath: Path = Paths.get(env.rootPath.getAbsolutePath, "resources", "dense_regions.tsv")
+  val denseRegionChecker: DenseRegionChecker = DenseRegionChecker(denseRegionsPath.toString)
 
   import dbConfig.profile.api._
 
@@ -520,73 +528,83 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     (parseChromosome(chromosome), parseRegion(posStart, posEnd)) match {
       case (Right(chr), Right((start, end))) =>
         val inRegion = Region(chr, start, end)
-        if (matchDenseRegion(inRegion))
-          return Future.failed(InputParameterCheckError(Vector(RegionViolation(inRegion))))
+        denseRegionChecker.matchRegion(inRegion) match {
 
-        val geneIdsInLoci = sql"""
-                                  |SELECT
-                                  | gene_id
-                                  |FROM ot.gene
-                                  |WHERE
-                                  | chr = $chr and (
-                                  | (start >= $start and start <= $end) or
-                                  | (end >= $start and end <= $end))
-          """.stripMargin.as[String]
+          case Some(isDenseRegion) =>
+            if (isDenseRegion)
+              Future.failed(InputParameterCheckError(Vector(RegionViolation(inRegion))))
 
-        val assocs = sql"""
-                          |SELECT
-                          |  variant_id,
-                          |  rs_id,
-                          |  index_variant_id,
-                          |  index_variant_rsid,
-                          |  gene_id,
-                          |  stid,
-                          |  r2,
-                          |  posterior_prob,
-                          |  pval,
-                          |  overall_score
-                          |FROM (
-                          | SELECT
-                          |  stid,
-                          |  variant_id,
-                          |  any(rs_id) as rs_id,
-                          |  index_variant_id,
-                          |  any(index_variant_rsid) as index_variant_rsid,
-                          |  gene_id,
-                          |  any(r2) as r2,
-                          |  any(posterior_prob) as posterior_prob,
-                          |  any(pval) as pval
-                          | FROM #$d2v2gTName
-                          | PREWHERE
-                          |   chr_id = $chr and (
-                          |   (position >= $start and position <= $end) or
-                          |   (index_position >= $start and index_position <= $end) or
-                          |   (dictGetUInt32('gene','start',tuple(gene_id)) >= $start and
-                          |     dictGetUInt32('gene','start',tuple(gene_id)) <= $end) or
-                          |   (dictGetUInt32('gene','end',tuple(gene_id)) >= $start and
-                          |     dictGetUInt32('gene','end',tuple(gene_id)) <= $end))
-                          | group by stid, index_variant_id, variant_id, gene_id
-                          |) all inner join (
-                          | SELECT
-                          |   variant_id,
-                          |   gene_id,
-                          |   overall_score
-                          | FROM #$d2v2gOScoresTName
-                          | PREWHERE chr_id = $chr and
-                          | overall_score > 0.
-                          |) USING (variant_id, gene_id)
-          """.stripMargin.as[GeckoLine]
+            else {
+              val geneIdsInLoci = sql"""
+                                       |SELECT
+                                       | gene_id
+                                       |FROM ot.gene
+                                       |WHERE
+                                       | chr = $chr and (
+                                       | (start >= $start and start <= $end) or
+                                       | (end >= $start and end <= $end))
+                """.stripMargin.as[String]
 
-        db.run(geneIdsInLoci.asTry zip assocs.asTry).map {
-          case (Success(geneIds), Success(assocs)) => Entities.Gecko(assocs.view, geneIds.toSet)
-          case (Success(geneIds), Failure(asscsEx)) =>
-            logger.error(asscsEx.getMessage)
-            Entities.Gecko(Seq.empty, geneIds.toSet)
-          case (_, _) =>
-            logger.error("Something really wrong happened while getting geneIds from gene " +
-              "dictionary and also from d2v2g table")
-            Entities.Gecko(Seq.empty, Set.empty)
+              val assocs = sql"""
+                                |SELECT
+                                |  variant_id,
+                                |  rs_id,
+                                |  index_variant_id,
+                                |  index_variant_rsid,
+                                |  gene_id,
+                                |  stid,
+                                |  r2,
+                                |  posterior_prob,
+                                |  pval,
+                                |  overall_score
+                                |FROM (
+                                | SELECT
+                                |  stid,
+                                |  variant_id,
+                                |  any(rs_id) as rs_id,
+                                |  index_variant_id,
+                                |  any(index_variant_rsid) as index_variant_rsid,
+                                |  gene_id,
+                                |  any(r2) as r2,
+                                |  any(posterior_prob) as posterior_prob,
+                                |  any(pval) as pval
+                                | FROM #$d2v2gTName
+                                | PREWHERE
+                                |   chr_id = $chr and (
+                                |   (position >= $start and position <= $end) or
+                                |   (index_position >= $start and index_position <= $end) or
+                                |   (dictGetUInt32('gene','start',tuple(gene_id)) >= $start and
+                                |     dictGetUInt32('gene','start',tuple(gene_id)) <= $end) or
+                                |   (dictGetUInt32('gene','end',tuple(gene_id)) >= $start and
+                                |     dictGetUInt32('gene','end',tuple(gene_id)) <= $end))
+                                | group by stid, index_variant_id, variant_id, gene_id
+                                |) all inner join (
+                                | SELECT
+                                |   variant_id,
+                                |   gene_id,
+                                |   overall_score
+                                | FROM #$d2v2gOScoresTName
+                                | PREWHERE chr_id = $chr and
+                                | overall_score > 0.
+                                |) USING (variant_id, gene_id)
+                """.stripMargin.as[GeckoLine]
+
+              db.run(geneIdsInLoci.asTry zip assocs.asTry).map {
+                case (Success(geneIds), Success(assocs)) => Entities.Gecko(assocs.view, geneIds.toSet)
+                case (Success(geneIds), Failure(asscsEx)) =>
+                  logger.error(asscsEx.getMessage)
+                  Entities.Gecko(Seq.empty, geneIds.toSet)
+                case (_, _) =>
+                  logger.error("Something really wrong happened while getting geneIds from gene " +
+                    "dictionary and also from d2v2g table")
+                  Entities.Gecko(Seq.empty, Set.empty)
+              }
+            }
+
+          case None =>
+            Future.failed(InputParameterCheckError(Vector(RegionViolation(inRegion))))
         }
+
       case (chrEither, rangeEither) =>
         Future.failed(InputParameterCheckError(
           Vector(chrEither, rangeEither).filter(_.isLeft).map(_.left.get).asInstanceOf[Vector[Violation]]))

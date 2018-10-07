@@ -1,3 +1,5 @@
+import com.typesafe.sbt.packager.MappingsHelper._
+
 name := """ot-genetics-api"""
 organization := "io.opentargets"
 
@@ -8,10 +10,13 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 scalaVersion := "2.12.6"
 
 scalacOptions in ThisBuild ++= Seq(
-  "-language:_",
-  "-Ypartial-unification",
-  "-Xfatal-warnings"
+"-language:_",
+"-Ypartial-unification",
+"-Xfatal-warnings"
 )
+
+// include resources into the unversal zipped package
+mappings in Universal ++= directory(baseDirectory.value / "resources")
 
 resolvers += Resolver.sonatypeRepo("releases")
 
