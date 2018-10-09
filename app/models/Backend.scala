@@ -13,7 +13,7 @@ import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
 import models.Violations.{InputParameterCheckError, RegionViolation, SearchStringViolation}
 import clickhouse.rep.SeqRep.StrSeqRep
-import com.sksamuel.elastic4s.analyzers.WhitespaceAnalyzer
+import com.sksamuel.elastic4s.analyzers._
 import sangria.validation.Violation
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -24,7 +24,7 @@ import org.elasticsearch.index.query.MultiMatchQueryBuilder
 import play.db.NamedDatabase
 import play.api.Logger
 import play.api.Environment
-import java.nio.file.{Paths, Path}
+import java.nio.file.{Path, Paths}
 
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
@@ -143,8 +143,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
               .operator("OR")
               .analyzer(WhitespaceAnalyzer)
               .fields(Map("trait_reported" -> 1.5F,
-                "pub_author" -> 1.2F,
-                "_all" -> 1.0F))
+                "pub_author" -> 1.2F)),
+            simpleStringQuery(cleanedTokens)
+              .defaultOperator("AND")
             ) start limitClause._1 limit limitClause._2 sortByFieldDesc "n_initial"
       }.zip {
         esQ.execute {
