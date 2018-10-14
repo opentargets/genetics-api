@@ -98,7 +98,7 @@ object DNA {
   object Gene {
     def apply(geneId: String): Either[GeneViolation, Gene] = {
       geneId.toUpperCase.split("\\.").toList.filter(_.nonEmpty) match {
-        case ensemblId :: xs =>
+        case ensemblId :: _ =>
           Right(Gene(ensemblId, None))
         case Nil =>
           Left(GeneViolation(geneId))
