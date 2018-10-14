@@ -60,10 +60,7 @@ object DNA {
     }
   }
 
-  case class Locus(pos1: Position, pos2: Position)
-  case class Loci(locus: Locus, restLocus: Locus*)
-
-  case class Position(chrId: String, position: Long)
+  case class Position(override val chrId: String, position: Long) extends Region(chrId, position, position)
 
   case class Variant(position: Position, refAllele: String, altAllele: String, rsId: Option[String],
                      nearestGeneId: Option[String] = None, nearestCodingGeneId: Option[String] = None)
