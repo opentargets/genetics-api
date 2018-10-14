@@ -2,7 +2,8 @@ package models
 
 import java.nio.file.{Path, Paths}
 
-import models.DNA.{DenseRegionChecker, Region}
+import models.DNA.{DenseRegionChecker, Gene, Region, Variant}
+import models.Violations.VariantViolation
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerTest
 import play.api.test.Injecting
@@ -30,5 +31,25 @@ class DNASpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
     drChecker.matchRegion(region1) mustBe Some(false)
     drChecker.matchRegion(region2) mustBe Some(false)
     drChecker.matchRegion(region3) mustBe Some(false)
+  }
+
+  "A Variant 1_1234_C_. must equal to a Right(Variant)" in {
+    val v1 = Variant("1_1234_C_.")
+    val rv1 = Right(Variant(DNA.Position("1", 1234), "C", ".", None))
+
+    v1 mustEqual rv1
+  }
+
+  "A Variant 1_1234_T must not equal to a Right(Variant)" in {
+    val v1 = Variant("1_1234_.")
+
+    v1.isLeft mustBe true
+  }
+
+  "A Gene ENSG000012.13 must equal to a Right(Gene)" in {
+    val v1 = Gene("ENSG000012.13")
+    val rv1 = Right(Gene("ENSG000012", None))
+
+    v1 mustEqual rv1
   }
 }
