@@ -63,13 +63,10 @@ object DNA {
   case class Position(override val chrId: String, position: Long) extends Region(chrId, position, position)
 
   case class Variant(position: Position, refAllele: String, altAllele: String, rsId: Option[String],
-                     nearestGeneId: Option[String] = None, nearestCodingGeneId: Option[String] = None)
-    extends Comparable[Variant] {
+                     nearestGeneId: Option[String] = None, nearestCodingGeneId: Option[String] = None) {
     lazy val id: String = List(position.chrId, position.position.toString, refAllele, altAllele)
       .map(_.toUpperCase)
       .mkString("_")
-
-    override def compareTo(o: Variant): Int = ???
   }
 
   case class VariantInfo(variant: Option[Variant])
