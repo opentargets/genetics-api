@@ -143,7 +143,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
               .operator("OR")
               .analyzer(WhitespaceAnalyzer)
               .fields(Map("trait_reported" -> 1.5F,
-                "pub_author" -> 1.2F)),
+                "pub_author" -> 1.2F,
+                "_all" -> 1.0F)),
             simpleStringQuery(cleanedTokens)
               .defaultOperator("AND")
             ) start limitClause._1 limit limitClause._2 sortByFieldDesc "n_initial"
