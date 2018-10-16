@@ -1,5 +1,8 @@
 ## To deploy in production
 
+[![codecov](https://codecov.io/gh/opentargets/genetics-api/branch/master/graph/badge.svg)](https://codecov.io/gh/opentargets/genetics-api)
+[![Build Status](https://travis-ci.com/opentargets/genetics-api.svg?branch=master)](https://travis-ci.com/opentargets/genetics-api)
+
 You have to define `production.conf` file at the root of the project and it must
 contain at least these lines
 
