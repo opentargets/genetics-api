@@ -8,7 +8,7 @@ target
 /RUNNING_PID
 #### joe made this: http://goel.io/joe
 
-/production.conf
+/production.conf.dev
 #### scala ####
 *.class
 *.log
