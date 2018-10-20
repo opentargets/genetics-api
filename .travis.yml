@@ -8,10 +8,22 @@ branches:
   only:
   - master
   - "/\\d+\\.\\d+\\.\\d+/"
-
+  - "/mk.*/"
+  - "/af.*/"
+  - "/ck.*/"
+  - "/ms.*/"
+  - "/MS.*/"
+  - "/gp.*/"
+  - "/pl.*/"
+  - "/gk.*/"
+services:
+- docker
+env:
+  global:
+  - QUAY_REPO="quay.io/opentargets/genetics-api"
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION compile
-  - sbt ++$TRAVIS_SCALA_VERSION test
+  - sbt ++$TRAVIS_SCALA_VERSION clean compile
+  - sbt ++$TRAVIS_SCALA_VERSION coverage test coverageReport
   - sbt ++$TRAVIS_SCALA_VERSION dist
 deploy:
   provider: releases
@@ -26,6 +38,20 @@ deploy:
 notifications:
   email:
     recipients:
-    - mkarmona@gmail.com
+    - ops@opentargets.org
     on_success: never
     on_failure: always
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+  - docker pull "${QUAY_REPO}:${TRAVIS_BRANCH}" || true
+  - docker build --pull --cache-from "${QUAY_REPO}:${TRAVIS_BRANCH}" --tag "${QUAY_REPO}" .
+  - docker login -u="${QUAY_USER}" -p="${QUAY_PASSWORD}" quay.io
+  - git_sha="${TRAVIS_COMMIT}"
+  - docker tag "${QUAY_REPO}" "${QUAY_REPO}:${TRAVIS_BRANCH}"
+  - docker tag "${QUAY_REPO}" "${QUAY_REPO}:${git_sha}-${TRAVIS_BRANCH}"
+  - docker push "${QUAY_REPO}:${TRAVIS_BRANCH}" && docker push "${QUAY_REPO}:${git_sha}-${TRAVIS_BRANCH}"
+  - |
+    if [ "${TRAVIS_BRANCH}" = "master" ]; then
+      docker tag "${QUAY_REPO}:${TRAVIS_BRANCH}" "${QUAY_REPO}:latest"
+      docker push "${QUAY_REPO}:latest"
+    fi
