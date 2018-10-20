@@ -26,7 +26,7 @@ deploy:
 notifications:
   email:
     recipients:
-    - mkarmona@gmail.com
+    - ops@opentargets.org
     on_success: never
     on_failure: always
 after_success:
