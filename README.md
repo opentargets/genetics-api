@@ -1,11 +1,32 @@
-## To deploy in production
-
 [![codecov](https://codecov.io/gh/opentargets/genetics-api/branch/master/graph/badge.svg)](https://codecov.io/gh/opentargets/genetics-api)
 [![Build Status](https://travis-ci.com/opentargets/genetics-api.svg)](https://travis-ci.com/opentargets/genetics-api)
 [![Docker Repository on Quay](https://quay.io/repository/opentargets/genetics-api/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/genetics-api)
 
-You have to define `production.conf` file at the root of the project and it must
-contain at least these lines
+# Open Targets Genetics GraphQL API
+This repo contains the application code for the GraphQL of [Open Targets Genetics](https://genetics.opentargets.org/).
+
+It is one component of several and the overarching project is described [here](https://github.com/opentargets/genetics), which is also where issues can be raised.
+
+## To set up development
+You can use an IDE such as IntelliJ IDEA, which is recommended, but it's also sufficient to have `sbt` installed.
+
+### Connect to development databases
+The current development database configuration contains the following nodes:
+* **default**: runs clickhouse and elasticsearch instances covering most queries
+* **sumstats**: runs clickhouse instance for summary statistics, which drives the phewas plot
+
+You can forward the needed ports to the remote databases defined in conf/application.conf.
+```
+gcloud --project=<gcloud-project> compute ssh <default> -- -L 8123:localhost:8123 -L 9200:localhost:9200
+gcloud --project=<gcloud-project> compute ssh <sumstats> -- -L 8124:localhost:8123
+```
+
+### Run the API
+Hit build within IntelliJ. Alternatively, start `sbt` in a terminal and use the `run` and `test` commands. If the build was successful, you should be able to view the running API at `localhost:9000`.
+
+## To deploy in production
+
+You have to define `production.conf` file at the root of the project and it must contain at least these lines
 
 ```
 include "application.conf"
@@ -59,7 +80,6 @@ ot.elasticsearch {
 # slick.dbs.default.db.url=${?SLICK_CLICKHOUSE_URL_SS}
 
 ```
-
 
 # Copyright
 Copyright 2014-2018 Biogen, Celgene Corporation, EMBL - European Bioinformatics Institute, GlaxoSmithKline, Takeda Pharmaceutical Company and Wellcome Sanger Institute
