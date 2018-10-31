@@ -18,9 +18,9 @@ class DNASpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
     val region2 = Region("1", 150000010L, 151000100L)
     val region3 = Region("1", 151900001L, 153000000L)
 
-    drChecker.matchRegion(region1) mustBe Some(true)
-    drChecker.matchRegion(region2) mustBe Some(true)
-    drChecker.matchRegion(region3) mustBe Some(true)
+    drChecker.matchRegion(region1) mustBe true
+    drChecker.matchRegion(region2) mustBe true
+    drChecker.matchRegion(region3) mustBe true
   }
 
   "A NON overlapped region in 1:150000001-152000000 must return false" in {
@@ -28,9 +28,9 @@ class DNASpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
     val region2 = Region("2", 150000010L, 151000100L)
     val region3 = Region("1", 152000001L, 153000000L)
 
-    drChecker.matchRegion(region1) mustBe Some(false)
-    drChecker.matchRegion(region2) mustBe Some(false)
-    drChecker.matchRegion(region3) mustBe Some(false)
+    drChecker.matchRegion(region1) mustBe false
+    drChecker.matchRegion(region2) mustBe false
+    drChecker.matchRegion(region3) mustBe false
   }
 
   "A Variant 1_1234_C_. must equal to a Right(Variant)" in {
