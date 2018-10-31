@@ -1,8 +1,9 @@
 package models
 
+import java.io.FileNotFoundException
+
 import clickhouse.rep.SeqRep.LSeqRep
 import clickhouse.rep.SeqRep.Implicits._
-import javax.inject.Inject
 import models.Violations.{GeneViolation, RegionViolation, VariantViolation}
 import sangria.execution.deferred.HasId
 
@@ -20,8 +21,8 @@ object DNA {
   case class Region(chrId: String, start: Long, end: Long)
 
   abstract class DenseRegionChecker {
-    val denseRegions: Option[Map[String, List[Region]]]
-    def matchRegion(r: Region): Option[Boolean]
+    val denseRegions: Map[String, List[Region]]
+    def matchRegion(r: Region): Boolean
   }
 
   object DenseRegionChecker {
@@ -41,32 +42,33 @@ object DNA {
       * @return a `DenseRegionChecker` implementation based on the already
       *         specified list of dense regions
       */
-    def apply(filename: String): DenseRegionChecker = new DenseRegionChecker {
-      override val denseRegions: Option[Map[String, List[Region]]] =
-        parseTSV2Map(loadDenseRegionFromTSV(filename))
+    def apply(filename: String): DenseRegionChecker = {
+      parseTSV2Map(loadDenseRegionFromTSV(filename)) match {
+        case Some(regs) => new DenseRegionChecker {
+          override val denseRegions: Map[String, List[Region]] =
+            regs
 
-      /** match a region (chr:start-end) in a list of highly dense regions true if overlaps false otherwise
-        *
-        * @param region the region to match against dense regions
-        * @return Some matched or not | None if denseregion map is None too
-        */
-      override def matchRegion(region: Region): Option[Boolean] = {
-        denseRegions match {
-          case Some(rMap) =>
-            rMap.get(region.chrId) match {
-              case Some(r) => Some(r.exists(p => {
+          /** match a region (chr:start-end) in a list of highly dense regions true if overlaps false otherwise
+            *
+            * @param region the region to match against dense regions
+            * @return Some matched or not | None if denseregion map is None too
+            */
+          override def matchRegion(region: Region): Boolean = {
+            denseRegions.get(region.chrId) match {
+              case Some(r) => r.exists(p => {
                 logger.debug(s"dense region found at $region")
                 ((region.start >= p.start) && (region.start <= p.end)) ||
                   ((region.end >= p.start) && (region.end <= p.end))
-              }))
-              case None => Some(false)
+              })
+              case None => false
             }
-          case None =>
-            logger.error("denseRegions does not contain the regions map so tsv file is unreachable")
-            None
+          }
         }
+        case None =>
+          throw new FileNotFoundException("Failed to load dense region file")
       }
     }
+
   }
 
   case class Variant(position: Position, refAllele: String, altAllele: String, rsId: Option[String],
