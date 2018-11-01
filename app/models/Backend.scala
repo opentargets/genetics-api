@@ -26,6 +26,8 @@ import play.api.Logger
 import play.api.Environment
 import java.nio.file.{Path, Paths}
 
+import slick.jdbc.GetResult
+
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
@@ -169,7 +171,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         }
       }.map{
         case ((studiesRS, variantsRS), genesRS) =>
-          SearchResultSet(genesRS.totalHits, genesRS.to[Gene],
+          SearchResultSet(genesRS.totalHits, genesRS.to[FRM.Gene],
             variantsRS.totalHits, variantsRS.to[VariantSearchResult],
             studiesRS.totalHits, studiesRS.to[Study])
       }
@@ -295,29 +297,41 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def getGenes(geneIds: Seq[String]): Future[Vector[DNA.Gene]] = {
-    val geneIdsList = geneIds.map("'" + _ + "'").mkString(",")
-    val genesSql = sql"""
-                          |SELECT
-                          | gene_id,
-                          | gene_name,
-                          | biotype,
-                          | chr,
-                          | tss,
-                          | start,
-                          | end,
-                          | fwdstrand,
-                          | cast(exons, 'Array(UInt32)') AS exons
-                          |FROM #$genesTName
-                          |WHERE gene_id IN (#${geneIdsList})
-      """.stripMargin.as[DNA.Gene]
+  def getGenes(geneIds: Seq[String]): Future[Seq[FRM.Gene]] = {
+    val q = for {
+      g <- FRM.genes
+      if g.id inSetBind geneIds
+    } yield g
 
-    db.run(genesSql.asTry).map {
+    db.run(q.result.asTry).map {
       case Success(v) => v
       case Failure(ex) =>
         logger.error(ex.getMessage)
         Vector.empty
     }
+
+//    val geneIdsList = geneIds.map("'" + _ + "'").mkString(",")
+//    val genesSql = sql"""
+//                          |SELECT
+//                          | gene_id,
+//                          | gene_name,
+//                          | biotype,
+//                          | chr,
+//                          | tss,
+//                          | start,
+//                          | end,
+//                          | fwdstrand,
+//                          | cast(exons, 'Array(UInt32)') AS exons
+//                          |FROM #$genesTName
+//                          |WHERE gene_id IN (#${geneIdsList})
+//      """.stripMargin.as[DNA.Gene]
+//
+//    db.run(genesSql.asTry).map {
+//      case Success(v) => v
+//      case Failure(ex) =>
+//        logger.error(ex.getMessage)
+//        Vector.empty
+//    }
   }
 
   /** query variants table with a list of variant ids and get all related information */
@@ -377,7 +391,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                       | trait_category
                       |from #$studiesTName
                       |where study_id in (#${stidListString})
-      """.stripMargin.as[Study]
+      """.stripMargin.as[Study](getStudy)
 
     db.run(studiesSQL.asTry).map {
       case Success(v) => v

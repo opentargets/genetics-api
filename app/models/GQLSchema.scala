@@ -4,7 +4,8 @@ package models
 import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
-import DNA._
+import DNA.Variant
+import FRM.Gene
 import sangria.schema
 import sangria.streaming.ValidOutStreamType
 
@@ -20,6 +21,8 @@ object GQLSchema {
   val dnaPosStart = Argument("start", LongType, description = "Start position in a specified chromosome")
   val dnaPosEnd = Argument("end", LongType, description = "End position in a specified chromosome")
   val queryString = Argument("queryString", StringType, description = "Query text to search for")
+
+  implicit val geneHasId = HasId[FRM.Gene, String](_.id)
 
   val gene = ObjectType("Gene",
   "This element represents a simple gene object which contains id and name",
@@ -48,7 +51,8 @@ object GQLSchema {
       Field("fwdStrand", OptionType(BooleanType),
         Some("Forward strand true or false"),
         resolve = _.value.fwd),
-      Field("exons", ListType(LongType),
+//      Field("exons", ListType(LongType),
+      Field("exons", OptionType(StringType),
         Some("Approved symbol name of a gene"),
         resolve = _.value.exons)
     ))

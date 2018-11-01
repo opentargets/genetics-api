@@ -116,9 +116,11 @@ object Entities {
     }
   }
 
+  case class GeneSearchResult (gene: Gene)
+
   case class VariantSearchResult (variant: Variant)
 
-  case class SearchResultSet(totalGenes: Long, genes: Seq[Gene],
+  case class SearchResultSet(totalGenes: Long, genes: Seq[FRM.Gene],
                              totalVariants: Long, variants: Seq[VariantSearchResult],
                              totalStudies: Long, studies: Seq[Study])
 
@@ -192,26 +194,42 @@ object Entities {
                            intervalScoreQ: Double)
 
   object ESImplicits {
-    implicit object GeneHitReader extends HitReader[Gene] {
-      override def read(hit: Hit): Either[Throwable, Gene] = {
+    implicit object GeneHitReader extends HitReader[FRM.Gene] {
+      override def read(hit: Hit): Either[Throwable, FRM.Gene] = {
         if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
         else {
           val mv = hit.sourceAsMap
 
-          Right(Gene(mv("gene_id").toString,
+          Right(FRM.Gene(mv("gene_id").toString,
             Option(mv("gene_name").asInstanceOf[String]),
+            Option(mv("biotype").asInstanceOf[String]),
+            Option(mv("chr").toString),
             Option(mv("start").asInstanceOf[Int]),
             Option(mv("end").asInstanceOf[Int]),
-            Option(mv("chr").toString),
             Option(mv("tss").asInstanceOf[Int]),
-            Option(mv("biotype").asInstanceOf[String]),
             Option(mv("fwdstrand").asInstanceOf[Int] match {
               case 0 => false
               case 1 => true
               case _ => false
-            })
-            )
+            }),
+            None
           )
+          )
+
+//          Right(FRM.Gene(mv("gene_id").toString,
+//            Option(mv("gene_name").asInstanceOf[String]),
+//            Option(mv("start").asInstanceOf[Int]),
+//            Option(mv("end").asInstanceOf[Int]),
+//            Option(mv("chr").toString),
+//            Option(mv("tss").asInstanceOf[Int]),
+//            Option(mv("biotype").asInstanceOf[String]),
+//            Option(mv("fwdstrand").asInstanceOf[Int] match {
+//              case 0 => false
+//              case 1 => true
+//              case _ => false
+//            })
+//            )
+//          )
         }
       }
     }
