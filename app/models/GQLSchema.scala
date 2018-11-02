@@ -51,8 +51,7 @@ object GQLSchema {
       Field("fwdStrand", OptionType(BooleanType),
         Some("Forward strand true or false"),
         resolve = _.value.fwd),
-//      Field("exons", ListType(LongType),
-      Field("exons", OptionType(StringType),
+      Field("exons", ListType(LongType),
         Some("Approved symbol name of a gene"),
         resolve = _.value.exons)
     ))
