@@ -116,8 +116,6 @@ object Entities {
     }
   }
 
-  case class GeneSearchResult (gene: Gene)
-
   case class VariantSearchResult (variant: Variant)
 
   case class SearchResultSet(totalGenes: Long, genes: Seq[FRM.Gene],
