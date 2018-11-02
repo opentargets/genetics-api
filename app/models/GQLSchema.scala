@@ -716,9 +716,9 @@ object GQLSchema {
       Field("genesForVariant", ListType(geneForVariant),
         arguments = variantId :: Nil,
         resolve = ctx => ctx.ctx.buildG2VByVariant(ctx.arg(variantId))),
-      Field("variantsForGene", ListType(geneForVariant),
-        arguments = geneId :: Nil,
-        resolve = ctx => ctx.ctx.buildG2VByGene(ctx.arg(geneId)))
+//      Field("variantsForGene", ListType(geneForVariant),
+//        arguments = geneId :: Nil,
+//        resolve = ctx => ctx.ctx.buildG2VByGene(ctx.arg(geneId)))
     ))
 
   val schema = Schema(query)

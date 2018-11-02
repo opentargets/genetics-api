@@ -92,27 +92,27 @@ object DNA {
     }
   }
 
-  case class Gene(id: String, symbol: Option[String], start: Option[Long] = None, end: Option[Long] = None,
-                  chromosome: Option[String] = None, tss: Option[Long] = None,
-                  bioType: Option[String] = None, fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
-
-  object Gene {
-    /** construct a gene from a gene id symbol. It only supports Ensembl ID at the moment
-      *
-      * @param geneId Ensembl Gene ID as "ENSG000000[.123]" and it will strip the version
-      * @return Either a Gene or a GeneViolation as the gene was not properly specified
-      */
-    def apply(geneId: String): Either[GeneViolation, Gene] = {
-      geneId.toUpperCase.split("\\.").toList.filter(_.nonEmpty) match {
-        case ensemblId :: _ =>
-          Right(Gene(ensemblId, None))
-        case Nil =>
-          Left(GeneViolation(geneId))
-      }
-    }
-
-    implicit val hasId = HasId[Gene, String](_.id)
-  }
+//  case class Gene(id: String, symbol: Option[String], start: Option[Long] = None, end: Option[Long] = None,
+//                  chromosome: Option[String] = None, tss: Option[Long] = None,
+//                  bioType: Option[String] = None, fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
+//
+//  object Gene {
+//    /** construct a gene from a gene id symbol. It only supports Ensembl ID at the moment
+//      *
+//      * @param geneId Ensembl Gene ID as "ENSG000000[.123]" and it will strip the version
+//      * @return Either a Gene or a GeneViolation as the gene was not properly specified
+//      */
+//    def apply(geneId: String): Either[GeneViolation, Gene] = {
+//      geneId.toUpperCase.split("\\.").toList.filter(_.nonEmpty) match {
+//        case ensemblId :: _ =>
+//          Right(Gene(ensemblId, None))
+//        case Nil =>
+//          Left(GeneViolation(geneId))
+//      }
+//    }
+//
+//    implicit val hasId = HasId[Gene, String](_.id)
+//  }
 
   object Implicits {
     implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] =
@@ -123,10 +123,10 @@ object DNA {
         altAllele = r.nextString, rsId = r.nextStringOption, nearestGeneId = r.nextStringOption,
         nearestCodingGeneId = r.nextStringOption))
 
-    implicit val getGeneFromDB: GetResult[Gene] =
-      GetResult(r => Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
-        chromosome = r.nextStringOption(), tss = r.nextLongOption(),
-        start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
-        exons = LSeqRep(r.nextString())))
+//    implicit val getGeneFromDB: GetResult[Gene] =
+//      GetResult(r => Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
+//        chromosome = r.nextStringOption(), tss = r.nextLongOption(),
+//        start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
+//        exons = LSeqRep(r.nextString())))
   }
 }

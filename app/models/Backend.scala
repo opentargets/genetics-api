@@ -696,76 +696,76 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def buildG2VByGene(geneId: String): Future[Seq[Entities.G2VAssociation]] = {
-    val gene = Gene.apply(geneId)
-
-    gene match {
-      case Right(g) =>
-        val assocs = sql"""
-                          |SELECT
-                          |    gene_id,
-                          |    variant_id,
-                          |    overall_score,
-                          |    source_list,
-                          |    source_score_list,
-                          |    type_id,
-                          |    source_id,
-                          |    feature,
-                          |    fpred_max_label,
-                          |    fpred_max_score,
-                          |    qtl_beta,
-                          |    qtl_se,
-                          |    qtl_pval,
-                          |    interval_score,
-                          |    qtl_score_q,
-                          |    interval_score_q
-                          |FROM
-                          |(
-                          |    SELECT
-                          |        variant_id,
-                          |        type_id,
-                          |        source_id,
-                          |        feature,
-                          |        fpred_max_label,
-                          |        fpred_max_score,
-                          |        qtl_beta,
-                          |        qtl_se,
-                          |        qtl_pval,
-                          |        interval_score,
-                          |        qtl_score_q,
-                          |        interval_score_q
-                          |    FROM #$v2gTName
-                          |    PREWHERE
-                          |       (chr_id = dictGetString('gene', 'chr', tuple(${g.id}))) AND
-                          |       (gene_id = ${g.id}) AND
-                          |       (position >= (dictGetUInt32('gene', 'tss', tuple(${g.id})) - $defaultMaxDistantFromTSS)) AND
-                          |       (position <= (dictGetUInt32('gene', 'tss', tuple(${g.id})) + $defaultMaxDistantFromTSS)) AND
-                          |       (isNull(fpred_max_score) OR fpred_max_score > 0.)
-                          |)
-                          |ALL INNER JOIN
-                          |(
-                          |    SELECT
-                          |        variant_id,
-                          |        gene_id,
-                          |        source_list,
-                          |        source_score_list,
-                          |        overall_score
-                          |    FROM #$v2gOScoresTName
-                          |    PREWHERE (chr_id = dictGetString('gene','chr',tuple(${g.id}))) AND
-                          |       (gene_id = ${g.id})
-                          |) USING (variant_id)
-                          |ORDER BY variant_id ASC
-          """.stripMargin.as[ScoredG2VLine]
-
-        db.run(assocs.asTry).map {
-          case Success(r) => r.view.groupBy(_.variantId).mapValues(G2VAssociation(_)).values.toSeq
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Seq.empty
-        }
-      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
-    }
-  }
+//  def buildG2VByGene(geneId: String): Future[Seq[Entities.G2VAssociation]] = {
+//    val gene = Gene.apply(geneId)
+//
+//    gene match {
+//      case Right(g) =>
+//        val assocs = sql"""
+//                          |SELECT
+//                          |    gene_id,
+//                          |    variant_id,
+//                          |    overall_score,
+//                          |    source_list,
+//                          |    source_score_list,
+//                          |    type_id,
+//                          |    source_id,
+//                          |    feature,
+//                          |    fpred_max_label,
+//                          |    fpred_max_score,
+//                          |    qtl_beta,
+//                          |    qtl_se,
+//                          |    qtl_pval,
+//                          |    interval_score,
+//                          |    qtl_score_q,
+//                          |    interval_score_q
+//                          |FROM
+//                          |(
+//                          |    SELECT
+//                          |        variant_id,
+//                          |        type_id,
+//                          |        source_id,
+//                          |        feature,
+//                          |        fpred_max_label,
+//                          |        fpred_max_score,
+//                          |        qtl_beta,
+//                          |        qtl_se,
+//                          |        qtl_pval,
+//                          |        interval_score,
+//                          |        qtl_score_q,
+//                          |        interval_score_q
+//                          |    FROM #$v2gTName
+//                          |    PREWHERE
+//                          |       (chr_id = dictGetString('gene', 'chr', tuple(${g.id}))) AND
+//                          |       (gene_id = ${g.id}) AND
+//                          |       (position >= (dictGetUInt32('gene', 'tss', tuple(${g.id})) - $defaultMaxDistantFromTSS)) AND
+//                          |       (position <= (dictGetUInt32('gene', 'tss', tuple(${g.id})) + $defaultMaxDistantFromTSS)) AND
+//                          |       (isNull(fpred_max_score) OR fpred_max_score > 0.)
+//                          |)
+//                          |ALL INNER JOIN
+//                          |(
+//                          |    SELECT
+//                          |        variant_id,
+//                          |        gene_id,
+//                          |        source_list,
+//                          |        source_score_list,
+//                          |        overall_score
+//                          |    FROM #$v2gOScoresTName
+//                          |    PREWHERE (chr_id = dictGetString('gene','chr',tuple(${g.id}))) AND
+//                          |       (gene_id = ${g.id})
+//                          |) USING (variant_id)
+//                          |ORDER BY variant_id ASC
+//          """.stripMargin.as[ScoredG2VLine]
+//
+//        db.run(assocs.asTry).map {
+//          case Success(r) => r.view.groupBy(_.variantId).mapValues(G2VAssociation(_)).values.toSeq
+//          case Failure(ex) =>
+//            logger.error(ex.getMessage)
+//            Seq.empty
+//        }
+//      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+//    }
+//  }
 
   private val v2dByStTName: String = "v2d_by_stchr"
   private val v2dByChrPosTName: String = "v2d_by_chrpos"
