@@ -405,10 +405,48 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //    }
 //  }
 
-//  case class IndexVariantTable(associations: Vector[IndexVariantAssociation])
-//  case class IndexVariantTable(associations: Vector[IndexVariantAssociation])
-//  def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
-//  Future[Entities.IndexVariantTable] = {
+  def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
+  Future[IndexVariantTable] = {
+    expandVariantId(variantID) match {
+      case Right(v) => {
+        val q = FRM.v2DsByChrPos
+          .filter(r =>
+            r.leadChromosome === v.chromosome && r.leadPosition === v.position &&
+              r.leadRefAllele === v.refAllele && r.leadAltAllele === v.altAllele
+          )
+
+        db.run(q.result.asTry).map {
+          case Success(v) => {
+            IndexVariantTable(v.map(r => {
+            IndexVariantAssociation(
+              r.tag,
+              r.study.studyId,
+              r.association.pval,
+              0,
+              0,
+              //              (r.study.nInitial.getOrElse(0) + r.study.nReplication.getOrElse(0)).toInt,
+              //              r.study.nCases.getOrElse(0).toInt,
+              r.association.r2,
+              r.association.afr1000GProp,
+              r.association.amr1000GProp,
+              r.association.eas1000GProp,
+              r.association.eur1000GProp,
+              r.association.sas1000GProp,
+              r.association.log10Abf,
+              r.association.posteriorProbability
+            )
+          }))
+          }
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            IndexVariantTable(Seq.empty)
+        }
+      }
+      case Left(violation) => {
+        Future.failed(InputParameterCheckError(Vector(violation)))
+      }
+    }
+
 //    expandVariantId(variantID) match {
 //      case Right(variant) => {
 //
@@ -458,22 +496,17 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //      case Left(violation) =>
 //        Future.failed(InputParameterCheckError(Vector(violation)))
 //    }
-//  }
+  }
 
   def buildTagVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[TagVariantTable] = {
     expandVariantId(variantID) match {
-      case Right(variant) => {
+      case Right(v) => {
         val q = FRM.v2DsByChrPos
-            .filter(_.tagChromosome === variant.chromosome)
-            .filter(_.tagPosition === variant.position)
-            .filter(_.tagRefAllele === variant.refAllele)
-            .filter(_.tagAltAllele === variant.altAllele)
-//          .filter(r =>
-//            r.tagChromosome == variant.chromosome && r.tagPosition == variant.position &&
-//            r.tagRefAllele == variant.refAllele && r.tagAltAllele == variant.altAllele
-//          )
-//          .map(_.tagVariantAssociationProjection)
+          .filter(r =>
+            r.tagChromosome === v.chromosome && r.tagPosition === v.position &&
+            r.tagRefAllele === v.refAllele && r.tagAltAllele === v.altAllele
+          )
 
         db.run(q.result.asTry).map {
           case Success(v) => TagVariantTable(v.map(r => {
@@ -481,7 +514,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
               r.lead,
               r.study.studyId,
               r.association.pval,
-              0, 0,
+              0,
+              0,
+//              (r.study.nInitial.getOrElse(0) + r.study.nReplication.getOrElse(0)).toInt,
+//              r.study.nCases.getOrElse(0).toInt,
               r.association.r2,
               r.association.afr1000GProp,
               r.association.amr1000GProp,
@@ -496,8 +532,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
             logger.error(ex.getMessage)
             TagVariantTable(Seq.empty)
         }
-
-
       }
       case Left(violation) => {
         Future.failed(InputParameterCheckError(Vector(violation)))

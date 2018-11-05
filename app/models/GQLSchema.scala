@@ -175,50 +175,50 @@ object GQLSchema {
         resolve = _.value.traitCategory)
     ))
 
-//  val indexVariantAssociation = ObjectType("IndexVariantAssociation",
-//    "This object represent a link between a triple (study, trait, index_variant) and a tag variant " +
-//      "via an expansion method (either ldExpansion or FineMapping)",
-//    fields[Backend, IndexVariantAssociation](
-//      Field("tagVariant", variant,
-//        Some("Tag variant ID as ex. 1_12345_A_T"),
-//        resolve = _.value.tagVariant),
-//      Field("study", study,
-//        Some("study ID"),
-//        resolve = rsl => studiesFetcher.defer(rsl.value.studyId)),
-//      Field("pval", FloatType,
-//        Some("p-val between a study and an the provided index variant"),
-//        resolve = _.value.pval),
-//      Field("nTotal", IntType,
-//        Some("n total cases (n initial + n replication)"),
-//        resolve = _.value.nTotal),
-//      Field("nCases", IntType,
-//        Some("n cases"),
-//        resolve = _.value.nCases),
-//      Field("overallR2", OptionType(FloatType),
-//        Some("study ID"),
-//        resolve = _.value.r2),
-//      Field("afr1000GProp", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.afr1000GProp),
-//      Field("amr1000GProp", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.amr1000GProp),
-//      Field("eas1000GProp", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.eas1000GProp),
-//      Field("eur1000GProp", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.eur1000GProp),
-//      Field("sas1000GProp", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.sas1000GProp),
-//      Field("log10Abf", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.log10Abf),
-//      Field("posteriorProbability", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.posteriorProbability)
-//    ))
+  val indexVariantAssociation = ObjectType("IndexVariantAssociation",
+    "This object represent a link between a triple (study, trait, index_variant) and a tag variant " +
+      "via an expansion method (either ldExpansion or FineMapping)",
+    fields[Backend, IndexVariantAssociation](
+      Field("tagVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = _.value.tagVariant),
+      Field("study", study,
+        Some("study ID"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.studyId)),
+      Field("pval", FloatType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.pval),
+      Field("nTotal", IntType,
+        Some("n total cases (n initial + n replication)"),
+        resolve = _.value.nTotal),
+      Field("nCases", IntType,
+        Some("n cases"),
+        resolve = _.value.nCases),
+      Field("overallR2", OptionType(FloatType),
+        Some("study ID"),
+        resolve = _.value.r2),
+      Field("afr1000GProp", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.afr1000GProp),
+      Field("amr1000GProp", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.amr1000GProp),
+      Field("eas1000GProp", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.eas1000GProp),
+      Field("eur1000GProp", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.eur1000GProp),
+      Field("sas1000GProp", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.sas1000GProp),
+      Field("log10Abf", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.log10Abf),
+      Field("posteriorProbability", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.posteriorProbability)
+    ))
 
   val tagVariantAssociation = ObjectType("TagVariantAssociation",
     "This object represent a link between a triple (study, trait, index_variant) and a tag variant " +
@@ -470,13 +470,13 @@ object GQLSchema {
 //    ))
 
 
-//  val tagVariantsAndStudiesForIndexVariant = ObjectType("TagVariantsAndStudiesForIndexVariant",
-//    "A list of rows with each link",
-//    fields[Backend, IndexVariantTable](
-//      Field("associations", ListType(indexVariantAssociation),
-//        Some("A list of associations connected to a Index variant and a Study through some expansion methods"),
-//        resolve = _.value.associations)
-//    ))
+  val tagVariantsAndStudiesForIndexVariant = ObjectType("TagVariantsAndStudiesForIndexVariant",
+    "A list of rows with each link",
+    fields[Backend, IndexVariantTable](
+      Field("associations", ListType(indexVariantAssociation),
+        Some("A list of associations connected to a Index variant and a Study through some expansion methods"),
+        resolve = _.value.associations)
+    ))
 
   val indexVariantsAndStudiesForTagVariant = ObjectType("IndexVariantsAndStudiesForTagVariant",
     "A list of rows with each link",
@@ -700,10 +700,10 @@ object GQLSchema {
 //      Field("overlapInfoForStudy", overlappedInfoForStudy,
 //        arguments = studyId :: studyIds :: Nil,
 //        resolve = ctx => (ctx.arg(studyId),  ctx.arg(studyIds))),
-//      Field("tagVariantsAndStudiesForIndexVariant", tagVariantsAndStudiesForIndexVariant,
-//        arguments = variantId :: pageIndex :: pageSize :: Nil,
-//        resolve = ctx =>
-//          ctx.ctx.buildIndexVariantAssocTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("tagVariantsAndStudiesForIndexVariant", tagVariantsAndStudiesForIndexVariant,
+        arguments = variantId :: pageIndex :: pageSize :: Nil,
+        resolve = ctx =>
+          ctx.ctx.buildIndexVariantAssocTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("indexVariantsAndStudiesForTagVariant", indexVariantsAndStudiesForTagVariant,
         arguments = variantId :: pageIndex :: pageSize :: Nil,
         resolve = ctx =>

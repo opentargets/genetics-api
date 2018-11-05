@@ -250,6 +250,7 @@ object FRM {
   def variantToTuple (v: Variant) = Some(v.id, v.chromosome, v.position, v.refAllele, v.altAllele, v.rsId)
 
   class V2DsByChrPos(tag: Tag) extends Table[V2D](tag, "v2d_by_chrpos") {
+    // TODO: Factor out common column groups for reuse
     def tagId = column[String]("variant_id")
     def tagChromosome = column[String]("chr_id")
     def tagPosition = column[Long]("position")
@@ -269,7 +270,7 @@ object FRM {
     def traitReported = column[String]("trait_reported")
     def traitEfos = column[Seq[String]]("trait_efos")
     def pubId = column[Option[String]]("pmid")
-    def pubDate = column[Option[String]]("pub_data")
+    def pubDate = column[Option[String]]("pub_date")
     def pubJournal = column[Option[String]]("pub_journal")
     def pubTitle = column[Option[String]]("pub_title")
     def pubAuthor = column[Option[String]]("pub_author")
