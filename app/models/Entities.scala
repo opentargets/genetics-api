@@ -22,21 +22,21 @@ object Entities {
 //                               distinctA: Int, distinctB: Int)
 //
 //
-//  case class TagVariantTable(associations: Vector[TagVariantAssociation])
-//
-//  case class TagVariantAssociation(indexVariant: Variant,
-//                                   studyId: String,
-//                                   pval: Double,
-//                                   nTotal: Int, // n_initial + n_replication which could be null as well both fields
-//                                   nCases: Int,
-//                                   r2: Option[Double],
-//                                   afr1000GProp: Option[Double],
-//                                   amr1000GProp: Option[Double],
-//                                   eas1000GProp: Option[Double],
-//                                   eur1000GProp: Option[Double],
-//                                   sas1000GProp: Option[Double],
-//                                   log10Abf: Option[Double],
-//                                   posteriorProbability: Option[Double])
+  case class TagVariantTable(associations: Seq[TagVariantAssociation])
+
+  case class TagVariantAssociation(indexVariant: FRM.Variant,
+                                   studyId: String,
+                                   pval: Double,
+                                   nTotal: Int, // n_initial + n_replication which could be null as well both fields
+                                   nCases: Int,
+                                   r2: Option[Double],
+                                   afr1000GProp: Option[Double],
+                                   amr1000GProp: Option[Double],
+                                   eas1000GProp: Option[Double],
+                                   eur1000GProp: Option[Double],
+                                   sas1000GProp: Option[Double],
+                                   log10Abf: Option[Double],
+                                   posteriorProbability: Option[Double])
 //
 //
 //  case class IndexVariantTable(associations: Vector[IndexVariantAssociation])

@@ -1,6 +1,8 @@
 package models
 
+import models.Entities.TagVariantAssociation
 import slick.jdbc.H2Profile.api._
+import slick.lifted.MappedProjection
 
 object FRM {
   /**  In order to convert the db's string representation to Seq[Long] for the exons
@@ -50,11 +52,20 @@ object FRM {
   // --------------------------------------------------------
   // VARIANT
 
-  case class SimpleVariant(id: String, chromosome: String, position: Long, refAllele: String, altAllele: String, rsId: Option[String])
+//  case class SimpleVariant(id: String, chromosome: String, position: Long, refAllele: String, altAllele: String, rsId: Option[String])
   case class Variant(id: String, chromosome: String, position: Long, refAllele: String, altAllele: String, rsId: Option[String],
                      nearestGeneId: Option[String] = None, nearestCodingGeneId: Option[String] = None)
-//  case class LiftedVariant(id: Rep[String], chromosome: Rep[String], position: Rep[Long], refAllele: Rep[String], altAllele: Rep[String], rsId: Rep[Option[String]],
-//                     nearestGeneId: Rep[Option[String]] = None, nearestCodingGeneId: Rep[Option[String]] = None)
+//  object Variant {
+////    def apply(id: String, chromosome: String, position: Long, refAllele: String, altAllele: String, rsId: Option[String],
+////      nearestGeneId: Option[String] = None, nearestCodingGeneId: Option[String] = None): Variant = new Variant(id, chromosome, position, refAllele, altAllele, rsId,
+////      nearestGeneId, nearestCodingGeneId)
+////    def apply(id: String, chromosome: String, position: Long, refAllele: String, altAllele: String, rsId: Option[String]): Variant = new Variant(id, chromosome, position, refAllele, altAllele, rsId,)
+////    def unapply(v: Variant) = (v.id, v.chromosome, v.position, v.refAllele, v.altAllele, v.rsId, v.nearestGeneId, v.nearestCodingGeneId)
+////    def unapply(v: Variant) = (v.id, v.chromosome, v.position, v.refAllele, v.altAllele, v.rsId)
+//  }
+//  def simpleToFullVariant(v: SimpleVariant): Variant = {
+//    Variant(v.id, v.chromosome, v.position, v.refAllele, v.altAllele, v.rsId, None, None)
+//  }
 
   class Variants(tag: Tag) extends Table[Variant](tag, "variants") {
     def id = column[String]("variant_id")
@@ -78,11 +89,6 @@ object FRM {
                    pubAuthor: Option[String], ancestryInitial: Seq[String], ancestryReplication: Seq[String],
                    nInitial: Option[Long], nReplication: Option[Long], nCases: Option[Long],
                    traitCategory: Option[String])
-//  case class LiftedStudy(studyId: Rep[String], traitCode: Rep[String], traitReported: Rep[String], traitEfos: Rep[Seq[String]],
-//                   pubId: Rep[Option[String]], pubDate: Rep[Option[String]], pubJournal: Rep[Option[String]], pubTitle: Rep[Option[String]],
-//                   pubAuthor: Rep[Option[String]], ancestryInitial: Rep[Seq[String]], ancestryReplication: Rep[Seq[String]],
-//                   nInitial: Rep[Option[Long]], nReplication: Rep[Option[Long]], nCases: Rep[Option[Long]],
-//                   traitCategory: Rep[Option[String]])
 
   class Studies(tag: Tag) extends Table[Study](tag, "studies") {
     def studyId = column[String]("study_id")
@@ -125,18 +131,125 @@ object FRM {
 //                  afr1000GProp: Option[Double], amr1000GProp: Option[Double], eas1000GProp: Option[Double], eur1000GProp: Option[Double], sas1000GProp: Option[Double]
 //                )
   case class V2DAssociation(
-                      pval: Option[Double], r2: Option[Double], log10Abf: Option[Double], posteriorProbability: Option[Double],
+                      pval: Double, r2: Option[Double], log10Abf: Option[Double], posteriorProbability: Option[Double],
                       afr1000GProp: Option[Double], amr1000GProp: Option[Double], eas1000GProp: Option[Double], eur1000GProp: Option[Double], sas1000GProp: Option[Double]
                     )
 //  case class LiftedV2DAssociation(
 //                             pval: Rep[Option[Double]], r2: Rep[Option[Double]], log10Abf: Rep[Option[Double]], posteriorProbability: Rep[Option[Double]],
 //                             afr1000GProp: Rep[Option[Double]], amr1000GProp: Rep[Option[Double]], eas1000GProp: Rep[Option[Double]], eur1000GProp: Rep[Option[Double]], sas1000GProp: Rep[Option[Double]]
 //                           )
-  case class V2D(tag: SimpleVariant, lead: SimpleVariant, study: Study, association: V2DAssociation)
+  case class V2D(tag: Variant, lead: Variant, study: Study, association: V2DAssociation)
 //  case class LiftedV2D(tag: LiftedVariant, lead: LiftedVariant, study: LiftedStudy, association: LiftedV2DAssociation)
 //  implicit object V2DShape extends CaseClassShape(LiftedV2D.tupled, V2D.tupled)
 
-  class V2Ds(tag: Tag) extends Table[V2D](tag, "d2v2g") {
+//  trait V2DFields {
+//    def tagId = column[String]("variant_id")
+//    def tagChromosome = column[String]("chr_id")
+//    def tagPosition = column[Long]("position")
+//    def tagRefAllele = column[String]("ref_allele")
+//    def tagAltAllele = column[String]("alt_allele")
+//    def tagRsId = column[Option[String]]("rs_id")
+//
+//    def leadId = column[String]("index_variant_id")
+//    def leadChromosome = column[String]("index_chr_id")
+//    def leadPosition = column[Long]("index_position")
+//    def leadRefAllele = column[String]("index_ref_allele")
+//    def leadAltAllele = column[String]("index_alt_allele")
+//    def leadRsId = column[Option[String]]("index_rs_id")
+//
+//    def studyId = column[String]("stid")
+//    def traitCode = column[String]("trait_code")
+//    def traitReported = column[String]("trait_reported")
+//    def traitEfos = column[Seq[String]]("trait_efos")
+//    def pubId = column[Option[String]]("pmid")
+//    def pubDate = column[Option[String]]("pub_data")
+//    def pubJournal = column[Option[String]]("pub_journal")
+//    def pubTitle = column[Option[String]]("pub_title")
+//    def pubAuthor = column[Option[String]]("pub_author")
+//    def ancestryInitial = column[Seq[String]]("ancestry_initial")
+//    def ancestryReplication = column[Seq[String]]("ancestry_replication")
+//    def nInitial = column[Option[Long]]("n_initial")
+//    def nReplication = column[Option[Long]]("n_replication")
+//    def nCases = column[Option[Long]]("n_cases")
+//    def traitCategory = column[Option[String]]("trait_category")
+//
+//    def pval = column[Option[Double]]("pval")
+//    def r2 = column[Option[Double]]("r2")
+//    def log10Abf = column[Option[Double]]("log10_abf")
+//    def posteriorProbability = column[Option[Double]]("posterior_prob")
+//
+//    def afr1000GProp = column[Option[Double]]("afr_1000g_prop")
+//    def amr1000GProp = column[Option[Double]]("amr_1000g_prop")
+//    def eas1000GProp = column[Option[Double]]("eas_1000g_prop")
+//    def eur1000GProp = column[Option[Double]]("eur_1000g_prop")
+//    def sas1000GProp = column[Option[Double]]("sas_1000g_prop")
+//
+//    def tagProjection = (tagId, tagChromosome, tagPosition, tagRefAllele, tagAltAllele, tagRsId) <> (SimpleVariant.tupled, SimpleVariant.unapply)
+//    def leadProjection = (leadId, leadChromosome, leadPosition, leadRefAllele, leadAltAllele, leadRsId) <> (SimpleVariant.tupled, SimpleVariant.unapply)
+//    def studyProjection = (studyId, traitCode, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
+//      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases, traitCategory) <> (Study.tupled, Study.unapply)
+//    def associationProjection = (pval, r2, log10Abf, posteriorProbability, afr1000GProp, amr1000GProp, eas1000GProp, eur1000GProp, sas1000GProp) <> (V2DAssociation.tupled, V2DAssociation.unapply)
+//
+//    def * = (tagProjection, leadProjection, studyProjection, associationProjection) <> (V2D.tupled, V2D.unapply)
+//  }
+
+//  class V2DsByStudy(tag: Tag) extends Table[V2D](tag, "v2d_by_stchr") {
+//    def tagId = column[String]("variant_id")
+//    def tagChromosome = column[String]("chr_id")
+//    def tagPosition = column[Long]("position")
+//    def tagRefAllele = column[String]("ref_allele")
+//    def tagAltAllele = column[String]("alt_allele")
+//    def tagRsId = column[Option[String]]("rs_id")
+//
+//    def leadId = column[String]("index_variant_id")
+//    def leadChromosome = column[String]("index_chr_id")
+//    def leadPosition = column[Long]("index_position")
+//    def leadRefAllele = column[String]("index_ref_allele")
+//    def leadAltAllele = column[String]("index_alt_allele")
+//    def leadRsId = column[Option[String]]("index_rs_id")
+//
+//    def studyId = column[String]("stid")
+//    def traitCode = column[String]("trait_code")
+//    def traitReported = column[String]("trait_reported")
+//    def traitEfos = column[Seq[String]]("trait_efos")
+//    def pubId = column[Option[String]]("pmid")
+//    def pubDate = column[Option[String]]("pub_data")
+//    def pubJournal = column[Option[String]]("pub_journal")
+//    def pubTitle = column[Option[String]]("pub_title")
+//    def pubAuthor = column[Option[String]]("pub_author")
+//    def ancestryInitial = column[Seq[String]]("ancestry_initial")
+//    def ancestryReplication = column[Seq[String]]("ancestry_replication")
+//    def nInitial = column[Option[Long]]("n_initial")
+//    def nReplication = column[Option[Long]]("n_replication")
+//    def nCases = column[Option[Long]]("n_cases")
+//    def traitCategory = column[Option[String]]("trait_category")
+//
+//    def pval = column[Double]("pval")
+//    def r2 = column[Option[Double]]("r2")
+//    def log10Abf = column[Option[Double]]("log10_abf")
+//    def posteriorProbability = column[Option[Double]]("posterior_prob")
+//
+//    def afr1000GProp = column[Option[Double]]("afr_1000g_prop")
+//    def amr1000GProp = column[Option[Double]]("amr_1000g_prop")
+//    def eas1000GProp = column[Option[Double]]("eas_1000g_prop")
+//    def eur1000GProp = column[Option[Double]]("eur_1000g_prop")
+//    def sas1000GProp = column[Option[Double]]("sas_1000g_prop")
+//
+//    def tagProjection = (tagId, tagChromosome, tagPosition, tagRefAllele, tagAltAllele, tagRsId) <> (SimpleVariant.tupled, SimpleVariant.unapply)
+//    def leadProjection = (leadId, leadChromosome, leadPosition, leadRefAllele, leadAltAllele, leadRsId) <> (SimpleVariant.tupled, SimpleVariant.unapply)
+//    def studyProjection = (studyId, traitCode, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
+//      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases, traitCategory) <> (Study.tupled, Study.unapply)
+//    def associationProjection = (pval, r2, log10Abf, posteriorProbability, afr1000GProp, amr1000GProp, eas1000GProp, eur1000GProp, sas1000GProp) <> (V2DAssociation.tupled, V2DAssociation.unapply)
+//    def nTotal = nInitial.getOrElse(0) + nReplication.getOrElse(0)
+//
+//    def * = (tagProjection, leadProjection, studyProjection, associationProjection) <> (V2D.tupled, V2D.unapply)
+//  }
+//  lazy val v2DsByStudy = TableQuery[V2DsByStudy]
+
+  def tupleToVariant (t: Tuple6[String, String, Long, String, String, Option[String]]) = Variant(t._1, t._2, t._3, t._4, t._5, t._6)
+  def variantToTuple (v: Variant) = Some(v.id, v.chromosome, v.position, v.refAllele, v.altAllele, v.rsId)
+
+  class V2DsByChrPos(tag: Tag) extends Table[V2D](tag, "v2d_by_chrpos") {
     def tagId = column[String]("variant_id")
     def tagChromosome = column[String]("chr_id")
     def tagPosition = column[Long]("position")
@@ -167,7 +280,7 @@ object FRM {
     def nCases = column[Option[Long]]("n_cases")
     def traitCategory = column[Option[String]]("trait_category")
 
-    def pval = column[Option[Double]]("pval")
+    def pval = column[Double]("pval")
     def r2 = column[Option[Double]]("r2")
     def log10Abf = column[Option[Double]]("log10_abf")
     def posteriorProbability = column[Option[Double]]("posterior_prob")
@@ -178,32 +291,29 @@ object FRM {
     def eur1000GProp = column[Option[Double]]("eur_1000g_prop")
     def sas1000GProp = column[Option[Double]]("sas_1000g_prop")
 
-    def tagProjection = (tagId, tagChromosome, tagPosition, tagRefAllele, tagAltAllele, tagRsId) <> (SimpleVariant.tupled, SimpleVariant.unapply)
-    def leadProjection = (leadId, leadChromosome, leadPosition, leadRefAllele, leadAltAllele, leadRsId) <> (SimpleVariant.tupled, SimpleVariant.unapply)
+//    def tagProjection = (tagId, tagChromosome, tagPosition, tagRefAllele, tagAltAllele, tagRsId) <> (t => Variant(t._1, t._2, t._3, t._4, t._5, t._6), (v: Variant) => Some(v.id, v.chromosome, v.position, v.refAllele, v.altAllele, v.rsId))
+    def tagProjection = (tagId, tagChromosome, tagPosition, tagRefAllele, tagAltAllele, tagRsId) <> (tupleToVariant, variantToTuple)
+//    def leadProjection = (leadId, leadChromosome, leadPosition, leadRefAllele, leadAltAllele, leadRsId) <> (SimpleVariant.tupled, SimpleVariant.unapply)
+    def leadProjection = (leadId, leadChromosome, leadPosition, leadRefAllele, leadAltAllele, leadRsId) <> (tupleToVariant, variantToTuple)
     def studyProjection = (studyId, traitCode, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
       pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases, traitCategory) <> (Study.tupled, Study.unapply)
     def associationProjection = (pval, r2, log10Abf, posteriorProbability, afr1000GProp, amr1000GProp, eas1000GProp, eur1000GProp, sas1000GProp) <> (V2DAssociation.tupled, V2DAssociation.unapply)
 
-    def * = (tagProjection, leadProjection, studyProjection, associationProjection) <> (V2D.tupled, V2D.unapply)
-//    def * = LiftedV2D(
-//      LiftedVariant(tagId, tagChromosome, tagPosition, tagRefAllele, tagAltAllele, tagRsId),
-//      LiftedVariant(leadId, leadChromosome, leadPosition, leadRefAllele, leadAltAllele, leadRsId),
-//      LiftedStudy(studyId, traitCode, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-//              pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases, traitCategory),
-//      LiftedV2DAssociation(pval, r2, log10Abf, posteriorProbability,
-//              afr1000GProp, amr1000GProp, eas1000GProp, eur1000GProp, sas1000GProp)
+//    def nTotal = nInitial.getOrElse(0) + nReplication.getOrElse(0)
+//    def asTagVariantAssociation = TagVariantAssociation(
+//      leadProjection, studyId, pval, nTotal, nCases.getOrElse(0),
+//      r2, afr1000GProp, amr1000GProp, eas1000GProp,
+//      eur1000GProp, sas1000GProp, log10Abf, posteriorProbability
 //    )
-//    def * = (
-//      tagId, tagChromosome, tagPosition, tagRefAllele, tagAltAllele, tagRsId,
-//      leadId, leadChromosome, leadPosition, leadRefAllele, leadAltAllele, leadRsId,
-//      studyId, traitCode, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-//      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases, traitCategory,
-//      pval, r2, log10Abf, posteriorProbability,
-//      afr1000GProp, amr1000GProp, eas1000GProp, eur1000GProp, sas1000GProp
-//    ) <> (V2D.tupled, V2D.unapply)
-  }
+//    def tagVariantAssociationProjection = (
+//      leadProjection, studyId, pval, nInitial.getOrElse(0) + nReplication.getOrElse(0), nCases.getOrElse(0),
+//      r2, afr1000GProp, amr1000GProp, eas1000GProp,
+//      eur1000GProp, sas1000GProp, log10Abf, posteriorProbability
+//    ) <> (TagVariantAssociation.tupled, TagVariantAssociation.unapply)
 
-  lazy val v2Ds = TableQuery[V2Ds]
+    def * = (tagProjection, leadProjection, studyProjection, associationProjection) <> (V2D.tupled, V2D.unapply)
+  }
+  lazy val v2DsByChrPos = TableQuery[V2DsByChrPos]
 
   // --------------------------------------------------------
 

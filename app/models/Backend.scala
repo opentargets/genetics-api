@@ -11,7 +11,7 @@ import models.DNA._
 import models.DNA.Implicits._
 import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
-import models.Violations.{InputParameterCheckError, RegionViolation, SearchStringViolation}
+import models.Violations.{InputParameterCheckError, RegionViolation, SearchStringViolation, VariantViolation}
 import clickhouse.rep.SeqRep.StrSeqRep
 import com.sksamuel.elastic4s.analyzers._
 import sangria.validation.Violation
@@ -280,22 +280,22 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //    }
 //  }
 
-//  def getStudiesForGene(geneId: String): Future[Vector[String]] = {
-//    val studiesSQL = sql"""
-//                           |SELECT DISTINCT stid
-//                           |FROM #$d2v2gTName
-//                           |PREWHERE
-//                           |  (gene_id = $geneId) AND
-//                           |  (chr_id = dictGetString('gene','chr',tuple($geneId)))
-//      """.stripMargin.as[String]
-//
-//    db.run(studiesSQL.asTry).map {
-//      case Success(v) => v
-//      case Failure(ex) =>
-//        logger.error(ex.getMessage)
-//        Vector.empty
-//    }
-//  }
+  def getStudiesForGene(geneId: String): Future[Vector[String]] = {
+    val studiesSQL = sql"""
+                           |SELECT DISTINCT stid
+                           |FROM #$d2v2gTName
+                           |PREWHERE
+                           |  (gene_id = $geneId) AND
+                           |  (chr_id = dictGetString('gene','chr',tuple($geneId)))
+      """.stripMargin.as[String]
+
+    db.run(studiesSQL.asTry).map {
+      case Success(v) => v
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Vector.empty
+    }
+  }
 
   def getGenes(geneIds: Seq[String]): Future[Seq[FRM.Gene]] = {
     if (geneIds.nonEmpty) {
@@ -352,6 +352,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+//  case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
 //  def buildManhattanTable(studyId: String, pageIndex: Option[Int], pageSize: Option[Int]):
 //  Future[Entities.ManhattanTable] = {
 //    val limitClause = parsePaginationTokens(pageIndex, pageSize)
@@ -404,8 +405,20 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //    }
 //  }
 
+//  case class IndexVariantTable(associations: Vector[IndexVariantAssociation])
+//  case class IndexVariantTable(associations: Vector[IndexVariantAssociation])
 //  def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
 //  Future[Entities.IndexVariantTable] = {
+//    expandVariantId(variantID) match {
+//      case Right(variant) => {
+//
+//      }
+//      case Left(ex) => {
+//        Future.failed(ex)
+//      }
+//    }
+//    val q = FRM.v2DsByChrPos.filter()
+//
 //    val limitClause = parsePaginationTokens(pageIndex, pageSize)
 //    val variant = Variant(variantID)
 //
@@ -447,8 +460,51 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //    }
 //  }
 
-//  def buildTagVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
-//  Future[TagVariantTable] = {
+  def buildTagVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
+  Future[TagVariantTable] = {
+    expandVariantId(variantID) match {
+      case Right(variant) => {
+        val q = FRM.v2DsByChrPos
+            .filter(_.tagChromosome === variant.chromosome)
+            .filter(_.tagPosition === variant.position)
+            .filter(_.tagRefAllele === variant.refAllele)
+            .filter(_.tagAltAllele === variant.altAllele)
+//          .filter(r =>
+//            r.tagChromosome == variant.chromosome && r.tagPosition == variant.position &&
+//            r.tagRefAllele == variant.refAllele && r.tagAltAllele == variant.altAllele
+//          )
+//          .map(_.tagVariantAssociationProjection)
+
+        db.run(q.result.asTry).map {
+          case Success(v) => TagVariantTable(v.map(r => {
+            TagVariantAssociation(
+              r.lead,
+              r.study.studyId,
+              r.association.pval,
+              0, 0,
+              r.association.r2,
+              r.association.afr1000GProp,
+              r.association.amr1000GProp,
+              r.association.eas1000GProp,
+              r.association.eur1000GProp,
+              r.association.sas1000GProp,
+              r.association.log10Abf,
+              r.association.posteriorProbability
+            )
+          }))
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            TagVariantTable(Seq.empty)
+        }
+
+
+      }
+      case Left(violation) => {
+        Future.failed(InputParameterCheckError(Vector(violation)))
+      }
+    }
+
+
 //    val limitClause = parsePaginationTokens(pageIndex, pageSize)
 //    val variant = Variant(variantID)
 //
@@ -489,7 +545,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //      case Left(violation) =>
 //        Future.failed(InputParameterCheckError(Vector(violation)))
 //    }
-//  }
+  }
 
 //  def buildGecko(chromosome: String, posStart: Long, posEnd: Long): Future[Option[Entities.Gecko]] = {
 //    (parseChromosome(chromosome), parseRegion(posStart, posEnd)) match {
@@ -659,4 +715,13 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   private val studiesOverlapTName: String = "studies_overlap"
   private val gwasSumStatsTName: String = "gwas_chr_%s"
   private val genesTName: String = "gene"
+
+  def expandVariantId(variantId: String): Either[VariantViolation, FRM.Variant] = {
+    variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
+      case List(chr: String, pos: String, ref: String, alt: String) =>
+        Right(FRM.Variant(variantId, chr, pos.toLong, ref, alt, None, None, None))
+      case _ =>
+        Left(VariantViolation(variantId))
+    }
+  }
 }
