@@ -112,22 +112,27 @@ object FRM {
   def tupleToVariant (t: Tuple6[String, String, Long, String, String, Option[String]]) = Variant(t._1, t._2, t._3, t._4, t._5, t._6)
   def variantToTuple (v: Variant) = Some(v.id, v.chromosome, v.position, v.refAllele, v.altAllele, v.rsId)
 
-  class V2DsByChrPos(tag: Tag) extends Table[V2D](tag, "v2d_by_chrpos") {
-    // TODO: Factor out common column groups for reuse
+  trait TagVariantFields extends Table[V2D] {
     def tagId = column[String]("variant_id")
     def tagChromosome = column[String]("chr_id")
     def tagPosition = column[Long]("position")
     def tagRefAllele = column[String]("ref_allele")
     def tagAltAllele = column[String]("alt_allele")
     def tagRsId = column[Option[String]]("rs_id")
+    def tagProjection = (tagId, tagChromosome, tagPosition, tagRefAllele, tagAltAllele, tagRsId) <> (tupleToVariant, variantToTuple)
+  }
 
+  trait LeadVariantFields extends Table[V2D] {
     def leadId = column[String]("index_variant_id")
     def leadChromosome = column[String]("index_chr_id")
     def leadPosition = column[Long]("index_position")
     def leadRefAllele = column[String]("index_ref_allele")
     def leadAltAllele = column[String]("index_alt_allele")
     def leadRsId = column[Option[String]]("index_rs_id")
+    def leadProjection = (leadId, leadChromosome, leadPosition, leadRefAllele, leadAltAllele, leadRsId) <> (tupleToVariant, variantToTuple)
+  }
 
+  trait StudyFields extends Table[V2D] {
     def studyId = column[String]("stid")
     def traitCode = column[String]("trait_code")
     def traitReported = column[String]("trait_reported")
@@ -143,7 +148,10 @@ object FRM {
     def nReplication = column[Option[Long]]("n_replication")
     def nCases = column[Option[Long]]("n_cases")
     def traitCategory = column[Option[String]]("trait_category")
+    def studyProjection = (studyId, traitCode, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle, pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases, traitCategory) <> (Study.tupled, Study.unapply)
+  }
 
+  trait V2DAssociationFields extends Table[V2D] {
     def pval = column[Double]("pval")
     def r2 = column[Option[Double]]("r2")
     def log10Abf = column[Option[Double]]("log10_abf")
@@ -154,16 +162,20 @@ object FRM {
     def eas1000GProp = column[Option[Double]]("eas_1000g_prop")
     def eur1000GProp = column[Option[Double]]("eur_1000g_prop")
     def sas1000GProp = column[Option[Double]]("sas_1000g_prop")
-
-    def tagProjection = (tagId, tagChromosome, tagPosition, tagRefAllele, tagAltAllele, tagRsId) <> (tupleToVariant, variantToTuple)
-    def leadProjection = (leadId, leadChromosome, leadPosition, leadRefAllele, leadAltAllele, leadRsId) <> (tupleToVariant, variantToTuple)
-    def studyProjection = (studyId, traitCode, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle, pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases, traitCategory) <> (Study.tupled, Study.unapply)
     def associationProjection = (pval, r2, log10Abf, posteriorProbability, afr1000GProp, amr1000GProp, eas1000GProp, eur1000GProp, sas1000GProp) <> (V2DAssociation.tupled, V2DAssociation.unapply)
+  }
 
+  class V2DsByChrPos(tag: Tag) extends Table[V2D](tag, "v2d_by_chrpos") with TagVariantFields with LeadVariantFields with StudyFields with V2DAssociationFields {
     def * = (tagProjection, leadProjection, studyProjection, associationProjection) <> (V2D.tupled, V2D.unapply)
   }
 
   lazy val v2DsByChrPos = TableQuery[V2DsByChrPos]
+
+  class V2DsByStudy(tag: Tag) extends Table[V2D](tag, "v2d_by_stchr") with TagVariantFields with LeadVariantFields with StudyFields with V2DAssociationFields {
+    def * = (tagProjection, leadProjection, studyProjection, associationProjection) <> (V2D.tupled, V2D.unapply)
+  }
+
+  lazy val v2DsByStudy = TableQuery[V2DsByChrPos]
 
 //  // --------------------------------------------------------
 }
