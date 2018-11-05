@@ -71,26 +71,26 @@ object DNA {
 
   }
 
-  case class Variant(position: Position, refAllele: String, altAllele: String, rsId: Option[String],
-                     nearestGeneId: Option[String] = None, nearestCodingGeneId: Option[String] = None) {
-    lazy val id: String = List(position.chrId, position.position.toString, refAllele, altAllele)
-      .map(_.toUpperCase)
-      .mkString("_")
-  }
-
-  object Variant {
-    implicit val hasId = HasId[Variant, String](_.id)
-
-    def apply(variantId: String): Either[VariantViolation, Variant] = Variant.apply(variantId, None)
-    def apply(variantId: String, rsId: Option[String]): Either[VariantViolation, Variant] = {
-      variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
-        case List(chr: String, pos: String, ref: String, alt: String) =>
-          Right(Variant(Position(chr, pos.toLong), ref, alt, rsId, None, None))
-        case _ =>
-          Left(VariantViolation(variantId))
-      }
-    }
-  }
+//  case class Variant(position: Position, refAllele: String, altAllele: String, rsId: Option[String],
+//                     nearestGeneId: Option[String] = None, nearestCodingGeneId: Option[String] = None) {
+//    lazy val id: String = List(position.chrId, position.position.toString, refAllele, altAllele)
+//      .map(_.toUpperCase)
+//      .mkString("_")
+//  }
+//
+//  object Variant {
+//    implicit val hasId = HasId[Variant, String](_.id)
+//
+//    def apply(variantId: String): Either[VariantViolation, Variant] = Variant.apply(variantId, None)
+//    def apply(variantId: String, rsId: Option[String]): Either[VariantViolation, Variant] = {
+//      variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
+//        case List(chr: String, pos: String, ref: String, alt: String) =>
+//          Right(Variant(Position(chr, pos.toLong), ref, alt, rsId, None, None))
+//        case _ =>
+//          Left(VariantViolation(variantId))
+//      }
+//    }
+//  }
 
 //  case class Gene(id: String, symbol: Option[String], start: Option[Long] = None, end: Option[Long] = None,
 //                  chromosome: Option[String] = None, tss: Option[Long] = None,
@@ -115,13 +115,13 @@ object DNA {
 //  }
 
   object Implicits {
-    implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] =
-      Variant.apply(variantID)
-
-    implicit val getVariantFromDB: GetResult[Variant] =
-      GetResult(r => Variant(Position(r.nextString, r.nextLong), refAllele = r.nextString,
-        altAllele = r.nextString, rsId = r.nextStringOption, nearestGeneId = r.nextStringOption,
-        nearestCodingGeneId = r.nextStringOption))
+//    implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] =
+//      Variant.apply(variantID)
+//
+//    implicit val getVariantFromDB: GetResult[Variant] =
+//      GetResult(r => Variant(Position(r.nextString, r.nextLong), refAllele = r.nextString,
+//        altAllele = r.nextString, rsId = r.nextStringOption, nearestGeneId = r.nextStringOption,
+//        nearestCodingGeneId = r.nextStringOption))
 
 //    implicit val getGeneFromDB: GetResult[Gene] =
 //      GetResult(r => Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
