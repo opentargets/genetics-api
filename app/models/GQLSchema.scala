@@ -4,11 +4,11 @@ package models
 import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
-//import DNA.Variant
-import FRM.Variant
+import DNA.Variant
+//import FRM.Variant
 import sangria.schema
 import sangria.streaming.ValidOutStreamType
-//import Entities.DBImplicits.frm2gqlVariant
+import Entities.DBImplicits.frm2dnaVariant
 
 object GQLSchema {
   val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
@@ -74,7 +74,7 @@ object GQLSchema {
 
   val variant = ObjectType("Variant",
     "This element represents a variant object",
-    fields[Backend, Variant](
+    fields[Backend, DNA.Variant](
       Field("id", StringType,
         Some("Ensembl Gene ID of a gene"),
         resolve = _.value.id),
@@ -83,10 +83,10 @@ object GQLSchema {
         resolve = _.value.rsId),
       Field("chromosome", StringType,
         Some("Ensembl Gene ID of a gene"),
-        resolve = _.value.chromosome),
+        resolve = _.value.position.chrId),
       Field("position", LongType,
         Some("Approved symbol name of a gene"),
-        resolve = _.value.position),
+        resolve = _.value.position.position),
       Field("refAllele", StringType,
         Some("Ref allele"),
         resolve = _.value.refAllele),

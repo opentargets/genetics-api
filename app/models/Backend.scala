@@ -317,7 +317,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   /** query variants table with a list of variant ids and get all related information */
-  def getVariants(variantIds: Seq[String]): Future[Seq[FRM.Variant]] = {
+  def getVariants(variantIds: Seq[String]): Future[Seq[DNA.Variant]] = {
     if (variantIds.nonEmpty) {
       val q = for {
         v <- FRM.variants
@@ -325,7 +325,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       } yield v
 
       db.run(q.result.asTry).map {
-        case Success(v) => v
+        case Success(v) => v.map(frm2dnaVariant)
         case Failure(ex) =>
           logger.error(ex.getMessage)
           Seq.empty
@@ -408,136 +408,90 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[IndexVariantTable] = {
-    expandVariantId(variantID) match {
-      case Right(v) => {
-        val q = FRM.v2DsByChrPos
-          .filter(r =>
-            r.leadChromosome === v.chromosome && r.leadPosition === v.position &&
-              r.leadRefAllele === v.refAllele && r.leadAltAllele === v.altAllele
-          )
+    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+    val variant = Variant(variantID)
 
-        db.run(q.result.asTry).map {
-          case Success(v) => {
-            IndexVariantTable(v.map(r => {
-            IndexVariantAssociation(
-              r.tag,
-              r.study.studyId,
-              r.association.pval,
-              0,
-              0,
-              //              (r.study.nInitial.getOrElse(0) + r.study.nReplication.getOrElse(0)).toInt,
-              //              r.study.nCases.getOrElse(0).toInt,
-              r.association.r2,
-              r.association.afr1000GProp,
-              r.association.amr1000GProp,
-              r.association.eas1000GProp,
-              r.association.eur1000GProp,
-              r.association.sas1000GProp,
-              r.association.log10Abf,
-              r.association.posteriorProbability
-            )
-          }))
-          }
+    variant match {
+      case Right(v) =>
+        val assocs = sql"""
+                          |select
+                          | variant_id,
+                          | rs_id,
+                          | stid,
+                          | pval,
+                          | ifNull(n_initial,0) + ifNull(n_replication,0),
+                          | ifNull(n_cases, 0),
+                          | r2,
+                          | afr_1000g_prop,
+                          | amr_1000g_prop,
+                          | eas_1000g_prop,
+                          | eur_1000g_prop,
+                          | sas_1000g_prop,
+                          | log10_abf,
+                          | posterior_prob
+                          |from #$v2dByChrPosTName
+                          |prewhere
+                          |  chr_id = ${v.position.chrId} and
+                          |  index_position = ${v.position.position} and
+                          |  index_ref_allele = ${v.refAllele} and
+                          |  index_alt_allele = ${v.altAllele}
+                          |#$limitClause
+          """.stripMargin.as[IndexVariantAssociation]
+
+        db.run(assocs.asTry).map {
+          case Success(r) => Entities.IndexVariantTable(r)
           case Failure(ex) =>
             logger.error(ex.getMessage)
-            IndexVariantTable(Seq.empty)
+            Entities.IndexVariantTable(associations = Vector.empty)
         }
-      }
-      case Left(violation) => {
+      case Left(violation) =>
         Future.failed(InputParameterCheckError(Vector(violation)))
-      }
     }
-
-//    expandVariantId(variantID) match {
-//      case Right(variant) => {
-//
-//      }
-//      case Left(ex) => {
-//        Future.failed(ex)
-//      }
-//    }
-//    val q = FRM.v2DsByChrPos.filter()
-//
-//    val limitClause = parsePaginationTokens(pageIndex, pageSize)
-//    val variant = Variant(variantID)
-//
-//    variant match {
-//      case Right(v) =>
-//        val assocs = sql"""
-//                       |select
-//                       | variant_id,
-//                       | rs_id,
-//                       | stid,
-//                       | pval,
-//                       | ifNull(n_initial,0) + ifNull(n_replication,0),
-//                       | ifNull(n_cases, 0),
-//                       | r2,
-//                       | afr_1000g_prop,
-//                       | amr_1000g_prop,
-//                       | eas_1000g_prop,
-//                       | eur_1000g_prop,
-//                       | sas_1000g_prop,
-//                       | log10_abf,
-//                       | posterior_prob
-//                       |from #$v2dByChrPosTName
-//                       |prewhere
-//                       |  chr_id = ${v.position.chrId} and
-//                       |  index_position = ${v.position.position} and
-//                       |  index_ref_allele = ${v.refAllele} and
-//                       |  index_alt_allele = ${v.altAllele}
-//                       |#$limitClause
-//          """.stripMargin.as[IndexVariantAssociation]
-//
-//        db.run(assocs.asTry).map {
-//          case Success(r) => Entities.IndexVariantTable(r)
-//          case Failure(ex) =>
-//            logger.error(ex.getMessage)
-//            Entities.IndexVariantTable(associations = Vector.empty)
-//        }
-//      case Left(violation) =>
-//        Future.failed(InputParameterCheckError(Vector(violation)))
-//    }
   }
 
   def buildTagVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[TagVariantTable] = {
-    expandVariantId(variantID) match {
-      case Right(v) => {
-        val q = FRM.v2DsByChrPos
-          .filter(r =>
-            r.tagChromosome === v.chromosome && r.tagPosition === v.position &&
-            r.tagRefAllele === v.refAllele && r.tagAltAllele === v.altAllele
-          )
+    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+    val variant = Variant(variantID)
 
-        db.run(q.result.asTry).map {
-          case Success(v) => TagVariantTable(v.map(r => {
-            TagVariantAssociation(
-              r.lead,
-              r.study.studyId,
-              r.association.pval,
-              0,
-              0,
-//              (r.study.nInitial.getOrElse(0) + r.study.nReplication.getOrElse(0)).toInt,
-//              r.study.nCases.getOrElse(0).toInt,
-              r.association.r2,
-              r.association.afr1000GProp,
-              r.association.amr1000GProp,
-              r.association.eas1000GProp,
-              r.association.eur1000GProp,
-              r.association.sas1000GProp,
-              r.association.log10Abf,
-              r.association.posteriorProbability
-            )
-          }))
+    variant match {
+      case Right(v) =>
+        val assocs = sql"""
+                          |select
+                          | index_variant_id,
+                          | index_rs_id,
+                          | stid,
+                          | pval,
+                          | ifNull(n_initial,0) + ifNull(n_replication,0),
+                          | ifNull(n_cases, 0),
+                          | r2,
+                          | afr_1000g_prop,
+                          | amr_1000g_prop,
+                          | eas_1000g_prop,
+                          | eur_1000g_prop,
+                          | sas_1000g_prop,
+                          | log10_abf,
+                          | posterior_prob
+                          |from #$v2dByChrPosTName
+                          |prewhere
+                          |  chr_id = ${v.position.chrId} and
+                          |  position = ${v.position.position} and
+                          |  ref_allele = ${v.refAllele} and
+                          |  alt_allele = ${v.altAllele}
+                          |#$limitClause
+          """.stripMargin.as[TagVariantAssociation]
+
+        // map to proper manhattan association with needed fields
+        db.run(assocs.asTry).map {
+          case Success(r) => Entities.TagVariantTable(r)
           case Failure(ex) =>
             logger.error(ex.getMessage)
-            TagVariantTable(Seq.empty)
+            Entities.TagVariantTable(associations = Vector.empty)
         }
-      }
-      case Left(violation) => {
+      case Left(violation) =>
         Future.failed(InputParameterCheckError(Vector(violation)))
-      }
     }
+
 
 
 //    val limitClause = parsePaginationTokens(pageIndex, pageSize)

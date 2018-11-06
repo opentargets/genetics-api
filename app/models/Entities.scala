@@ -25,10 +25,9 @@ object Entities {
 //  case class OverlappedVariant(variantIdA: String, variantIdB: String, overlapAB: Int,
 //                               distinctA: Int, distinctB: Int)
 //
-//
   case class TagVariantTable(associations: Seq[TagVariantAssociation])
 
-  case class TagVariantAssociation(indexVariant: FRM.Variant,
+  case class TagVariantAssociation(indexVariant: DNA.Variant,
                                    studyId: String,
                                    pval: Double,
                                    nTotal: Int, // n_initial + n_replication which could be null as well both fields
@@ -45,7 +44,7 @@ object Entities {
 
   case class IndexVariantTable(associations: Seq[IndexVariantAssociation])
 
-  case class IndexVariantAssociation(tagVariant: FRM.Variant,
+  case class IndexVariantAssociation(tagVariant: DNA.Variant,
                                      studyId: String,
                                      pval: Double,
                                      nTotal: Int, // n_initial + n_replication which could be null as well both fields
@@ -58,12 +57,12 @@ object Entities {
                                      sas1000GProp: Option[Double],
                                      log10Abf: Option[Double],
                                      posteriorProbability: Option[Double])
-//
-//  case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
-//
-//  case class ManhattanAssociation(variantId: String, pval: Double,
-//                                  bestGenes: Seq[(String, Double)], crediblbeSetSize: Option[Long],
-//                                  ldSetSize: Option[Long], totalSetSize: Long)
+
+  case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
+
+  case class ManhattanAssociation(variantId: String, pval: Double,
+                                  bestGenes: Seq[(String, Double)], crediblbeSetSize: Option[Long],
+                                  ldSetSize: Option[Long], totalSetSize: Long)
 //
 //  case class V2DByStudy(index_variant_id: String, pval: Double,
 //                        credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long, topGenes: Seq[(String, Double)])
@@ -308,21 +307,21 @@ object Entities {
       //      GetResult(r => Study(r.<<, r.<<, r.<<, StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
       //        StrSeqRep(r.<<), StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?))
 
-      //    implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
-      //      r => {
-      //        val variant = Variant(r.<<, r.<<?)
-      //        IndexVariantAssociation(variant.right.get, r.<<,
-      //          r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-      //      }
-      //    )
+          implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
+            r => {
+              val variant = DNA.Variant(r.<<, r.<<?)
+              IndexVariantAssociation(variant.right.get, r.<<,
+                r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
+            }
+          )
 
-      //    implicit val getTagVariantAssoc: GetResult[TagVariantAssociation] = GetResult(
-      //      r => {
-      //        val variant = Variant(r.<<, r.<<?)
-      //        TagVariantAssociation(variant.right.get, r.<<,
-      //          r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-      //      }
-      //    )
+          implicit val getTagVariantAssoc: GetResult[TagVariantAssociation] = GetResult(
+            r => {
+              val variant = DNA.Variant(r.<<, r.<<?)
+              TagVariantAssociation(variant.right.get, r.<<,
+                r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
+            }
+          )
 
       //    implicit val getGeckoLine: GetResult[GeckoLine] = GetResult(
       //      r => {
@@ -345,26 +344,15 @@ object Entities {
       //      }
       //    )
 
-//      implicit val getScoredG2VLine: GetResult[ScoredG2VLine] = GetResult(
-//        r => {
-//          ScoredG2VLine(r.<<, r.<<, r.<<,
-//            (StrSeqRep(r.nextString()).rep zip DSeqRep(r.nextString()).rep).toMap,
-//            r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<)
-//        }
-//      )
+      implicit val getScoredG2VLine: GetResult[ScoredG2VLine] = GetResult(
+        r => {
+          ScoredG2VLine(r.<<, r.<<, r.<<,
+            (StrSeqRep(r.nextString()).rep zip DSeqRep(r.nextString()).rep).toMap,
+            r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<)
+        }
+      )
 
-      //    implicit def frm2gqlVariant = (frm: FRM.Variant) => Variant(variantId=frm.id, rsId = frm.rsId)
-
-      //implicit def frm2gqlVariant(frm: FRM.Variant): DNA.Variant = DNA.Variant(
-      //  position=Position(frm.chromosome, frm.position),
-      //  refAllele=frm.refAllele,
-      //  altAllele=frm.altAllele,
-      //  rsId=frm.rsId,
-      //  nearestGeneId=frm.nearestGeneId,
-      //  nearestCodingGeneId=frm.nearestCodingGeneId
-      //)
-
-      //    implicit val frm2gqlVariant: DNA.Variant = DNA.Variant(variantId=frm.id, rsId = frm.rsId)
+      implicit def frm2dnaVariant(v: FRM.Variant): DNA.Variant = DNA.Variant(DNA.Position(v.chromosome, v.position), v.refAllele, v.altAllele, v.rsId, v.nearestGeneId, v.nearestCodingGeneId)
     }
 
   }
