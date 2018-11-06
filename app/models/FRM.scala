@@ -185,36 +185,10 @@ object FRM {
   // V2G
 
   case class V2GAssociation(typeId: String, sourceId: String, feature: String, qtlBeta: Option[Double],
-                            qtlSE: Option[Double], qtlPval: Option[Double], qtlScoreQ: Option[Double],
-                            intervalScore: Option[Double], intervalScoreQ: Option[Double],
-                            fpredMaxLabel: Option[Double], fpredMaxScore: Option[Double])
-  case class V2G(geneId: String, association: V2GAssociation)
-//  case class V2G(geneId: String, tag: Variant, association: V2GAssociation)
-
-//  def tupleToGene (t: Tuple9[String, Option[String], Option[String], Option[String], Option[Long], Option[Long], Option[Long], Option[Boolean], Seq[Long]]) = Gene(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9)
-//  def geneToTuple (g: Gene) = Some(g.id, g.symbol, g.bioType, g.chromosome, g.tss, g.start, g.end, g.fwd, g.exons)
-//
-//  trait GeneFields extends Table[V2G] {
-//    def id = column[String]("gene_id")
-////    def symbol = column[Option[String]]("gene_name")
-////    def chromosome = column[Option[String]]("gene_chr")
-////    def start = column[Option[Long]]("gene_start")
-////    def end = column[Option[Long]]("end")
-////    def fwd = column[Option[Boolean]]("fwdstrand")
-////    def exons = column[Seq[Long]]("exons")
-//
-////    def pval = column[Double]("pval")
-////    def r2 = column[Option[Double]]("r2")
-////    def log10Abf = column[Option[Double]]("log10_abf")
-////    def posteriorProbability = column[Option[Double]]("posterior_prob")
-////
-////    def afr1000GProp = column[Option[Double]]("afr_1000g_prop")
-////    def amr1000GProp = column[Option[Double]]("amr_1000g_prop")
-////    def eas1000GProp = column[Option[Double]]("eas_1000g_prop")
-////    def eur1000GProp = column[Option[Double]]("eur_1000g_prop")
-////    def sas1000GProp = column[Option[Double]]("sas_1000g_prop")
-//    def geneProjection = (id) <> (tupleToGene, geneToTuple)
-//  }
+                            qtlSE: Option[Double], qtlPval: Option[Double], qtlScoreQ: Double,
+                            intervalScore: Option[Double], intervalScoreQ: Double,
+                            fpredMaxLabel: Option[String], fpredMaxScore: Option[Double])
+  case class V2G(geneId: String, tagId: String, tagChromosome: String, tagPosition: Long, association: V2GAssociation)
 
   trait V2GAssociationFields extends Table[V2G] {
     def typeId = column[String]("type_id")
@@ -223,20 +197,21 @@ object FRM {
     def qtlBeta = column[Option[Double]]("qtl_beta")
     def qtlSE = column[Option[Double]]("qtl_se")
     def qtlPval = column[Option[Double]]("qtl_pval")
-    def qtlScoreQ = column[Option[Double]]("qtl_score_q")
+    def qtlScoreQ = column[Double]("qtl_score_q")
     def intervalScore = column[Option[Double]]("interval_score")
-    def intervalScoreQ = column[Option[Double]]("interval_score_q")
-    def fpredMaxLabel = column[Option[Double]]("fpred_max_label")
+    def intervalScoreQ = column[Double]("interval_score_q")
+    def fpredMaxLabel = column[Option[String]]("fpred_max_label")
     def fpredMaxScore = column[Option[Double]]("fpred_max_score")
 
     def associationProjection = (typeId, sourceId, feature, qtlBeta, qtlSE, qtlPval, qtlScoreQ, intervalScore, intervalScoreQ, fpredMaxLabel, fpredMaxScore) <> (V2GAssociation.tupled, V2GAssociation.unapply)
   }
 
   class V2Gs(tag: Tag) extends Table[V2G](tag, "v2g") with V2GAssociationFields {
-//  class V2Gs(tag: Tag) extends Table[V2G](tag, "v2g") with TagVariantFields with V2GAssociationFields {
     def geneId = column[String]("gene_id")
-    def * = (geneId, associationProjection) <> (V2G.tupled, V2G.unapply)
-//    def * = (geneId, tagProjection, associationProjection) <> (V2G.tupled, V2G.unapply)
+    def tagId = column[String]("variant_id")
+    def tagChromosome = column[String]("chr_id")
+    def tagPosition = column[Long]("position")
+    def * = (geneId, tagId, tagChromosome, tagPosition, associationProjection) <> (V2G.tupled, V2G.unapply)
   }
 
   lazy val v2Gs = TableQuery[V2Gs]

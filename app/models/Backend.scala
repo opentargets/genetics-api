@@ -114,17 +114,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
 
     val q = FRM.v2GsStructure
-//      .groupBy(_.typeId).map {
-//      case (typeId, rows) => rows.groupBy(_.sourceId).map {
-//        case (sourceId, rows) =>
-//          (typeId, sourceId, rows.take(1))
-//      }
-//    }
-
-//      .mapValues(_.groupBy(_._2).mapValues(_.head._3)
-//    val q = for {
-//      r <- FRM.v2GsStructure
-//    } yield (r.typeId, r.sourceId, r.featureSet)
     db.run(q.result.asTry).map {
       case Success(v) =>
         println(v)
@@ -132,13 +121,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         val qtlElems = toSeqStruct(mappedRows.filterKeys(defaultQtlTypes.contains(_)))
         val intervalElems = toSeqStruct(mappedRows.filterKeys(defaultIntervalTypes.contains(_)))
         val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains(_)))
-//        println(x)
-//        G2VSchema(Seq.empty, Seq.empty, Seq.empty)
-//        val mappedRows = v.groupBy(_._1).mapValues(_.groupBy(_._2).mapValues(_.head._3))
-//        val qtlElems = toSeqStruct(mappedRows.filterKeys(defaultQtlTypes.contains(_)))
-//        val intervalElems = toSeqStruct(mappedRows.filterKeys(defaultIntervalTypes.contains(_)))
-//        val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains(_)))
-//
         G2VSchema(qtlElems, intervalElems, fpredElems)
       case Failure(ex) =>
         logger.error(ex.getMessage)
@@ -709,75 +691,126 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //    }
 //  }
 
-//  def buildG2VByVariant(variantId: String): Future[Seq[Entities.G2VAssociation]] = {
-//    val variant = Variant(variantId)
+  def buildG2VByVariant(variantId: String): Future[Seq[Entities.G2VAssociation]] = {
+//    expandVariantId(variantId) match {
+//      case Right(v) => {
+//        val qOverall = FRM.v2GsOverall.filter(r => r.chromosome === v.chromosome && r.variantId === v.id)
+//        val qAll = FRM.v2Gs.filter(r =>
+//            r.tagChromosome === v.chromosome &&
+//            r.tagPosition === v.position &&
+//            r.tagId === v.id &&
+//            r.fpredMaxScore.getOrElse(1.0) > 0.0)
+//        val q = qAll
+//          .join(qOverall)
+//          .on((r1, r2) => r1.geneId === r2.geneId)
+////          .map(r => (
+////            r._1.geneId, r._1.tagId, r._2.overallScore, r._2.sourceList, r._2.sourceScoreList, r._1.typeId, r._1.sourceId,
+////            r._1.feature, r._1.fpredMaxLabel, r._1.fpredMaxScore, r._1.qtlBeta, r._1.qtlSE, r._1.qtlPval,
+////            r._1.intervalScore, r._1.qtlScoreQ, r._1.intervalScoreQ
+////          ))
 //
-//    variant match {
-//      case Right(v) =>
-//        val assocs = sql"""
-//                          |SELECT
-//                          |    gene_id,
-//                          |    variant_id,
-//                          |    overall_score,
-//                          |    source_list,
-//                          |    source_score_list,
-//                          |    type_id,
-//                          |    source_id,
-//                          |    feature,
-//                          |    fpred_max_label,
-//                          |    fpred_max_score,
-//                          |    qtl_beta,
-//                          |    qtl_se,
-//                          |    qtl_pval,
-//                          |    interval_score,
-//                          |    qtl_score_q,
-//                          |    interval_score_q
-//                          |FROM
-//                          |(
-//                          |    SELECT
-//                          |        gene_id,
-//                          |        type_id,
-//                          |        source_id,
-//                          |        feature,
-//                          |        fpred_max_label,
-//                          |        fpred_max_score,
-//                          |        qtl_beta,
-//                          |        qtl_se,
-//                          |        qtl_pval,
-//                          |        interval_score,
-//                          |        qtl_score_q,
-//                          |        interval_score_q
-//                          |    FROM #$v2gTName
-//                          |    PREWHERE
-//                          |       (chr_id = ${v.position.chrId}) AND
-//                          |       (position = ${v.position.position}) AND
-//                          |       (variant_id = ${v.id}) AND
-//                          |       (isNull(fpred_max_score) OR fpred_max_score > 0.)
-//                          |)
-//                          |ALL INNER JOIN
-//                          |(
-//                          |    SELECT
-//                          |        variant_id,
-//                          |        gene_id,
-//                          |        source_list,
-//                          |        source_score_list,
-//                          |        overall_score
-//                          |    FROM #$v2gOScoresTName
-//                          |    PREWHERE (chr_id = ${v.position.chrId}) AND
-//                          |       (variant_id = ${v.id})
-//                          |) USING (gene_id)
-//                          |ORDER BY gene_id ASC
-//          """.stripMargin.as[ScoredG2VLine]
+//        db.run(q.result.asTry).map {
+////          case Success(r) => r.view.groupBy(_.geneId).mapValues(G2VAssociation(_)).values.toSeq
+//          case Success(v) =>
+//            println("------------------------------------------------ GARETH ------------------------------------------------")
+//            println("------------------------------------------------ GARETH ------------------------------------------------")
+//            println("------------------------------------------------ GARETH ------------------------------------------------")
+//            println(v.head)
+//            val x = v.map(r => ScoredG2VLine(
+//              r._1.geneId, r._1.tagId, r._2.overallScore, Map[String, Double]((r._2.sourceList zip r._2.sourceScoreList):_*),
+//              r._1.association.typeId, r._1.association.sourceId, r._1.association.feature,
+//              r._1.association.fpredMaxLabel, r._1.association.fpredMaxScore, r._1.association.qtlBeta,
+//              r._1.association.qtlSE, r._1.association.qtlPval, r._1.association.intervalScore,
+//              r._1.association.qtlScoreQ, r._1.association.intervalScoreQ
+//            )).groupBy(_.geneId).mapValues(G2VAssociation(_)).values.toSeq
 //
-//        db.run(assocs.asTry).map {
-//          case Success(r) => r.view.groupBy(_.geneId).mapValues(G2VAssociation(_)).values.toSeq
+//            println("------------------------------------------------ GARETH ------------------------------------------------")
+//            println("------------------------------------------------ GARETH ------------------------------------------------")
+//            println("------------------------------------------------ GARETH ------------------------------------------------")
+//
+//            print(x)
+//            x
+////            v.map(r => ScoredG2VLine(
+////            r.
+////          )).groupBy(_.geneId).mapValues(G2VAssociation(_)).values.toSeq
+////            Seq.empty
 //          case Failure(ex) =>
 //            logger.error(ex.getMessage)
 //            Seq.empty
 //        }
-//      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+//      }
+//      case Left(violation) => {
+//        Future.failed(InputParameterCheckError(Vector(violation)))
+//      }
 //    }
-//  }
+    val variant = DNA.Variant(variantId)
+
+    variant match {
+      case Right(v) =>
+        val assocs = sql"""
+                          |SELECT
+                          |    gene_id,
+                          |    variant_id,
+                          |    overall_score,
+                          |    source_list,
+                          |    source_score_list,
+                          |    type_id,
+                          |    source_id,
+                          |    feature,
+                          |    fpred_max_label,
+                          |    fpred_max_score,
+                          |    qtl_beta,
+                          |    qtl_se,
+                          |    qtl_pval,
+                          |    interval_score,
+                          |    qtl_score_q,
+                          |    interval_score_q
+                          |FROM
+                          |(
+                          |    SELECT
+                          |        gene_id,
+                          |        type_id,
+                          |        source_id,
+                          |        feature,
+                          |        fpred_max_label,
+                          |        fpred_max_score,
+                          |        qtl_beta,
+                          |        qtl_se,
+                          |        qtl_pval,
+                          |        interval_score,
+                          |        qtl_score_q,
+                          |        interval_score_q
+                          |    FROM #$v2gTName
+                          |    PREWHERE
+                          |       (chr_id = ${v.position.chrId}) AND
+                          |       (position = ${v.position.position}) AND
+                          |       (variant_id = ${v.id}) AND
+                          |       (isNull(fpred_max_score) OR fpred_max_score > 0.)
+                          |)
+                          |ALL INNER JOIN
+                          |(
+                          |    SELECT
+                          |        variant_id,
+                          |        gene_id,
+                          |        source_list,
+                          |        source_score_list,
+                          |        overall_score
+                          |    FROM #$v2gOScoresTName
+                          |    PREWHERE (chr_id = ${v.position.chrId}) AND
+                          |       (variant_id = ${v.id})
+                          |) USING (gene_id)
+                          |ORDER BY gene_id ASC
+          """.stripMargin.as[ScoredG2VLine]
+
+        db.run(assocs.asTry).map {
+          case Success(r) => r.view.groupBy(_.geneId).mapValues(G2VAssociation(_)).values.toSeq
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Seq.empty
+        }
+      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+    }
+  }
 
   private val v2dByStTName: String = "v2d_by_stchr"
   private val v2dByChrPosTName: String = "v2d_by_chrpos"

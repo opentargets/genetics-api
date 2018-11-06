@@ -525,125 +525,124 @@ object GQLSchema {
         resolve = _.value.functionalPredictions)
     ))
 
-//  val qtlTissue = ObjectType("QTLTissue",
-//    "",
-//    fields[Backend, QTLTissue](
-//      Field("tissue", tissue,
-//        Some(""),
-//        resolve = _.value.tissue),
-//      Field("quantile", FloatType,
-//        Some(""),
-//        resolve = _.value.quantile),
-//      Field("beta", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.beta),
-//      Field("pval", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.pval)
-//    ))
-//
-//  val intervalTissue = ObjectType("IntervalTissue",
-//    "",
-//    fields[Backend, IntervalTissue](
-//      Field("tissue", tissue,
-//        Some(""),
-//        resolve = _.value.tissue),
-//      Field("quantile", FloatType,
-//        Some(""),
-//        resolve = _.value.quantile),
-//      Field("score", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.score)
-//    ))
-//
-//  val fpredTissue = ObjectType("FPredTissue",
-//    "",
-//    fields[Backend, FPredTissue](
-//      Field("tissue", tissue,
-//        Some(""),
-//        resolve = _.value.tissue),
-//      Field("maxEffectLabel", OptionType(StringType),
-//        Some(""),
-//        resolve = _.value.maxEffectLabel),
-//      Field("maxEffectScore", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.maxEffectScore)
-//    ))
+  val qtlTissue = ObjectType("QTLTissue",
+    "",
+    fields[Backend, QTLTissue](
+      Field("tissue", tissue,
+        Some(""),
+        resolve = _.value.tissue),
+      Field("quantile", FloatType,
+        Some(""),
+        resolve = _.value.quantile),
+      Field("beta", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta),
+      Field("pval", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.pval)
+    ))
 
+  val intervalTissue = ObjectType("IntervalTissue",
+    "",
+    fields[Backend, IntervalTissue](
+      Field("tissue", tissue,
+        Some(""),
+        resolve = _.value.tissue),
+      Field("quantile", FloatType,
+        Some(""),
+        resolve = _.value.quantile),
+      Field("score", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.score)
+    ))
 
-//  val qtlElement = ObjectType("QTLElement",
-//    "A list of rows with each link",
-//    fields[Backend, G2VElement[QTLTissue]](
-//      Field("typeId", StringType,
-//        Some(""),
-//        resolve = _.value.id),
-//      Field("sourceId", StringType,
-//        Some(""),
-//        resolve = _.value.sourceId),
-//      Field("aggregatedScore", FloatType,
-//        Some(""),
-//        resolve = _.value.aggregatedScore),
-//      Field("tissues", ListType(qtlTissue),
-//        Some(""),
-//        resolve = _.value.tissues)
-//    ))
-//
-//  val intervalElement = ObjectType("IntervalElement",
-//    "A list of rows with each link",
-//    fields[Backend, G2VElement[IntervalTissue]](
-//      Field("typeId", StringType,
-//        Some(""),
-//        resolve = _.value.id),
-//      Field("sourceId", StringType,
-//        Some(""),
-//        resolve = _.value.sourceId),
-//      Field("aggregatedScore", FloatType,
-//        Some(""),
-//        resolve = _.value.aggregatedScore),
-//      Field("tissues", ListType(intervalTissue),
-//        Some(""),
-//        resolve = _.value.tissues)
-//    ))
-//
-//  val fPredElement = ObjectType("FunctionalPredictionElement",
-//    "A list of rows with each link",
-//    fields[Backend, G2VElement[FPredTissue]](
-//      Field("typeId", StringType,
-//        Some(""),
-//        resolve = _.value.id),
-//      Field("sourceId", StringType,
-//        Some(""),
-//        resolve = _.value.sourceId),
-//      Field("aggregatedScore", FloatType,
-//        Some(""),
-//        resolve = _.value.aggregatedScore),
-//      Field("tissues", ListType(fpredTissue),
-//        Some(""),
-//        resolve = _.value.tissues)
-//    ))
+  val fpredTissue = ObjectType("FPredTissue",
+    "",
+    fields[Backend, FPredTissue](
+      Field("tissue", tissue,
+        Some(""),
+        resolve = _.value.tissue),
+      Field("maxEffectLabel", OptionType(StringType),
+        Some(""),
+        resolve = _.value.maxEffectLabel),
+      Field("maxEffectScore", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.maxEffectScore)
+    ))
 
-//  val geneForVariant = ObjectType("GeneForVariant",
-//    "A list of rows with each link",
-//    fields[Backend, G2VAssociation](
-//      Field("gene", gene,
-//        Some("Associated scored gene"),
-//        resolve = rsl => genesFetcher.defer(rsl.value.geneId)),
-//      Field("variant", StringType,
-//        Some("Associated scored variant"),
-//        resolve = _.value.variantId),
-//      Field("overallScore", FloatType,
-//        Some(""),
-//        resolve = _.value.overallScore),
-//      Field("qtls", ListType(qtlElement),
-//        Some(""),
-//        resolve = _.value.qtls),
-//      Field("intervals", ListType(intervalElement),
-//        Some(""),
-//        resolve = _.value.intervals),
-//      Field("functionalPredictions", ListType(fPredElement),
-//        Some(""),
-//        resolve = _.value.fpreds)
-//    ))
+  val qtlElement = ObjectType("QTLElement",
+    "A list of rows with each link",
+    fields[Backend, G2VElement[QTLTissue]](
+      Field("typeId", StringType,
+        Some(""),
+        resolve = _.value.id),
+      Field("sourceId", StringType,
+        Some(""),
+        resolve = _.value.sourceId),
+      Field("aggregatedScore", FloatType,
+        Some(""),
+        resolve = _.value.aggregatedScore),
+      Field("tissues", ListType(qtlTissue),
+        Some(""),
+        resolve = _.value.tissues)
+    ))
+
+  val intervalElement = ObjectType("IntervalElement",
+    "A list of rows with each link",
+    fields[Backend, G2VElement[IntervalTissue]](
+      Field("typeId", StringType,
+        Some(""),
+        resolve = _.value.id),
+      Field("sourceId", StringType,
+        Some(""),
+        resolve = _.value.sourceId),
+      Field("aggregatedScore", FloatType,
+        Some(""),
+        resolve = _.value.aggregatedScore),
+      Field("tissues", ListType(intervalTissue),
+        Some(""),
+        resolve = _.value.tissues)
+    ))
+
+  val fPredElement = ObjectType("FunctionalPredictionElement",
+    "A list of rows with each link",
+    fields[Backend, G2VElement[FPredTissue]](
+      Field("typeId", StringType,
+        Some(""),
+        resolve = _.value.id),
+      Field("sourceId", StringType,
+        Some(""),
+        resolve = _.value.sourceId),
+      Field("aggregatedScore", FloatType,
+        Some(""),
+        resolve = _.value.aggregatedScore),
+      Field("tissues", ListType(fpredTissue),
+        Some(""),
+        resolve = _.value.tissues)
+    ))
+
+  val geneForVariant = ObjectType("GeneForVariant",
+    "A list of rows with each link",
+    fields[Backend, G2VAssociation](
+      Field("gene", gene,
+        Some("Associated scored gene"),
+        resolve = rsl => genesFetcher.defer(rsl.value.geneId)),
+      Field("variant", StringType,
+        Some("Associated scored variant"),
+        resolve = _.value.variantId),
+      Field("overallScore", FloatType,
+        Some(""),
+        resolve = _.value.overallScore),
+      Field("qtls", ListType(qtlElement),
+        Some(""),
+        resolve = _.value.qtls),
+      Field("intervals", ListType(intervalElement),
+        Some(""),
+        resolve = _.value.intervals),
+      Field("functionalPredictions", ListType(fPredElement),
+        Some(""),
+        resolve = _.value.fpreds)
+    ))
 
 //  val variantSearchResult = ObjectType("VariantSearchResult",
 //    "Variant search result object",
@@ -717,9 +716,9 @@ object GQLSchema {
       Field("genesForVariantSchema", v2gSchema,
         arguments = Nil,
         resolve = ctx => ctx.ctx.getG2VSchema),
-//      Field("genesForVariant", ListType(geneForVariant),
-//        arguments = variantId :: Nil,
-//        resolve = ctx => ctx.ctx.buildG2VByVariant(ctx.arg(variantId))),
+      Field("genesForVariant", ListType(geneForVariant),
+        arguments = variantId :: Nil,
+        resolve = ctx => ctx.ctx.buildG2VByVariant(ctx.arg(variantId))),
 //      Field("variantsForGene", ListType(geneForVariant),
 //        arguments = geneId :: Nil,
 //        resolve = ctx => ctx.ctx.buildG2VByGene(ctx.arg(geneId)))
