@@ -2,20 +2,13 @@ package models
 
 import com.sksamuel.elastic4s.{Hit, HitReader}
 import slick.jdbc.GetResult
-import models.Violations._
 import models.Functions._
 import models.DNA._
 import sangria.execution.deferred.HasId
 import clickhouse.rep.SeqRep._
 import clickhouse.rep.SeqRep.Implicits._
 
-
-
-
 object Entities {
-  implicit val variantHasId = HasId[FRM.Variant, String](_.id)
-  implicit val studyHasId = HasId[FRM.Study, String](_.studyId)
-
   case class OverlapRow(stid: String, numOverlapLoci: Int)
 
   case class OverlappedLociStudy(studyId: String, topOverlappedStudies: IndexedSeq[OverlapRow])
@@ -223,21 +216,6 @@ object Entities {
             Seq.empty
           )
           )
-
-          //          Right(FRM.Gene(mv("gene_id").toString,
-          //            Option(mv("gene_name").asInstanceOf[String]),
-          //            Option(mv("start").asInstanceOf[Int]),
-          //            Option(mv("end").asInstanceOf[Int]),
-          //            Option(mv("chr").toString),
-          //            Option(mv("tss").asInstanceOf[Int]),
-          //            Option(mv("biotype").asInstanceOf[String]),
-          //            Option(mv("fwdstrand").asInstanceOf[Int] match {
-          //              case 0 => false
-          //              case 1 => true
-          //              case _ => false
-          //            })
-          //            )
-          //          )
         }
       }
     }
