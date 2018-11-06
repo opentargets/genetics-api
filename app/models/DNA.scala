@@ -2,8 +2,6 @@ package models
 
 import java.io.FileNotFoundException
 
-import clickhouse.rep.SeqRep.LSeqRep
-import clickhouse.rep.SeqRep.Implicits._
 import models.Violations.{GeneViolation, RegionViolation, VariantViolation}
 import sangria.execution.deferred.HasId
 
@@ -11,7 +9,6 @@ import scala.io.Source
 import slick.jdbc.GetResult
 import kantan.csv._
 import kantan.csv.ops._
-import kantan.csv.generic._
 import play.api.Logger
 
 object DNA {

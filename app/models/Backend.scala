@@ -8,14 +8,12 @@ import com.sksamuel.elastic4s.{ElasticsearchClientUri, analyzers}
 import models.Entities._
 import models.Functions._
 import models.DNA._
-import models.DNA.Implicits._
 import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
 import models.Violations.{InputParameterCheckError, RegionViolation, SearchStringViolation, VariantViolation}
 import clickhouse.rep.SeqRep.StrSeqRep
 import com.sksamuel.elastic4s.analyzers._
 import sangria.validation.Violation
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 import scala.concurrent._
@@ -25,9 +23,6 @@ import play.db.NamedDatabase
 import play.api.Logger
 import play.api.Environment
 import java.nio.file.{Path, Paths}
-
-import slick.jdbc.GetResult
-
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,

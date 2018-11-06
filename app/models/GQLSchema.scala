@@ -1,14 +1,8 @@
 package models
 
-
 import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
-import DNA.Variant
-//import FRM.Variant
-import sangria.schema
-import sangria.streaming.ValidOutStreamType
-import Entities.DBImplicits.frm2dnaVariant
 
 object GQLSchema {
   val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
