@@ -486,45 +486,45 @@ object GQLSchema {
         resolve = _.value.associations)
     ))
 
-//  val tissue = ObjectType("Tissue",
-//    "",
-//    fields[Backend, Tissue](
-//      Field("id", StringType,
-//        Some(""),
-//        resolve = _.value.id),
-//      Field("name", OptionType(StringType),
-//        Some(""),
-//        resolve = _.value.name)
-//    ))
-//
-//  val g2vSchemaElement = ObjectType("G2VSchemaElement",
-//    "A list of rows with each link",
-//    fields[Backend, G2VSchemaElement](
-//      Field("id", StringType,
-//        Some(""),
-//        resolve = _.value.id),
-//      Field("sourceId", StringType,
-//        Some(""),
-//        resolve = _.value.sourceId),
-//      Field("tissues", ListType(tissue),
-//        Some(""),
-//        resolve = _.value.tissues)
-//    ))
-//
-//  val v2gSchema = ObjectType("G2VSchema",
-//    "A list of rows with each link",
-//    fields[Backend, G2VSchema](
-//      Field("qtls", ListType(g2vSchemaElement),
-//        Some("qtl structure definition"),
-//        resolve = _.value.qtls),
-//      Field("intervals", ListType(g2vSchemaElement),
-//        Some("qtl structure definition"),
-//        resolve = _.value.intervals),
-//      Field("functionalPredictions", ListType(g2vSchemaElement),
-//        Some("qtl structure definition"),
-//        resolve = _.value.functionalPredictions)
-//    ))
-//
+  val tissue = ObjectType("Tissue",
+    "",
+    fields[Backend, Tissue](
+      Field("id", StringType,
+        Some(""),
+        resolve = _.value.id),
+      Field("name", OptionType(StringType),
+        Some(""),
+        resolve = _.value.name)
+    ))
+
+  val g2vSchemaElement = ObjectType("G2VSchemaElement",
+    "A list of rows with each link",
+    fields[Backend, G2VSchemaElement](
+      Field("id", StringType,
+        Some(""),
+        resolve = _.value.id),
+      Field("sourceId", StringType,
+        Some(""),
+        resolve = _.value.sourceId),
+      Field("tissues", ListType(tissue),
+        Some(""),
+        resolve = _.value.tissues)
+    ))
+
+  val v2gSchema = ObjectType("G2VSchema",
+    "A list of rows with each link",
+    fields[Backend, G2VSchema](
+      Field("qtls", ListType(g2vSchemaElement),
+        Some("qtl structure definition"),
+        resolve = _.value.qtls),
+      Field("intervals", ListType(g2vSchemaElement),
+        Some("qtl structure definition"),
+        resolve = _.value.intervals),
+      Field("functionalPredictions", ListType(g2vSchemaElement),
+        Some("qtl structure definition"),
+        resolve = _.value.functionalPredictions)
+    ))
+
 //  val qtlTissue = ObjectType("QTLTissue",
 //    "",
 //    fields[Backend, QTLTissue](
@@ -714,9 +714,9 @@ object GQLSchema {
 //      Field("gecko", OptionType(gecko),
 //        arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
 //        resolve = ctx => ctx.ctx.buildGecko(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
-//      Field("genesForVariantSchema", v2gSchema,
-//        arguments = Nil,
-//        resolve = ctx => ctx.ctx.getG2VSchema),
+      Field("genesForVariantSchema", v2gSchema,
+        arguments = Nil,
+        resolve = ctx => ctx.ctx.getG2VSchema),
 //      Field("genesForVariant", ListType(geneForVariant),
 //        arguments = variantId :: Nil,
 //        resolve = ctx => ctx.ctx.buildG2VByVariant(ctx.arg(variantId))),

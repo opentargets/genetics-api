@@ -94,7 +94,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //    }
 //  }
 
-//  def getG2VSchema: Future[Entities.G2VSchema] = {
+  def getG2VSchema: Future[Entities.G2VSchema] = {
 //    def toSeqStruct(elems: Map[String, Map[String, String]]) = {
 //      (for {
 //        triple <- elems
@@ -103,6 +103,48 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //      } yield Entities.G2VSchemaElement(triple._1, tuple._1,
 //        StrSeqRep(tuple._2).rep.map(el => Tissue(el)))).toSeq
 //    }
+
+    def toSeqStruct(elems: Map[String, Map[String, Seq[String]]]) = {
+      (for {
+        triple <- elems
+        tuple <- triple._2
+
+      } yield Entities.G2VSchemaElement(triple._1, tuple._1,
+        tuple._2.map(el => Tissue(el)))).toSeq
+    }
+
+    val q = FRM.v2GsStructure
+//      .groupBy(_.typeId).map {
+//      case (typeId, rows) => rows.groupBy(_.sourceId).map {
+//        case (sourceId, rows) =>
+//          (typeId, sourceId, rows.take(1))
+//      }
+//    }
+
+//      .mapValues(_.groupBy(_._2).mapValues(_.head._3)
+//    val q = for {
+//      r <- FRM.v2GsStructure
+//    } yield (r.typeId, r.sourceId, r.featureSet)
+    db.run(q.result.asTry).map {
+      case Success(v) =>
+        println(v)
+        val mappedRows = v.groupBy(_.typeId).mapValues(_.groupBy(_.sourceId).mapValues(_.head.featureSet))
+        val qtlElems = toSeqStruct(mappedRows.filterKeys(defaultQtlTypes.contains(_)))
+        val intervalElems = toSeqStruct(mappedRows.filterKeys(defaultIntervalTypes.contains(_)))
+        val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains(_)))
+//        println(x)
+//        G2VSchema(Seq.empty, Seq.empty, Seq.empty)
+//        val mappedRows = v.groupBy(_._1).mapValues(_.groupBy(_._2).mapValues(_.head._3))
+//        val qtlElems = toSeqStruct(mappedRows.filterKeys(defaultQtlTypes.contains(_)))
+//        val intervalElems = toSeqStruct(mappedRows.filterKeys(defaultIntervalTypes.contains(_)))
+//        val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains(_)))
+//
+        G2VSchema(qtlElems, intervalElems, fpredElems)
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        G2VSchema(Seq.empty, Seq.empty, Seq.empty)
+    }
+
 //    val studyQ = sql"""
 //                      |select
 //                      | type_id,
@@ -123,7 +165,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //        logger.error(ex.getMessage)
 //        G2VSchema(Seq.empty, Seq.empty, Seq.empty)
 //    }
-//  }
+  }
 
 //  def getSearchResultSet(qString: String, pageIndex: Option[Int], pageSize: Option[Int]):
 //  Future[Entities.SearchResultSet] = {
