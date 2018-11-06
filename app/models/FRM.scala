@@ -9,13 +9,6 @@ object FRM {
     *  a MappedColumnType, which likely does the conversion in scala.
     */
 
-//  def asIntArray = SimpleExpression.unary[String, String] { (str, qb) =>
-//    qb.sqlBuilder += "CAST("
-//    qb.expr(str)
-//    qb.sqlBuilder += ", 'Array(UInt32)') AS "
-//    qb.expr(str)
-//  }
-
   implicit val seqLongType = MappedColumnType.base[Seq[Long], String](
     { ls => ls.mkString("[", ",", "]") },
     { s => s.filterNot("[]".toSet).split(",").map(_.toLong).toSeq }
@@ -181,70 +174,4 @@ object FRM {
 
   lazy val v2DsByStudy = TableQuery[V2DsByChrPos]
 
-  // --------------------------------------------------------
-  // V2G
-
-  case class V2GAssociation(typeId: String, sourceId: String, feature: String, qtlBeta: Option[Double],
-                            qtlSE: Option[Double], qtlPval: Option[Double], qtlScoreQ: Double,
-                            intervalScore: Option[Double], intervalScoreQ: Double,
-                            fpredMaxLabel: Option[String], fpredMaxScore: Option[Double])
-  case class V2G(geneId: String, tagId: String, tagChromosome: String, tagPosition: Long, association: V2GAssociation)
-
-  trait V2GAssociationFields extends Table[V2G] {
-    def typeId = column[String]("type_id")
-    def sourceId = column[String]("source_id")
-    def feature = column[String]("feature")
-    def qtlBeta = column[Option[Double]]("qtl_beta")
-    def qtlSE = column[Option[Double]]("qtl_se")
-    def qtlPval = column[Option[Double]]("qtl_pval")
-    def qtlScoreQ = column[Double]("qtl_score_q")
-    def intervalScore = column[Option[Double]]("interval_score")
-    def intervalScoreQ = column[Double]("interval_score_q")
-    def fpredMaxLabel = column[Option[String]]("fpred_max_label")
-    def fpredMaxScore = column[Option[Double]]("fpred_max_score")
-
-    def associationProjection = (typeId, sourceId, feature, qtlBeta, qtlSE, qtlPval, qtlScoreQ, intervalScore, intervalScoreQ, fpredMaxLabel, fpredMaxScore) <> (V2GAssociation.tupled, V2GAssociation.unapply)
-  }
-
-  class V2Gs(tag: Tag) extends Table[V2G](tag, "v2g") with V2GAssociationFields {
-    def geneId = column[String]("gene_id")
-    def tagId = column[String]("variant_id")
-    def tagChromosome = column[String]("chr_id")
-    def tagPosition = column[Long]("position")
-    def * = (geneId, tagId, tagChromosome, tagPosition, associationProjection) <> (V2G.tupled, V2G.unapply)
-  }
-
-  lazy val v2Gs = TableQuery[V2Gs]
-
-  // --------------------------------------------------------
-  // V2G Overall
-
-  case class V2GOverall(chromosome: String, variantId: String, geneId: String, sourceList: Seq[String], sourceScoreList: Seq[Double], overallScore: Double)
-
-  class V2GsOverall(tag: Tag) extends Table[V2GOverall](tag, "v2g_score_by_overall") {
-    def chromosome = column[String]("chr_id")
-    def variantId = column[String]("variant_id")
-    def geneId = column[String]("gene_id")
-    def sourceList = column[Seq[String]]("source_list")
-    def sourceScoreList = column[Seq[Double]]("source_score_list")
-    def overallScore = column[Double]("overall_score")
-    def * = (chromosome, variantId, geneId, sourceList, sourceScoreList, overallScore) <> (V2GOverall.tupled, V2GOverall.unapply)
-  }
-
-  lazy val v2GsOverall = TableQuery[V2GsOverall]
-
-  // --------------------------------------------------------
-  // V2G Structure
-
-  case class V2GStructure(typeId: String, sourceId: String, featureSet: Seq[String], featureSetSize: Long)
-
-  class V2GsStructure(tag: Tag) extends Table[V2GStructure](tag, "v2g_structure") {
-    def typeId = column[String]("type_id")
-    def sourceId = column[String]("source_id")
-    def featureSet = column[Seq[String]]("feature_set")
-    def featureSetSize = column[Long]("feature_set_size")
-    def * = (typeId, sourceId, featureSet, featureSetSize) <> (V2GStructure.tupled, V2GStructure.unapply)
-  }
-
-  lazy val v2GsStructure = TableQuery[V2GsStructure]
 }

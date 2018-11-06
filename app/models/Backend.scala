@@ -95,58 +95,35 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //  }
 
   def getG2VSchema: Future[Entities.G2VSchema] = {
-//    def toSeqStruct(elems: Map[String, Map[String, String]]) = {
-//      (for {
-//        triple <- elems
-//        tuple <- triple._2
-//
-//      } yield Entities.G2VSchemaElement(triple._1, tuple._1,
-//        StrSeqRep(tuple._2).rep.map(el => Tissue(el)))).toSeq
-//    }
-
-    def toSeqStruct(elems: Map[String, Map[String, Seq[String]]]) = {
+    def toSeqStruct(elems: Map[String, Map[String, String]]) = {
       (for {
         triple <- elems
         tuple <- triple._2
 
       } yield Entities.G2VSchemaElement(triple._1, tuple._1,
-        tuple._2.map(el => Tissue(el)))).toSeq
+        StrSeqRep(tuple._2).rep.map(el => Tissue(el)))).toSeq
     }
 
-    val q = FRM.v2GsStructure
-    db.run(q.result.asTry).map {
+    val studyQ = sql"""
+                      |select
+                      | type_id,
+                      | source_id,
+                      | feature_set
+                      |from #$v2gStructureTName
+      """.stripMargin.as[(String, String, String)]
+
+    db.run(studyQ.asTry).map {
       case Success(v) =>
-        println(v)
-        val mappedRows = v.groupBy(_.typeId).mapValues(_.groupBy(_.sourceId).mapValues(_.head.featureSet))
+        val mappedRows = v.groupBy(_._1).mapValues(_.groupBy(_._2).mapValues(_.head._3))
         val qtlElems = toSeqStruct(mappedRows.filterKeys(defaultQtlTypes.contains(_)))
         val intervalElems = toSeqStruct(mappedRows.filterKeys(defaultIntervalTypes.contains(_)))
         val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains(_)))
+
         G2VSchema(qtlElems, intervalElems, fpredElems)
       case Failure(ex) =>
         logger.error(ex.getMessage)
         G2VSchema(Seq.empty, Seq.empty, Seq.empty)
     }
-
-//    val studyQ = sql"""
-//                      |select
-//                      | type_id,
-//                      | source_id,
-//                      | feature_set
-//                      |from #$v2gStructureTName
-//      """.stripMargin.as[(String, String, String)]
-//
-//    db.run(studyQ.asTry).map {
-//      case Success(v) =>
-//        val mappedRows = v.groupBy(_._1).mapValues(_.groupBy(_._2).mapValues(_.head._3))
-//        val qtlElems = toSeqStruct(mappedRows.filterKeys(defaultQtlTypes.contains(_)))
-//        val intervalElems = toSeqStruct(mappedRows.filterKeys(defaultIntervalTypes.contains(_)))
-//        val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains(_)))
-//
-//        G2VSchema(qtlElems, intervalElems, fpredElems)
-//      case Failure(ex) =>
-//        logger.error(ex.getMessage)
-//        G2VSchema(Seq.empty, Seq.empty, Seq.empty)
-//    }
   }
 
 //  def getSearchResultSet(qString: String, pageIndex: Option[Int], pageSize: Option[Int]):
@@ -692,57 +669,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 //  }
 
   def buildG2VByVariant(variantId: String): Future[Seq[Entities.G2VAssociation]] = {
-//    expandVariantId(variantId) match {
-//      case Right(v) => {
-//        val qOverall = FRM.v2GsOverall.filter(r => r.chromosome === v.chromosome && r.variantId === v.id)
-//        val qAll = FRM.v2Gs.filter(r =>
-//            r.tagChromosome === v.chromosome &&
-//            r.tagPosition === v.position &&
-//            r.tagId === v.id &&
-//            r.fpredMaxScore.getOrElse(1.0) > 0.0)
-//        val q = qAll
-//          .join(qOverall)
-//          .on((r1, r2) => r1.geneId === r2.geneId)
-////          .map(r => (
-////            r._1.geneId, r._1.tagId, r._2.overallScore, r._2.sourceList, r._2.sourceScoreList, r._1.typeId, r._1.sourceId,
-////            r._1.feature, r._1.fpredMaxLabel, r._1.fpredMaxScore, r._1.qtlBeta, r._1.qtlSE, r._1.qtlPval,
-////            r._1.intervalScore, r._1.qtlScoreQ, r._1.intervalScoreQ
-////          ))
-//
-//        db.run(q.result.asTry).map {
-////          case Success(r) => r.view.groupBy(_.geneId).mapValues(G2VAssociation(_)).values.toSeq
-//          case Success(v) =>
-//            println("------------------------------------------------ GARETH ------------------------------------------------")
-//            println("------------------------------------------------ GARETH ------------------------------------------------")
-//            println("------------------------------------------------ GARETH ------------------------------------------------")
-//            println(v.head)
-//            val x = v.map(r => ScoredG2VLine(
-//              r._1.geneId, r._1.tagId, r._2.overallScore, Map[String, Double]((r._2.sourceList zip r._2.sourceScoreList):_*),
-//              r._1.association.typeId, r._1.association.sourceId, r._1.association.feature,
-//              r._1.association.fpredMaxLabel, r._1.association.fpredMaxScore, r._1.association.qtlBeta,
-//              r._1.association.qtlSE, r._1.association.qtlPval, r._1.association.intervalScore,
-//              r._1.association.qtlScoreQ, r._1.association.intervalScoreQ
-//            )).groupBy(_.geneId).mapValues(G2VAssociation(_)).values.toSeq
-//
-//            println("------------------------------------------------ GARETH ------------------------------------------------")
-//            println("------------------------------------------------ GARETH ------------------------------------------------")
-//            println("------------------------------------------------ GARETH ------------------------------------------------")
-//
-//            print(x)
-//            x
-////            v.map(r => ScoredG2VLine(
-////            r.
-////          )).groupBy(_.geneId).mapValues(G2VAssociation(_)).values.toSeq
-////            Seq.empty
-//          case Failure(ex) =>
-//            logger.error(ex.getMessage)
-//            Seq.empty
-//        }
-//      }
-//      case Left(violation) => {
-//        Future.failed(InputParameterCheckError(Vector(violation)))
-//      }
-//    }
     val variant = DNA.Variant(variantId)
 
     variant match {
