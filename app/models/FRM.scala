@@ -98,7 +98,7 @@ object FRM {
   lazy val studies = TableQuery[Studies]
 
   // --------------------------------------------------------
-  // V2D
+  // V2D (NOT CURRENTLY USED)
 
   case class V2DAssociation(
                       pval: Double, r2: Option[Double], log10Abf: Option[Double], posteriorProbability: Option[Double],

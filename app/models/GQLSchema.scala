@@ -265,210 +265,209 @@ object GQLSchema {
         resolve = _.value.posteriorProbability)
     ))
 
-//  val manhattanAssociation = ObjectType("ManhattanAssociation",
-//  "This element represents an association between a trait and a variant through a study",
-//    fields[Backend, ManhattanAssociation](
-//      Field("variant", variant,
-//        Some("Index variant"),
-//        resolve = r => variantsFetcher.defer(r.value.variantId)),
-//      Field("pval", FloatType,
-//        Some("Computed p-Value"),
-//        resolve = _.value.pval),
-//      Field("bestGenes", ListType(scoredGene),
-//        Some("A list of best genes associated"),
-//        resolve = _.value.bestGenes),
-//      Field("credibleSetSize", OptionType(LongType),
-//      Some("The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
-//        resolve = _.value.crediblbeSetSize),
-//      Field("ldSetSize", OptionType(LongType),
-//        Some("The cardinal of the set defined as tag variants for an index variant coming from ld expansion"),
-//        resolve = _.value.ldSetSize),
-//      Field("totalSetSize", LongType,
-//        Some("The cardinal of the set defined as tag variants for an index variant coming from any expansion"),
-//        resolve = _.value.totalSetSize)
-//    ))
+  val manhattanAssociation = ObjectType("ManhattanAssociation",
+  "This element represents an association between a trait and a variant through a study",
+    fields[Backend, ManhattanAssociation](
+      Field("variant", variant,
+        Some("Index variant"),
+        resolve = r => variantsFetcher.defer(r.value.variantId)),
+      Field("pval", FloatType,
+        Some("Computed p-Value"),
+        resolve = _.value.pval),
+      Field("bestGenes", ListType(scoredGene),
+        Some("A list of best genes associated"),
+        resolve = _.value.bestGenes),
+      Field("credibleSetSize", OptionType(LongType),
+      Some("The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
+        resolve = _.value.crediblbeSetSize),
+      Field("ldSetSize", OptionType(LongType),
+        Some("The cardinal of the set defined as tag variants for an index variant coming from ld expansion"),
+        resolve = _.value.ldSetSize),
+      Field("totalSetSize", LongType,
+        Some("The cardinal of the set defined as tag variants for an index variant coming from any expansion"),
+        resolve = _.value.totalSetSize)
+    ))
 
 
-//  val pheWASAssociation = ObjectType("PheWASAssociation",
-//    "This element represents an association between a variant and a reported trait through a study",
-//    fields[Backend, VariantPheWAS](
-//      Field("study", OptionType(study),
-//        Some("Study Object"),
-//        resolve = rsl => studiesFetcher.deferOpt(rsl.value.stid)),
-//      Field("pval", FloatType,
-//        Some("Computed p-Value"),
-//        resolve = _.value.pval),
-//      Field("beta", FloatType,
-//        Some("beta"),
-//        resolve = _.value.beta),
-//      Field("nTotal", OptionType(LongType),
-//        Some("total sample size (variant level)"),
-//        resolve = _.value.nSamplesVariant),
-//      Field("nCases", OptionType(LongType),
-//        Some("number of cases (variant level)"),
-//        resolve = _.value.nCasesVariant),
-//      Field("nTotalStudy", OptionType(LongType),
-//        Some("total sample size (study level, available when variant level is not provided)"),
-//        resolve = _.value.nSamplesStudy),
-//      Field("nCasesStudy", OptionType(LongType),
-//        Some("number of cases (study level, available when variant level is not provided)"),
-//        resolve = _.value.nCasesStudy),
-//      Field("oddsRatio", OptionType(FloatType),
-//        Some("Odds ratio (if case control)"),
-//        resolve = _.value.oddRatio),
-//      Field("chip", StringType,
-//        Some("Chip type: 'metabochip' 'inmunochip', 'genome wide'"),
-//        resolve = _.value.chip),
-//      Field("info", OptionType(FloatType),
-//        Some("Info"),
-//        resolve = _.value.info)
-//    ))
+  val pheWASAssociation = ObjectType("PheWASAssociation",
+    "This element represents an association between a variant and a reported trait through a study",
+    fields[Backend, VariantPheWAS](
+      Field("study", OptionType(study),
+        Some("Study Object"),
+        resolve = rsl => studiesFetcher.deferOpt(rsl.value.stid)),
+      Field("pval", FloatType,
+        Some("Computed p-Value"),
+        resolve = _.value.pval),
+      Field("beta", FloatType,
+        Some("beta"),
+        resolve = _.value.beta),
+      Field("nTotal", OptionType(LongType),
+        Some("total sample size (variant level)"),
+        resolve = _.value.nSamplesVariant),
+      Field("nCases", OptionType(LongType),
+        Some("number of cases (variant level)"),
+        resolve = _.value.nCasesVariant),
+      Field("nTotalStudy", OptionType(LongType),
+        Some("total sample size (study level, available when variant level is not provided)"),
+        resolve = _.value.nSamplesStudy),
+      Field("nCasesStudy", OptionType(LongType),
+        Some("number of cases (study level, available when variant level is not provided)"),
+        resolve = _.value.nCasesStudy),
+      Field("oddsRatio", OptionType(FloatType),
+        Some("Odds ratio (if case control)"),
+        resolve = _.value.oddRatio),
+      Field("chip", StringType,
+        Some("Chip type: 'metabochip' 'inmunochip', 'genome wide'"),
+        resolve = _.value.chip),
+      Field("info", OptionType(FloatType),
+        Some("Info"),
+        resolve = _.value.info)
+    ))
 
-//  val geneTagVariant = ObjectType("GeneTagVariant",
-//    "",
-//    fields[Backend, GeneTagVariant](
-//      Field("geneId", StringType,
-//        Some(""),
-//        resolve = _.value.geneId),
-//      Field("tagVariantId", StringType,
-//        Some(""),
-//        resolve = _.value.tagVariantId),
-//      Field("overallScore", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.overallScore)
-//    ))
+  val geneTagVariant = ObjectType("GeneTagVariant",
+    "",
+    fields[Backend, GeneTagVariant](
+      Field("geneId", StringType,
+        Some(""),
+        resolve = _.value.geneId),
+      Field("tagVariantId", StringType,
+        Some(""),
+        resolve = _.value.tagVariantId),
+      Field("overallScore", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.overallScore)
+    ))
 
-//  val tagVariantIndexVariantStudy = ObjectType("TagVariantIndexVariantStudy",
-//    "",
-//    fields[Backend, TagVariantIndexVariantStudy](
-//      Field("tagVariantId", StringType,
-//        Some(""),
-//        resolve = _.value.tagVariantId),
-//      Field("indexVariantId", StringType,
-//        Some(""),
-//        resolve = _.value.indexVariantId),
-//      Field("studyId", StringType,
-//        Some(""),
-//        resolve = _.value.studyId),
-//      Field("r2", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.r2),
-//      Field("posteriorProbability", OptionType(FloatType),
-//        Some(""),
-//        resolve = _.value.posteriorProb),
-//      Field("pval", FloatType,
-//        Some(""),
-//        resolve = _.value.pval)
-//    ))
+  val tagVariantIndexVariantStudy = ObjectType("TagVariantIndexVariantStudy",
+    "",
+    fields[Backend, TagVariantIndexVariantStudy](
+      Field("tagVariantId", StringType,
+        Some(""),
+        resolve = _.value.tagVariantId),
+      Field("indexVariantId", StringType,
+        Some(""),
+        resolve = _.value.indexVariantId),
+      Field("studyId", StringType,
+        Some(""),
+        resolve = _.value.studyId),
+      Field("r2", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.r2),
+      Field("posteriorProbability", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.posteriorProb),
+      Field("pval", FloatType,
+        Some(""),
+        resolve = _.value.pval)
+    ))
 
-//  val gecko = ObjectType("Gecko",
-//    "",
-//    fields[Backend, Gecko](
-//      Field("genes", ListType(gene),
-//        Some(""),
-//        resolve = rsl => genesFetcher.deferSeq(rsl.value.geneIds)),
-//      Field("tagVariants", ListType(variant),
-//        Some(""),
-//        resolve = _.value.tagVariants),
-//      Field("indexVariants", ListType(variant),
-//        Some(""),
-//        resolve = _.value.indexVariants),
-//      Field("studies", ListType(study),
-//        Some(""),
-//        resolve = rsl => studiesFetcher.deferSeq(rsl.value.studies)),
-//      Field("geneTagVariants", ListType(geneTagVariant),
-//        Some(""),
-//        resolve = _.value.geneTagVariants),
-//      Field("tagVariantIndexVariantStudies", ListType(tagVariantIndexVariantStudy),
-//        Some(""),
-//        resolve = _.value.tagVariantIndexVariantStudies)
-//    ))
+  val gecko = ObjectType("Gecko",
+    "",
+    fields[Backend, Gecko](
+      Field("genes", ListType(gene),
+        Some(""),
+        resolve = rsl => genesFetcher.deferSeq(rsl.value.geneIds)),
+      Field("tagVariants", ListType(variant),
+        Some(""),
+        resolve = _.value.tagVariants),
+      Field("indexVariants", ListType(variant),
+        Some(""),
+        resolve = _.value.indexVariants),
+      Field("studies", ListType(study),
+        Some(""),
+        resolve = rsl => studiesFetcher.deferSeq(rsl.value.studies)),
+      Field("geneTagVariants", ListType(geneTagVariant),
+        Some(""),
+        resolve = _.value.geneTagVariants),
+      Field("tagVariantIndexVariantStudies", ListType(tagVariantIndexVariantStudy),
+        Some(""),
+        resolve = _.value.tagVariantIndexVariantStudies)
+    ))
 
-//  val overlap = ObjectType("Overlap",
-//  "This element represent an overlap between two variants for two studies",
-//    fields[Backend, OverlappedVariant](
-//      Field("variantIdA", StringType, None, resolve = _.value.variantIdA),
-//      Field("variantIdB", StringType, None, resolve = _.value.variantIdB),
-//      Field("overlapAB", IntType, None, resolve = _.value.overlapAB),
-//      Field("distinctA", IntType, None, resolve = _.value.distinctA),
-//      Field("distinctB", IntType, None, resolve = _.value.distinctB),
-//    ))
+  val overlap = ObjectType("Overlap",
+  "This element represent an overlap between two variants for two studies",
+    fields[Backend, OverlappedVariant](
+      Field("variantIdA", StringType, None, resolve = _.value.variantIdA),
+      Field("variantIdB", StringType, None, resolve = _.value.variantIdB),
+      Field("overlapAB", IntType, None, resolve = _.value.overlapAB),
+      Field("distinctA", IntType, None, resolve = _.value.distinctA),
+      Field("distinctB", IntType, None, resolve = _.value.distinctB),
+    ))
 
-//  val overlappedStudy = ObjectType("OverlappedStudy",
-//    "This element represent a overlap between two stduies",
-//    fields[Backend, OverlapRow](
-//      Field("study", study,
-//        Some("A study object"),
-//        resolve = rsl => studiesFetcher.defer(rsl.value.stid)),
-//      Field("numOverlapLoci", IntType,
-//        Some("Orig variant id which is been used for computing the " +
-//          "overlap with the referenced study"),
-//        resolve = _.value.numOverlapLoci)
-//    ))
+  val overlappedStudy = ObjectType("OverlappedStudy",
+    "This element represent a overlap between two stduies",
+    fields[Backend, OverlapRow](
+      Field("study", study,
+        Some("A study object"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.stid)),
+      Field("numOverlapLoci", IntType,
+        Some("Orig variant id which is been used for computing the " +
+          "overlap with the referenced study"),
+        resolve = _.value.numOverlapLoci)
+    ))
 
-//  val overlappedVariantsStudies = ObjectType("OverlappedVariantsStudies",
-//    "This element represent a overlap between two stduies",
-//    fields[Backend, OverlappedVariantsStudy](
-//      Field("study", OptionType(study),
-//        Some("A study object"),
-//        resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
-//      Field("overlaps", ListType(overlap),
-//        Some("Orig variant id which is been used for computing the " +
-//          "overlap with the referenced study"),
-//        resolve = _.value.overlaps)
-//    ))
+  val overlappedVariantsStudies = ObjectType("OverlappedVariantsStudies",
+    "This element represent a overlap between two stduies",
+    fields[Backend, OverlappedVariantsStudy](
+      Field("study", OptionType(study),
+        Some("A study object"),
+        resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
+      Field("overlaps", ListType(overlap),
+        Some("Orig variant id which is been used for computing the " +
+          "overlap with the referenced study"),
+        resolve = _.value.overlaps)
+    ))
 
-//  val topOverlappedStudies = ObjectType("TopOverlappedStudies",
-//    "This element represent a overlap between two stduies",
-//    fields[Backend, OverlappedLociStudy](
-//      Field("study", OptionType(study),
-//        Some("A study object"),
-//        resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
-//      Field("topStudiesByLociOverlap", ListType(overlappedStudy),
-//        Some("Top N studies ordered by loci overlap"),
-//        resolve = _.value.topOverlappedStudies)
-//    ))
+  val topOverlappedStudies = ObjectType("TopOverlappedStudies",
+    "This element represent a overlap between two stduies",
+    fields[Backend, OverlappedLociStudy](
+      Field("study", OptionType(study),
+        Some("A study object"),
+        resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
+      Field("topStudiesByLociOverlap", ListType(overlappedStudy),
+        Some("Top N studies ordered by loci overlap"),
+        resolve = _.value.topOverlappedStudies)
+    ))
 
-//  val studyForGene = ObjectType("StudyForGene", "",
-//    fields[Backend, String](
-//      Field("study", study,
-//        Some("A study object"),
-//        resolve = rsl => studiesFetcher.defer(rsl.value))
-//    ))
+  val studyForGene = ObjectType("StudyForGene", "",
+    fields[Backend, String](
+      Field("study", study,
+        Some("A study object"),
+        resolve = rsl => studiesFetcher.defer(rsl.value))
+    ))
 
-//  val overlappedInfoForStudy = ObjectType("OverlappedInfoForStudy", "",
-//    fields[Backend, (String, Seq[String])](
-//      Field("study", OptionType(study),
-//        Some("A study object"),
-//        resolve = rsl => studiesFetcher.deferOpt(rsl.value._1)),
-//      Field("overlappedVariantsForStudies", ListType(overlappedVariantsStudies),
-//        Some(""),
-//        resolve = rsl => rsl.ctx.getOverlapVariantsForStudies(rsl.value._1, rsl.value._2)),
-//      Field("variantIntersectionSet", ListType(StringType),
-//        Some(""),
-//        resolve = rsl => rsl.ctx.getOverlapVariantsIntersectionForStudies(rsl.value._1, rsl.value._2))
-//    ))
+  val overlappedInfoForStudy = ObjectType("OverlappedInfoForStudy", "",
+    fields[Backend, (String, Seq[String])](
+      Field("study", OptionType(study),
+        Some("A study object"),
+        resolve = rsl => studiesFetcher.deferOpt(rsl.value._1)),
+      Field("overlappedVariantsForStudies", ListType(overlappedVariantsStudies),
+        Some(""),
+        resolve = rsl => rsl.ctx.getOverlapVariantsForStudies(rsl.value._1, rsl.value._2)),
+      Field("variantIntersectionSet", ListType(StringType),
+        Some(""),
+        resolve = rsl => rsl.ctx.getOverlapVariantsIntersectionForStudies(rsl.value._1, rsl.value._2))
+    ))
 
-//  val manhattan = ObjectType("Manhattan",
-//    "This element represents a Manhattan like plot",
-//    fields[Backend, ManhattanTable](
-//      Field("associations", ListType(manhattanAssociation),
-//        Some("A list of associations"),
-//        resolve = _.value.associations),
-//      Field("topOverlappedStudies", OptionType(topOverlappedStudies),
-//        Some("A list of overlapped studies"),
-//        arguments = pageIndex :: pageSize :: Nil,
-//        resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.value.studyId, ctx.arg(pageIndex), ctx.arg(pageSize)))
-//    ))
+  val manhattan = ObjectType("Manhattan",
+    "This element represents a Manhattan like plot",
+    fields[Backend, ManhattanTable](
+      Field("associations", ListType(manhattanAssociation),
+        Some("A list of associations"),
+        resolve = _.value.associations),
+      Field("topOverlappedStudies", OptionType(topOverlappedStudies),
+        Some("A list of overlapped studies"),
+        arguments = pageIndex :: pageSize :: Nil,
+        resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.value.studyId, ctx.arg(pageIndex), ctx.arg(pageSize)))
+    ))
 
-//  val pheWAS = ObjectType("PheWAS",
-//    "This element represents a PheWAS like plot",
-//    fields[Backend, PheWASTable](
-//      Field("associations", ListType(pheWASAssociation),
-//        Some("A list of associations"),
-//        resolve = _.value.associations)
-//    ))
-
+  val pheWAS = ObjectType("PheWAS",
+    "This element represents a PheWAS like plot",
+    fields[Backend, PheWASTable](
+      Field("associations", ListType(pheWASAssociation),
+        Some("A list of associations"),
+        resolve = _.value.associations)
+    ))
 
   val tagVariantsAndStudiesForIndexVariant = ObjectType("TagVariantsAndStudiesForIndexVariant",
     "A list of rows with each link",
@@ -644,61 +643,61 @@ object GQLSchema {
         resolve = _.value.fpreds)
     ))
 
-//  val variantSearchResult = ObjectType("VariantSearchResult",
-//    "Variant search result object",
-//    fields[Backend, VariantSearchResult](
-//      Field("variant", variant,
-//        Some("A variant"),
-//        resolve = _.value.variant)
-//    ))
+  val variantSearchResult = ObjectType("VariantSearchResult",
+    "Variant search result object",
+    fields[Backend, VariantSearchResult](
+      Field("variant", variant,
+        Some("A variant"),
+        resolve = _.value.variant)
+    ))
 
-//  val searchResult = ObjectType("SearchResult",
-//    "Search data by a query string",
-//    fields[Backend, SearchResultSet](
-//      Field("totalGenes", LongType,
-//        Some("Total number of genes found"),
-//        resolve = _.value.totalGenes),
-//      Field("totalVariants", LongType,
-//        Some("Total number of variants found"),
-//        resolve = _.value.totalVariants),
-//      Field("totalStudies", LongType,
-//        Some("Total number of studies found"),
-//        resolve = _.value.totalStudies),
-//      Field("genes", ListType(gene),
-//        Some("Gene search result list"),
-//        resolve = _.value.genes),
-//      Field("variants", ListType(variantSearchResult),
-//        Some("Variant search result list"),
-//        resolve = _.value.variants),
-//      Field("studies", ListType(study),
-//        Some("Study search result list"),
-//        resolve = _.value.studies)
-//    ))
+  val searchResult = ObjectType("SearchResult",
+    "Search data by a query string",
+    fields[Backend, SearchResultSet](
+      Field("totalGenes", LongType,
+        Some("Total number of genes found"),
+        resolve = _.value.totalGenes),
+      Field("totalVariants", LongType,
+        Some("Total number of variants found"),
+        resolve = _.value.totalVariants),
+      Field("totalStudies", LongType,
+        Some("Total number of studies found"),
+        resolve = _.value.totalStudies),
+      Field("genes", ListType(gene),
+        Some("Gene search result list"),
+        resolve = _.value.genes),
+      Field("variants", ListType(variantSearchResult),
+        Some("Variant search result list"),
+        resolve = _.value.variants),
+      Field("studies", ListType(study),
+        Some("Study search result list"),
+        resolve = _.value.studies)
+    ))
 
   val query = ObjectType(
     "Query", fields[Backend, Unit](
-//      Field("search", searchResult,
-//        arguments = queryString :: pageIndex :: pageSize :: Nil,
-//        resolve = ctx =>
-//          ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("search", searchResult,
+        arguments = queryString :: pageIndex :: pageSize :: Nil,
+        resolve = ctx =>
+          ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("studyInfo", OptionType(study),
         arguments = studyId :: Nil,
         resolve = ctx => studiesFetcher.deferOpt(ctx.arg(studyId))),
       Field("variantInfo", OptionType(variant),
         arguments = variantId :: Nil,
         resolve = ctx => variantsFetcher.deferOpt(ctx.arg(variantId))),
-//      Field("studiesForGene", ListType(studyForGene),
-//        arguments = geneId :: Nil,
-//        resolve = ctx => ctx.ctx.getStudiesForGene(ctx.arg(geneId))),
-//      Field("manhattan", manhattan,
-//        arguments = studyId :: pageIndex :: pageSize :: Nil,
-//        resolve = ctx => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
-//      Field("topOverlappedStudies", topOverlappedStudies,
-//        arguments = studyId :: pageIndex :: pageSize :: Nil,
-//        resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
-//      Field("overlapInfoForStudy", overlappedInfoForStudy,
-//        arguments = studyId :: studyIds :: Nil,
-//        resolve = ctx => (ctx.arg(studyId),  ctx.arg(studyIds))),
+      Field("studiesForGene", ListType(studyForGene),
+        arguments = geneId :: Nil,
+        resolve = ctx => ctx.ctx.getStudiesForGene(ctx.arg(geneId))),
+      Field("manhattan", manhattan,
+        arguments = studyId :: pageIndex :: pageSize :: Nil,
+        resolve = ctx => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("topOverlappedStudies", topOverlappedStudies,
+        arguments = studyId :: pageIndex :: pageSize :: Nil,
+        resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("overlapInfoForStudy", overlappedInfoForStudy,
+        arguments = studyId :: studyIds :: Nil,
+        resolve = ctx => (ctx.arg(studyId),  ctx.arg(studyIds))),
       Field("tagVariantsAndStudiesForIndexVariant", tagVariantsAndStudiesForIndexVariant,
         arguments = variantId :: pageIndex :: pageSize :: Nil,
         resolve = ctx =>
@@ -707,12 +706,12 @@ object GQLSchema {
         arguments = variantId :: pageIndex :: pageSize :: Nil,
         resolve = ctx =>
           ctx.ctx.buildTagVariantAssocTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
-//      Field("pheWAS", pheWAS,
-//        arguments = variantId :: pageIndex :: pageSize :: Nil,
-//        resolve = ctx => ctx.ctx.buildPheWASTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
-//      Field("gecko", OptionType(gecko),
-//        arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
-//        resolve = ctx => ctx.ctx.buildGecko(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
+      Field("pheWAS", pheWAS,
+        arguments = variantId :: pageIndex :: pageSize :: Nil,
+        resolve = ctx => ctx.ctx.buildPheWASTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("gecko", OptionType(gecko),
+        arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+        resolve = ctx => ctx.ctx.buildGecko(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
       Field("genesForVariantSchema", v2gSchema,
         arguments = Nil,
         resolve = ctx => ctx.ctx.getG2VSchema),
