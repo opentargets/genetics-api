@@ -3,6 +3,7 @@ package models
 import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
+import models.DNA.{Gene, Variant}
 
 object GQLSchema {
   val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
@@ -17,15 +18,13 @@ object GQLSchema {
   val dnaPosEnd = Argument("end", LongType, description = "End position in a specified chromosome")
   val queryString = Argument("queryString", StringType, description = "Query text to search for")
 
-  implicit val geneHasId = HasId[FRM.Gene, String](_.id)
-  implicit val variantHasId = HasId[FRM.Variant, String](_.id)
-  implicit val studyHasId = HasId[FRM.Study, String](_.studyId)
-
-
+  implicit val geneHasId = HasId[Gene, String](_.id)
+  implicit val variantHasId = HasId[Variant, String](_.id)
+  implicit val studyHasId = HasId[Study, String](_.studyId)
 
   val gene = ObjectType("Gene",
   "This element represents a simple gene object which contains id and name",
-    fields[Backend, FRM.Gene](
+    fields[Backend, Gene](
       Field("id", StringType,
         Some("Ensembl Gene ID of a gene"),
         resolve = _.value.id),
@@ -77,10 +76,10 @@ object GQLSchema {
         resolve = _.value.rsId),
       Field("chromosome", StringType,
         Some("Ensembl Gene ID of a gene"),
-        resolve = _.value.position.chrId),
+        resolve = _.value.chromosome),
       Field("position", LongType,
         Some("Approved symbol name of a gene"),
-        resolve = _.value.position.position),
+        resolve = _.value.position),
       Field("refAllele", StringType,
         Some("Ref allele"),
         resolve = _.value.refAllele),
@@ -121,7 +120,7 @@ object GQLSchema {
 
   val study = ObjectType("Study",
   "This element contains all study fields",
-    fields[Backend, FRM.Study](
+    fields[Backend, Study](
       Field("studyId", StringType,
         Some("Study Identifier"),
         resolve = _.value.studyId),

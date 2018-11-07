@@ -9,6 +9,11 @@ import clickhouse.rep.SeqRep._
 import clickhouse.rep.SeqRep.Implicits._
 
 object Entities {
+  case class V2DAssociation(pval: Double, r2: Option[Double], log10Abf: Option[Double],
+                            posteriorProbability: Option[Double], afr1000GProp: Option[Double],
+                            amr1000GProp: Option[Double], eas1000GProp: Option[Double],
+                            eur1000GProp: Option[Double], sas1000GProp: Option[Double])
+
   case class OverlapRow(stid: String, numOverlapLoci: Int)
 
   case class OverlappedLociStudy(studyId: String, topOverlappedStudies: IndexedSeq[OverlapRow])
@@ -62,10 +67,6 @@ object Entities {
 
     case class StudyInfo(study: Option[Study])
 
-    object Study {
-      implicit val hasId = HasId[Study, String](_.studyId)
-    }
-
     case class Study(studyId: String, traitCode: String, traitReported: String, traitEfos: Seq[String],
                      pubId: Option[String], pubDate: Option[String], pubJournal: Option[String], pubTitle: Option[String],
                      pubAuthor: Option[String], ancestryInitial: Seq[String], ancestryReplication: Seq[String],
@@ -118,9 +119,9 @@ object Entities {
 
     case class VariantSearchResult (variant: Variant)
 
-    case class SearchResultSet(totalGenes: Long, genes: Seq[FRM.Gene],
+    case class SearchResultSet(totalGenes: Long, genes: Seq[Gene],
                                totalVariants: Long, variants: Seq[VariantSearchResult],
-                               totalStudies: Long, studies: Seq[FRM.Study])
+                               totalStudies: Long, studies: Seq[Study])
 
   case class Tissue(id: String) {
     lazy val name: Option[String] = Option(id.replace("_", " ").toLowerCase.capitalize)
@@ -195,13 +196,13 @@ object Entities {
 
   object ESImplicits {
 
-    implicit object GeneHitReader extends HitReader[FRM.Gene] {
-      override def read(hit: Hit): Either[Throwable, FRM.Gene] = {
+    implicit object GeneHitReader extends HitReader[Gene] {
+      override def read(hit: Hit): Either[Throwable, Gene] = {
         if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
         else {
           val mv = hit.sourceAsMap
 
-          Right(FRM.Gene(mv("gene_id").toString,
+          Right(Gene(mv("gene_id").toString,
             Option(mv("gene_name").asInstanceOf[String]),
             Option(mv("biotype").asInstanceOf[String]),
             Option(mv("chr").toString),
@@ -226,7 +227,7 @@ object Entities {
             else {
               val mv = hit.sourceAsMap
 
-              val variant = Variant(Position(mv("chr_id").toString, mv("position").asInstanceOf[Int]),
+              val variant = Variant(mv("chr_id").toString, mv("position").asInstanceOf[Int],
                 mv("ref_allele").toString, mv("alt_allele").toString, Option(mv("rs_id").toString))
 
               Right(VariantSearchResult(variant))
@@ -234,13 +235,13 @@ object Entities {
           }
         }
 
-        implicit object StudyHitReader extends HitReader[FRM.Study] {
-          override def read(hit: Hit): Either[Throwable, FRM.Study] = {
+        implicit object StudyHitReader extends HitReader[Study] {
+          override def read(hit: Hit): Either[Throwable, Study] = {
             if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
             else {
               val mv = hit.sourceAsMap
 
-              Right(FRM.Study(mv("study_id").toString,
+              Right(Study(mv("study_id").toString,
                 mv.get("trait_code").map(_.toString).get,
                 mv.get("trait_reported").map(_.toString).get,
                 mv.get("trait_efos").map(_.asInstanceOf[Seq[String]]).get,
@@ -277,50 +278,50 @@ object Entities {
           toGeneScoreTuple(StrSeqRep(r.<<), DSeqRep(r.<<))))
       }
 
-          implicit val getSumStatsByVariantPheWAS: GetResult[VariantPheWAS] =
-            GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<,
-              r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
+      implicit val getSumStatsByVariantPheWAS: GetResult[VariantPheWAS] =
+        GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<,
+          r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
 
-          implicit val getStudy: GetResult[Study] =
-            GetResult(r => Study(r.<<, r.<<, r.<<, StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
-              StrSeqRep(r.<<), StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?))
+      implicit val getStudy: GetResult[Study] =
+        GetResult(r => Study(r.<<, r.<<, r.<<, StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
+          StrSeqRep(r.<<), StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?))
 
-          implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
-            r => {
-              val variant = DNA.Variant(r.<<, r.<<?)
-              IndexVariantAssociation(variant.right.get, r.<<,
-                r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-            }
-          )
+      implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
+        r => {
+          val variant = DNA.Variant(r.<<, r.<<?)
+          IndexVariantAssociation(variant.right.get, r.<<,
+            r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
+        }
+      )
 
-          implicit val getTagVariantAssoc: GetResult[TagVariantAssociation] = GetResult(
-            r => {
-              val variant = DNA.Variant(r.<<, r.<<?)
-              TagVariantAssociation(variant.right.get, r.<<,
-                r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-            }
-          )
+      implicit val getTagVariantAssoc: GetResult[TagVariantAssociation] = GetResult(
+        r => {
+          val variant = DNA.Variant(r.<<, r.<<?)
+          TagVariantAssociation(variant.right.get, r.<<,
+            r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
+        }
+      )
 
-          implicit val getGeckoLine: GetResult[GeckoLine] = GetResult(
-            r => {
-              val tagVariant = Variant(r.<<, r.<<?).right.get
-              val indexVariant = Variant(r.<<, r.<<?).right.get
+      implicit val getGeckoLine: GetResult[GeckoLine] = GetResult(
+        r => {
+          val tagVariant = Variant(r.<<, r.<<?).right.get
+          val indexVariant = Variant(r.<<, r.<<?).right.get
 
-              val geneId = r.nextString()
-              val studyId: String = r.<<
+          val geneId = r.nextString()
+          val studyId: String = r.<<
 
-              val r2 = r.nextDoubleOption()
-              val posteriorProb = r.nextDoubleOption()
-              val pval = r.nextDouble()
-              val overallScore = r.nextDouble()
+          val r2 = r.nextDoubleOption()
+          val posteriorProb = r.nextDoubleOption()
+          val pval = r.nextDouble()
+          val overallScore = r.nextDouble()
 
-              val geneTagVariant = GeneTagVariant(geneId, tagVariant.id, overallScore)
-              val tagVariantIndexVariantStudy = TagVariantIndexVariantStudy(tagVariant.id, indexVariant.id,
-                studyId, r2, pval, posteriorProb)
+          val geneTagVariant = GeneTagVariant(geneId, tagVariant.id, overallScore)
+          val tagVariantIndexVariantStudy = TagVariantIndexVariantStudy(tagVariant.id, indexVariant.id,
+            studyId, r2, pval, posteriorProb)
 
-              GeckoLine(geneId, tagVariant, indexVariant, studyId, geneTagVariant, tagVariantIndexVariantStudy)
-            }
-          )
+          GeckoLine(geneId, tagVariant, indexVariant, studyId, geneTagVariant, tagVariantIndexVariantStudy)
+        }
+      )
 
       implicit val getScoredG2VLine: GetResult[ScoredG2VLine] = GetResult(
         r => {
@@ -329,9 +330,6 @@ object Entities {
             r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<)
         }
       )
-
-      implicit def frm2dnaVariant(v: FRM.Variant): DNA.Variant = DNA.Variant(DNA.Position(v.chromosome, v.position), v.refAllele, v.altAllele, v.rsId, v.nearestGeneId, v.nearestCodingGeneId)
     }
-
   }
 

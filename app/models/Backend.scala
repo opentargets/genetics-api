@@ -4,16 +4,17 @@ import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.Configuration
 import clickhouse.ClickHouseProfile
-import com.sksamuel.elastic4s.{ElasticsearchClientUri, analyzers}
+import com.sksamuel.elastic4s.ElasticsearchClientUri
 import models.Entities._
 import models.Functions._
 import models.DNA._
 import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
-import models.Violations.{InputParameterCheckError, RegionViolation, SearchStringViolation, VariantViolation}
+import models.Violations._
 import clickhouse.rep.SeqRep.StrSeqRep
 import com.sksamuel.elastic4s.analyzers._
 import sangria.validation.Violation
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 import scala.concurrent._
@@ -23,6 +24,8 @@ import play.db.NamedDatabase
 import play.api.Logger
 import play.api.Environment
 import java.nio.file.{Path, Paths}
+
+import models.FRM.{Genes, Studies, Variants}
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
@@ -39,6 +42,12 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   import dbConfig.profile.api._
 
+  lazy val genes = TableQuery[Genes]
+  lazy val variants = TableQuery[Variants]
+  lazy val studies = TableQuery[Studies]
+//  lazy val v2DsByChrPos = TableQuery[V2DsByChrPos]
+//  lazy val v2DsByStudy = TableQuery[V2DsByChrPos]
+
   // you must import the DSL to use the syntax helpers
   import com.sksamuel.elastic4s.http.ElasticDsl._
   val esUri = ElasticsearchClientUri(config.get[String]("ot.elasticsearch.host"),
@@ -52,8 +61,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     variant match {
       case Right(v) =>
-        val segment = toSumStatsSegment(v.position.position)
-        val tableName = gwasSumStatsTName format v.position.chrId
+        val segment = toSumStatsSegment(v.position)
+        val tableName = gwasSumStatsTName format v.chromosome
         val query =
           sql"""
                |select
@@ -71,8 +80,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                | chip,
                | info
                |from #$tableName
-               |prewhere chrom = ${v.position.chrId} and
-               |  pos_b37 = ${v.position.position} and
+               |prewhere chrom = ${v.chromosome} and
+               |  pos_b37 = ${v.position} and
                |  segment = $segment and
                |  variant_id_b37 = ${v.id}
                |#$limitClause
@@ -167,9 +176,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         }
       }.map{
         case ((studiesRS, variantsRS), genesRS) =>
-          SearchResultSet(genesRS.totalHits, genesRS.to[FRM.Gene],
+          SearchResultSet(genesRS.totalHits, genesRS.to[Gene],
             variantsRS.totalHits, variantsRS.to[VariantSearchResult],
-            studiesRS.totalHits, studiesRS.to[FRM.Study])
+            studiesRS.totalHits, studiesRS.to[Study])
       }
     } else {
       Future.failed(InputParameterCheckError(Vector(SearchStringViolation())))
@@ -293,10 +302,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def getGenes(geneIds: Seq[String]): Future[Seq[FRM.Gene]] = {
+  def getGenes(geneIds: Seq[String]): Future[Seq[Gene]] = {
     if (geneIds.nonEmpty) {
       val q = for {
-        g <- FRM.genes
+        g <- genes
         if g.id inSetBind geneIds
       } yield g
 
@@ -311,18 +320,28 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  /** query variants table with a list of variant ids and get all related information */
+  /** query variants table with a list of variant ids and get all related information
+    *
+    * NOTE! WARNING! THERE IS A DIFF AT THE MOMENT BETWEEN THE VARIANTS COMING FROM VCF FILE
+    * AND THE ONES COMING FROM UKB AND WE NEED TO FILL THAT GAP WHILE THIS ISSUE IS NOT
+    * ADDRESSED. AT THE MOMENT, THE WAY TO DO IS USING THE VARIANT APPLY CONTRUCTOR FROM A
+    * STRING TO GET A WHITE-LABEL VARIANT WITH ANY OTHER REFERENCES FROM RSID OR NEAREST GENES
+    * (NONCODING AND PROTCODING)
+    */
   def getVariants(variantIds: Seq[String]): Future[Seq[DNA.Variant]] = {
     if (variantIds.nonEmpty) {
       val q = for {
-        v <- FRM.variants
+        v <- variants
         if v.id inSetBind variantIds
       } yield v
 
       db.run(q.result.asTry).map {
-        case Success(v) => v.map(frm2dnaVariant)
+        case Success(v) =>
+          val missingVIds = (variantIds diff v.map(_.id))
+
+          v ++ (missingVIds.map(DNA.Variant(_)).withFilter(_.isRight).map(_.right.get))
         case Failure(ex) =>
-          logger.error(ex.getMessage)
+          logger.error("BDIOAction failed with " + ex.getMessage)
           Seq.empty
       }
     } else {
@@ -330,10 +349,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def getStudies(stids: Seq[String]): Future[Seq[FRM.Study]] = {
+  def getStudies(stids: Seq[String]): Future[Seq[Study]] = {
     if (stids.nonEmpty) {
       val q = for {
-        v <- FRM.studies
+        v <- studies
         if v.studyId inSetBind stids
       } yield v
 
@@ -425,8 +444,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           | posterior_prob
                           |from #$v2dByChrPosTName
                           |prewhere
-                          |  chr_id = ${v.position.chrId} and
-                          |  index_position = ${v.position.position} and
+                          |  chr_id = ${v.chromosome} and
+                          |  index_position = ${v.position} and
                           |  index_ref_allele = ${v.refAllele} and
                           |  index_alt_allele = ${v.altAllele}
                           |#$limitClause
@@ -468,8 +487,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           | posterior_prob
                           |from #$v2dByChrPosTName
                           |prewhere
-                          |  chr_id = ${v.position.chrId} and
-                          |  position = ${v.position.position} and
+                          |  chr_id = ${v.chromosome} and
+                          |  position = ${v.position} and
                           |  ref_allele = ${v.refAllele} and
                           |  alt_allele = ${v.altAllele}
                           |#$limitClause
@@ -613,8 +632,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |        interval_score_q
                           |    FROM #$v2gTName
                           |    PREWHERE
-                          |       (chr_id = ${v.position.chrId}) AND
-                          |       (position = ${v.position.position}) AND
+                          |       (chr_id = ${v.chromosome}) AND
+                          |       (position = ${v.position}) AND
                           |       (variant_id = ${v.id}) AND
                           |       (isNull(fpred_max_score) OR fpred_max_score > 0.)
                           |)
@@ -627,7 +646,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |        source_score_list,
                           |        overall_score
                           |    FROM #$v2gOScoresTName
-                          |    PREWHERE (chr_id = ${v.position.chrId}) AND
+                          |    PREWHERE (chr_id = ${v.chromosome}) AND
                           |       (variant_id = ${v.id})
                           |) USING (gene_id)
                           |ORDER BY gene_id ASC
@@ -650,18 +669,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   private val v2gTName: String = "v2g"
   private val v2gOScoresTName: String = "v2g_score_by_overall"
   private val v2gStructureTName: String = "v2g_structure"
-  private val studiesTName: String = "studies"
-  private val variantsTName: String = "variants"
   private val studiesOverlapTName: String = "studies_overlap"
   private val gwasSumStatsTName: String = "gwas_chr_%s"
-  private val genesTName: String = "gene"
-
-  def expandVariantId(variantId: String): Either[VariantViolation, FRM.Variant] = {
-    variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
-      case List(chr: String, pos: String, ref: String, alt: String) =>
-        Right(FRM.Variant(variantId, chr, pos.toLong, ref, alt, None, None, None))
-      case _ =>
-        Left(VariantViolation(variantId))
-    }
-  }
 }

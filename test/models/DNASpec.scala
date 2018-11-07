@@ -35,7 +35,7 @@ class DNASpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
 
   "A Variant 1_1234_C_. must equal to a Right(Variant)" in {
     val v1 = Variant("1_1234_C_.")
-    val rv1 = Right(Variant(DNA.Position("1", 1234), "C", ".", None))
+    val rv1 = Right(Variant("1", 1234, "C", ".", None))
 
     v1 mustEqual rv1
   }
