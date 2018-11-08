@@ -2,8 +2,6 @@ package models
 
 import java.io.FileNotFoundException
 
-import clickhouse.rep.SeqRep.LSeqRep
-import clickhouse.rep.SeqRep.Implicits._
 import models.Violations.{GeneViolation, RegionViolation, VariantViolation}
 import sangria.execution.deferred.HasId
 
@@ -11,7 +9,6 @@ import scala.io.Source
 import slick.jdbc.GetResult
 import kantan.csv._
 import kantan.csv.ops._
-import kantan.csv.generic._
 import play.api.Logger
 
 object DNA {
@@ -71,62 +68,69 @@ object DNA {
 
   }
 
-  case class Variant(position: Position, refAllele: String, altAllele: String, rsId: Option[String],
-                     nearestGeneId: Option[String] = None, nearestCodingGeneId: Option[String] = None) {
-    lazy val id: String = List(position.chrId, position.position.toString, refAllele, altAllele)
+  case class Variant(chromosome: String, position: Long, refAllele: String, altAllele: String,
+                     rsId: Option[String], nearestGeneId: Option[String] = None,
+                     nearestCodingGeneId: Option[String] = None) {
+    lazy val id: String = List(chromosome, position.toString, refAllele, altAllele)
       .map(_.toUpperCase)
       .mkString("_")
   }
 
-  object Variant {
-    implicit val hasId = HasId[Variant, String](_.id)
+  // id, chromosome, position, refAllele, altAllele, rsId, nearestGeneId, nearestCodingGeneId
 
-    def apply(variantId: String): Either[VariantViolation, Variant] = Variant.apply(variantId, None)
-    def apply(variantId: String, rsId: Option[String]): Either[VariantViolation, Variant] = {
+  object Variant extends ((String, String, Long, String, String, Option[String], Option[String],
+    Option[String]) => Variant) {
+    private[this] def parseVariant(variantId: String, rsId: Option[String]): Option[Variant] = {
       variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
         case List(chr: String, pos: String, ref: String, alt: String) =>
-          Right(Variant(Position(chr, pos.toLong), ref, alt, rsId, None, None))
-        case _ =>
-          Left(VariantViolation(variantId))
+          Some(Variant(chr, pos.toLong, ref, alt, rsId, None, None))
+        case _ => None
       }
     }
+
+    def apply(variantId: String, chromosome: String, position: Long, refAllele: String, altAllele: String,
+              rsId: Option[String], nearestGeneId: Option[String],
+              nearestCodingGeneId: Option[String]): Variant =
+      Variant(chromosome, position, refAllele, altAllele, rsId, nearestGeneId, nearestCodingGeneId)
+
+    def apply(variantId: String): Either[VariantViolation, Variant] = apply(variantId, None)
+
+    def apply(variantId: String, rsId: Option[String]): Either[VariantViolation, Variant] = {
+      val pv = parseVariant(variantId, rsId)
+      Either.cond(pv.isDefined, pv.get, VariantViolation(variantId))
+    }
+
+    def unapply(v: Variant): Option[(String, String, Long, String, String,
+      Option[String], Option[String], Option[String])] = Some(v.id, v.chromosome, v.position, v.refAllele,
+        v.altAllele, v.rsId, v.nearestGeneId, v.nearestCodingGeneId)
   }
 
-  case class Gene(id: String, symbol: Option[String], start: Option[Long] = None, end: Option[Long] = None,
-                  chromosome: Option[String] = None, tss: Option[Long] = None,
-                  bioType: Option[String] = None, fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
+  case class Gene(id: String, symbol: Option[String], bioType: Option[String] = None, chromosome: Option[String] = None,
+                  tss: Option[Long] = None, start: Option[Long] = None, end: Option[Long] = None,
+                  fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
 
-  object Gene {
+  object Gene extends ((String, Option[String], Option[String], Option[String], Option[Long],
+    Option[Long], Option[Long], Option[Boolean], Seq[Long]) => Gene) {
+    private[this] def parseGene(geneId: String, symbol : Option[String]): Option[Gene] = {
+      geneId.toUpperCase.split("\\.").toList.filter(_.nonEmpty) match {
+        case ensemblId :: _ =>
+          Some(Gene(ensemblId, symbol))
+        case Nil => None
+      }
+    }
+
     /** construct a gene from a gene id symbol. It only supports Ensembl ID at the moment
       *
       * @param geneId Ensembl Gene ID as "ENSG000000[.123]" and it will strip the version
       * @return Either a Gene or a GeneViolation as the gene was not properly specified
       */
     def apply(geneId: String): Either[GeneViolation, Gene] = {
-      geneId.toUpperCase.split("\\.").toList.filter(_.nonEmpty) match {
-        case ensemblId :: _ =>
-          Right(Gene(ensemblId, None))
-        case Nil =>
-          Left(GeneViolation(geneId))
-      }
+      val pg = parseGene(geneId, None)
+      Either.cond(pg.isDefined, pg.get, GeneViolation(geneId))
     }
 
-    implicit val hasId = HasId[Gene, String](_.id)
-  }
-
-  object Implicits {
-    implicit def stringToVariant(variantID: String): Either[VariantViolation, Variant] =
-      Variant.apply(variantID)
-
-    implicit val getVariantFromDB: GetResult[Variant] =
-      GetResult(r => Variant(Position(r.nextString, r.nextLong), refAllele = r.nextString,
-        altAllele = r.nextString, rsId = r.nextStringOption, nearestGeneId = r.nextStringOption,
-        nearestCodingGeneId = r.nextStringOption))
-
-    implicit val getGeneFromDB: GetResult[Gene] =
-      GetResult(r => Gene(id = r.nextString(), symbol = r.nextStringOption(), bioType = r.nextStringOption(),
-        chromosome = r.nextStringOption(), tss = r.nextLongOption(),
-        start = r.nextLongOption(), end = r.nextLongOption(), fwd = r.nextBooleanOption(),
-        exons = LSeqRep(r.nextString())))
+    def unapply(gene: Gene): Option[(String, Option[String], Option[String], Option[String], Option[Long],
+      Option[Long], Option[Long], Option[Boolean], Seq[Long])] = Some(gene.id, gene.symbol, gene.bioType,
+        gene.chromosome, gene.tss, gene.start, gene.end, gene.fwd, gene.exons)
   }
 }

@@ -2,8 +2,6 @@ package models
 
 import models.Violations.{ChromosomeViolation, InChromosomeRegionViolation}
 
-import reflect.runtime.universe._
-
 object Functions {
   val defaultPaginationSize: Option[Int] = Some(500000)
   val defaultPaginationSizeES: Option[Int] = Some(10)

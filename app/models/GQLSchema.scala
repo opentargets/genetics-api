@@ -1,12 +1,9 @@
 package models
 
-
 import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
-import DNA._
-import sangria.schema
-import sangria.streaming.ValidOutStreamType
+import models.DNA.{Gene, Variant}
 
 object GQLSchema {
   val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
@@ -20,6 +17,10 @@ object GQLSchema {
   val dnaPosStart = Argument("start", LongType, description = "Start position in a specified chromosome")
   val dnaPosEnd = Argument("end", LongType, description = "End position in a specified chromosome")
   val queryString = Argument("queryString", StringType, description = "Query text to search for")
+
+  implicit val geneHasId = HasId[Gene, String](_.id)
+  implicit val variantHasId = HasId[Variant, String](_.id)
+  implicit val studyHasId = HasId[Study, String](_.studyId)
 
   val gene = ObjectType("Gene",
   "This element represents a simple gene object which contains id and name",
@@ -66,7 +67,7 @@ object GQLSchema {
 
   val variant = ObjectType("Variant",
     "This element represents a variant object",
-    fields[Backend, Variant](
+    fields[Backend, DNA.Variant](
       Field("id", StringType,
         Some("Ensembl Gene ID of a gene"),
         resolve = _.value.id),
@@ -75,10 +76,10 @@ object GQLSchema {
         resolve = _.value.rsId),
       Field("chromosome", StringType,
         Some("Ensembl Gene ID of a gene"),
-        resolve = _.value.position.chrId),
+        resolve = _.value.chromosome),
       Field("position", LongType,
         Some("Approved symbol name of a gene"),
-        resolve = _.value.position.position),
+        resolve = _.value.position),
       Field("refAllele", StringType,
         Some("Ref allele"),
         resolve = _.value.refAllele),
@@ -461,7 +462,6 @@ object GQLSchema {
         resolve = _.value.associations)
     ))
 
-
   val tagVariantsAndStudiesForIndexVariant = ObjectType("TagVariantsAndStudiesForIndexVariant",
     "A list of rows with each link",
     fields[Backend, IndexVariantTable](
@@ -561,7 +561,6 @@ object GQLSchema {
         Some(""),
         resolve = _.value.maxEffectScore)
     ))
-
 
   val qtlElement = ObjectType("QTLElement",
     "A list of rows with each link",
@@ -712,9 +711,9 @@ object GQLSchema {
       Field("genesForVariant", ListType(geneForVariant),
         arguments = variantId :: Nil,
         resolve = ctx => ctx.ctx.buildG2VByVariant(ctx.arg(variantId))),
-      Field("variantsForGene", ListType(geneForVariant),
-        arguments = geneId :: Nil,
-        resolve = ctx => ctx.ctx.buildG2VByGene(ctx.arg(geneId)))
+//      Field("variantsForGene", ListType(geneForVariant),
+//        arguments = geneId :: Nil,
+//        resolve = ctx => ctx.ctx.buildG2VByGene(ctx.arg(geneId)))
     ))
 
   val schema = Schema(query)

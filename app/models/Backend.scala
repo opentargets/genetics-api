@@ -4,14 +4,13 @@ import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.Configuration
 import clickhouse.ClickHouseProfile
-import com.sksamuel.elastic4s.{ElasticsearchClientUri, analyzers}
+import com.sksamuel.elastic4s.ElasticsearchClientUri
 import models.Entities._
 import models.Functions._
 import models.DNA._
-import models.DNA.Implicits._
 import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
-import models.Violations.{InputParameterCheckError, RegionViolation, SearchStringViolation}
+import models.Violations._
 import clickhouse.rep.SeqRep.StrSeqRep
 import com.sksamuel.elastic4s.analyzers._
 import sangria.validation.Violation
@@ -26,6 +25,7 @@ import play.api.Logger
 import play.api.Environment
 import java.nio.file.{Path, Paths}
 
+import models.FRM.{Genes, Studies, Variants}
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
@@ -42,6 +42,12 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   import dbConfig.profile.api._
 
+  lazy val genes = TableQuery[Genes]
+  lazy val variants = TableQuery[Variants]
+  lazy val studies = TableQuery[Studies]
+//  lazy val v2DsByChrPos = TableQuery[V2DsByChrPos]
+//  lazy val v2DsByStudy = TableQuery[V2DsByChrPos]
+
   // you must import the DSL to use the syntax helpers
   import com.sksamuel.elastic4s.http.ElasticDsl._
   val esUri = ElasticsearchClientUri(config.get[String]("ot.elasticsearch.host"),
@@ -55,8 +61,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     variant match {
       case Right(v) =>
-        val segment = toSumStatsSegment(v.position.position)
-        val tableName = gwasSumStatsTName format v.position.chrId
+        val segment = toSumStatsSegment(v.position)
+        val tableName = gwasSumStatsTName format v.chromosome
         val query =
           sql"""
                |select
@@ -74,8 +80,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                | chip,
                | info
                |from #$tableName
-               |prewhere chrom = ${v.position.chrId} and
-               |  pos_b37 = ${v.position.position} and
+               |prewhere chrom = ${v.chromosome} and
+               |  pos_b37 = ${v.position} and
                |  segment = $segment and
                |  variant_id_b37 = ${v.id}
                |#$limitClause
@@ -101,6 +107,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       } yield Entities.G2VSchemaElement(triple._1, tuple._1,
         StrSeqRep(tuple._2).rep.map(el => Tissue(el)))).toSeq
     }
+
     val studyQ = sql"""
                       |select
                       | type_id,
@@ -295,95 +302,68 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def getGenes(geneIds: Seq[String]): Future[Vector[DNA.Gene]] = {
-    val geneIdsList = geneIds.map("'" + _ + "'").mkString(",")
-    val genesSql = sql"""
-                          |SELECT
-                          | gene_id,
-                          | gene_name,
-                          | biotype,
-                          | chr,
-                          | tss,
-                          | start,
-                          | end,
-                          | fwdstrand,
-                          | cast(exons, 'Array(UInt32)') AS exons
-                          |FROM #$genesTName
-                          |WHERE gene_id IN (#${geneIdsList})
-      """.stripMargin.as[DNA.Gene]
+  def getGenes(geneIds: Seq[String]): Future[Seq[Gene]] = {
+    if (geneIds.nonEmpty) {
+      val q = for {
+        g <- genes
+        if g.id inSetBind geneIds
+      } yield g
 
-    db.run(genesSql.asTry).map {
-      case Success(v) => v
-      case Failure(ex) =>
-        logger.error(ex.getMessage)
-        Vector.empty
-    }
-  }
-
-  /** query variants table with a list of variant ids and get all related information */
-  def getVariants(variantIds: Seq[String]): Future[Vector[DNA.Variant]] = {
-    if (variantIds.nonEmpty) {
-      val variantIdsSet = variantIds.map("'" + _ + "'").mkString(",")
-      val variants = variantIds.map(Variant(_)).withFilter(_.isRight).map(_.right.get)
-
-      val vListQ = sql"""
-                        |select
-                        | chr_id,
-                        | position,
-                        | ref_allele,
-                        | alt_allele,
-                        | rs_id,
-                        | gene_id,
-                        | gene_id_prot_coding
-                        |from #$variantsTName
-                        |prewhere variant_id IN (#${variantIdsSet})
-        """.stripMargin.as[Variant]
-
-      db.run(vListQ.asTry).map {
-        case Success(v) =>
-          /*
-          NOTE this is a hack as we have toploci variants wihch are not coming from
-          the vcf file provided by Ensembl see 3_194061907_G_A as an example
-           */
-          val vIds = v.map(_.id)
-          v ++ variants.filter(vv => (variantIds diff vIds).contains(vv.id))
+      db.run(q.result.asTry).map {
+        case Success(v) => v
         case Failure(ex) =>
           logger.error(ex.getMessage)
-          Vector.empty
+          Seq.empty
       }
     } else {
-      Future.successful(Vector.empty)
+      Future.successful(Seq.empty)
     }
   }
 
-  def getStudies(stids: Seq[String]): Future[Vector[Entities.Study]] = {
-    val stidListString = stids.map("'" + _ + "'").mkString(",")
-    val studiesSQL = sql"""
-                      |select
-                      | study_id,
-                      | trait_code,
-                      | trait_reported,
-                      | trait_efos,
-                      | pmid,
-                      | pub_date,
-                      | pub_journal,
-                      | pub_title,
-                      | pub_author,
-                      | ancestry_initial,
-                      | ancestry_replication,
-                      | n_initial,
-                      | n_replication,
-                      | n_cases,
-                      | trait_category
-                      |from #$studiesTName
-                      |where study_id in (#${stidListString})
-      """.stripMargin.as[Study]
+  /** query variants table with a list of variant ids and get all related information
+    *
+    * NOTE! WARNING! THERE IS A DIFF AT THE MOMENT BETWEEN THE VARIANTS COMING FROM VCF FILE
+    * AND THE ONES COMING FROM UKB AND WE NEED TO FILL THAT GAP WHILE THIS ISSUE IS NOT
+    * ADDRESSED. AT THE MOMENT, THE WAY TO DO IS USING THE VARIANT APPLY CONTRUCTOR FROM A
+    * STRING TO GET A WHITE-LABEL VARIANT WITH ANY OTHER REFERENCES FROM RSID OR NEAREST GENES
+    * (NONCODING AND PROTCODING)
+    */
+  def getVariants(variantIds: Seq[String]): Future[Seq[DNA.Variant]] = {
+    if (variantIds.nonEmpty) {
+      val q = for {
+        v <- variants
+        if v.id inSetBind variantIds
+      } yield v
 
-    db.run(studiesSQL.asTry).map {
-      case Success(v) => v
-      case Failure(ex) =>
-        logger.error(ex.getMessage)
-        Vector.empty
+      db.run(q.result.asTry).map {
+        case Success(v) =>
+          val missingVIds = (variantIds diff v.map(_.id))
+
+          v ++ (missingVIds.map(DNA.Variant(_)).withFilter(_.isRight).map(_.right.get))
+        case Failure(ex) =>
+          logger.error("BDIOAction failed with " + ex.getMessage)
+          Seq.empty
+      }
+    } else {
+      Future.successful(Seq.empty)
+    }
+  }
+
+  def getStudies(stids: Seq[String]): Future[Seq[Study]] = {
+    if (stids.nonEmpty) {
+      val q = for {
+        v <- studies
+        if v.studyId inSetBind stids
+      } yield v
+
+      db.run(q.result.asTry).map {
+        case Success(v) => v
+        case Failure(ex) =>
+          logger.error(ex.getMessage)
+          Seq.empty
+      }
+    } else {
+      Future.successful(Seq.empty)
     }
   }
 
@@ -440,35 +420,35 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
-  Future[Entities.IndexVariantTable] = {
+  Future[IndexVariantTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
     val variant = Variant(variantID)
 
     variant match {
       case Right(v) =>
         val assocs = sql"""
-                       |select
-                       | variant_id,
-                       | rs_id,
-                       | stid,
-                       | pval,
-                       | ifNull(n_initial,0) + ifNull(n_replication,0),
-                       | ifNull(n_cases, 0),
-                       | r2,
-                       | afr_1000g_prop,
-                       | amr_1000g_prop,
-                       | eas_1000g_prop,
-                       | eur_1000g_prop,
-                       | sas_1000g_prop,
-                       | log10_abf,
-                       | posterior_prob
-                       |from #$v2dByChrPosTName
-                       |prewhere
-                       |  chr_id = ${v.position.chrId} and
-                       |  index_position = ${v.position.position} and
-                       |  index_ref_allele = ${v.refAllele} and
-                       |  index_alt_allele = ${v.altAllele}
-                       |#$limitClause
+                          |select
+                          | variant_id,
+                          | rs_id,
+                          | stid,
+                          | pval,
+                          | ifNull(n_initial,0) + ifNull(n_replication,0),
+                          | ifNull(n_cases, 0),
+                          | r2,
+                          | afr_1000g_prop,
+                          | amr_1000g_prop,
+                          | eas_1000g_prop,
+                          | eur_1000g_prop,
+                          | sas_1000g_prop,
+                          | log10_abf,
+                          | posterior_prob
+                          |from #$v2dByChrPosTName
+                          |prewhere
+                          |  chr_id = ${v.chromosome} and
+                          |  index_position = ${v.position} and
+                          |  index_ref_allele = ${v.refAllele} and
+                          |  index_alt_allele = ${v.altAllele}
+                          |#$limitClause
           """.stripMargin.as[IndexVariantAssociation]
 
         db.run(assocs.asTry).map {
@@ -507,8 +487,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           | posterior_prob
                           |from #$v2dByChrPosTName
                           |prewhere
-                          |  chr_id = ${v.position.chrId} and
-                          |  position = ${v.position.position} and
+                          |  chr_id = ${v.chromosome} and
+                          |  position = ${v.position} and
                           |  ref_allele = ${v.refAllele} and
                           |  alt_allele = ${v.altAllele}
                           |#$limitClause
@@ -613,7 +593,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def buildG2VByVariant(variantId: String): Future[Seq[Entities.G2VAssociation]] = {
-    val variant = Variant(variantId)
+    val variant = DNA.Variant(variantId)
 
     variant match {
       case Right(v) =>
@@ -652,8 +632,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |        interval_score_q
                           |    FROM #$v2gTName
                           |    PREWHERE
-                          |       (chr_id = ${v.position.chrId}) AND
-                          |       (position = ${v.position.position}) AND
+                          |       (chr_id = ${v.chromosome}) AND
+                          |       (position = ${v.position}) AND
                           |       (variant_id = ${v.id}) AND
                           |       (isNull(fpred_max_score) OR fpred_max_score > 0.)
                           |)
@@ -666,7 +646,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |        source_score_list,
                           |        overall_score
                           |    FROM #$v2gOScoresTName
-                          |    PREWHERE (chr_id = ${v.position.chrId}) AND
+                          |    PREWHERE (chr_id = ${v.chromosome}) AND
                           |       (variant_id = ${v.id})
                           |) USING (gene_id)
                           |ORDER BY gene_id ASC
@@ -682,77 +662,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  def buildG2VByGene(geneId: String): Future[Seq[Entities.G2VAssociation]] = {
-    val gene = Gene.apply(geneId)
-
-    gene match {
-      case Right(g) =>
-        val assocs = sql"""
-                          |SELECT
-                          |    gene_id,
-                          |    variant_id,
-                          |    overall_score,
-                          |    source_list,
-                          |    source_score_list,
-                          |    type_id,
-                          |    source_id,
-                          |    feature,
-                          |    fpred_max_label,
-                          |    fpred_max_score,
-                          |    qtl_beta,
-                          |    qtl_se,
-                          |    qtl_pval,
-                          |    interval_score,
-                          |    qtl_score_q,
-                          |    interval_score_q
-                          |FROM
-                          |(
-                          |    SELECT
-                          |        variant_id,
-                          |        type_id,
-                          |        source_id,
-                          |        feature,
-                          |        fpred_max_label,
-                          |        fpred_max_score,
-                          |        qtl_beta,
-                          |        qtl_se,
-                          |        qtl_pval,
-                          |        interval_score,
-                          |        qtl_score_q,
-                          |        interval_score_q
-                          |    FROM #$v2gTName
-                          |    PREWHERE
-                          |       (chr_id = dictGetString('gene', 'chr', tuple(${g.id}))) AND
-                          |       (gene_id = ${g.id}) AND
-                          |       (position >= (dictGetUInt32('gene', 'tss', tuple(${g.id})) - $defaultMaxDistantFromTSS)) AND
-                          |       (position <= (dictGetUInt32('gene', 'tss', tuple(${g.id})) + $defaultMaxDistantFromTSS)) AND
-                          |       (isNull(fpred_max_score) OR fpred_max_score > 0.)
-                          |)
-                          |ALL INNER JOIN
-                          |(
-                          |    SELECT
-                          |        variant_id,
-                          |        gene_id,
-                          |        source_list,
-                          |        source_score_list,
-                          |        overall_score
-                          |    FROM #$v2gOScoresTName
-                          |    PREWHERE (chr_id = dictGetString('gene','chr',tuple(${g.id}))) AND
-                          |       (gene_id = ${g.id})
-                          |) USING (variant_id)
-                          |ORDER BY variant_id ASC
-          """.stripMargin.as[ScoredG2VLine]
-
-        db.run(assocs.asTry).map {
-          case Success(r) => r.view.groupBy(_.variantId).mapValues(G2VAssociation(_)).values.toSeq
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Seq.empty
-        }
-      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
-    }
-  }
-
   private val v2dByStTName: String = "v2d_by_stchr"
   private val v2dByChrPosTName: String = "v2d_by_chrpos"
   private val d2v2gTName: String = "d2v2g"
@@ -760,9 +669,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   private val v2gTName: String = "v2g"
   private val v2gOScoresTName: String = "v2g_score_by_overall"
   private val v2gStructureTName: String = "v2g_structure"
-  private val studiesTName: String = "studies"
-  private val variantsTName: String = "variants"
   private val studiesOverlapTName: String = "studies_overlap"
   private val gwasSumStatsTName: String = "gwas_chr_%s"
-  private val genesTName: String = "gene"
 }
