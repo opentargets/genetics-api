@@ -30,7 +30,9 @@ object Violations {
       "- 'start' <= 2Mbs."
 
   val denseRegionErrorMsg: String =
-    "Ouch! The region '(%s:%d-%d)' is too dense to be shown."
+    "We are sorry but this region '(%s:%d-%d)' contains a lot of raw data. We are currently working on an " +
+      "update that will show an aggregation of the raw data (aggregating across the tag variants). We hope " +
+      "to have this ready by our next release in February 2019, so please try this region again soon."
 
   case class VariantViolation(msg: String) extends BaseViolation(variantErrorMsg format(msg))
   case class RegionViolation(region: Region) extends BaseViolation(denseRegionErrorMsg format(region.chrId,
