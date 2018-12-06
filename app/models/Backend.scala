@@ -324,7 +324,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     *
     * NOTE! WARNING! THERE IS A DIFF AT THE MOMENT BETWEEN THE VARIANTS COMING FROM VCF FILE
     * AND THE ONES COMING FROM UKB AND WE NEED TO FILL THAT GAP WHILE THIS ISSUE IS NOT
-    * ADDRESSED. AT THE MOMENT, THE WAY TO DO IS USING THE VARIANT APPLY CONTRUCTOR FROM A
+    * ADDRESSED. AT THE MOMENT, THE WAY TO DO IS USING THE VARIANT APPLY CONSTRUCTOR FROM A
     * STRING TO GET A WHITE-LABEL VARIANT WITH ANY OTHER REFERENCES FROM RSID OR NEAREST GENES
     * (NONCODING AND PROTCODING)
     */
@@ -337,9 +337,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
       db.run(q.result.asTry).map {
         case Success(v) =>
-          val missingVIds = (variantIds diff v.map(_.id))
+          val missingVIds = variantIds diff v.map(_.id)
 
-          v ++ (missingVIds.map(DNA.Variant(_)).withFilter(_.isRight).map(_.right.get))
+          v ++ missingVIds.map(DNA.Variant(_)).withFilter(_.isRight).map(_.right.get)
         case Failure(ex) =>
           logger.error("BDIOAction failed with " + ex.getMessage)
           Seq.empty
