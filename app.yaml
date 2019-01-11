@@ -16,9 +16,6 @@ health_check:
   enable_health_check: True
 
 
-# NOTE: Values below are commonly inserted by our CI system..
-# env_variables:
-
 # endpoints_api_service:
 #  name: ${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com
 #  config_id: ${GCENDPOINT_VERSION}
