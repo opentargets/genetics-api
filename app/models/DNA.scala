@@ -50,17 +50,16 @@ object DNA {
             * @param region the region to match against dense regions
             * @return matched or not
             */
-          override def matchRegion(region: Region): Boolean = false
-//          override def matchRegion(region: Region): Boolean = {
-//            denseRegions.get(region.chrId) match {
-//              case Some(r) => r.exists(p => {
-//                logger.debug(s"dense region found at $region")
-//                ((region.start >= p.start) && (region.start <= p.end)) ||
-//                  ((region.end >= p.start) && (region.end <= p.end))
-//              })
-//              case None => false
-//            }
-//          }
+          override def matchRegion(region: Region): Boolean = {
+            denseRegions.get(region.chrId) match {
+              case Some(r) => r.exists(p => {
+                logger.debug(s"dense region found at $region")
+                ((region.start >= p.start) && (region.start <= p.end)) ||
+                  ((region.end >= p.start) && (region.end <= p.end))
+              })
+              case None => false
+            }
+          }
         }
         case None =>
           throw new FileNotFoundException("Failed to load dense region file")
