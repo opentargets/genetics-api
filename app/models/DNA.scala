@@ -48,7 +48,7 @@ object DNA {
           /** match a region (chr:start-end) in a list of highly dense regions true if overlaps false otherwise
             *
             * @param region the region to match against dense regions
-            * @return Some matched or not | None if denseregion map is None too
+            * @return matched or not
             */
           override def matchRegion(region: Region): Boolean = {
             denseRegions.get(region.chrId) match {
