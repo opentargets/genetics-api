@@ -4,18 +4,6 @@ scala:
   - 2.12.6
 jdk:
   - oraclejdk8
-branches:
-  only:
-  - master
-  - "/\\d+\\.\\d+\\.\\d+/"
-  - "/mk.*/"
-  - "/af.*/"
-  - "/ck.*/"
-  - "/ms.*/"
-  - "/MS.*/"
-  - "/gp.*/"
-  - "/pl.*/"
-  - "/gk.*/"
 services:
 - docker
 env:

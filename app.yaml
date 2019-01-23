@@ -14,9 +14,3 @@ automatic_scaling:
 
 health_check:
   enable_health_check: True
-
-
-# endpoints_api_service:
-#  name: ${APPENG_VERSION}.${GOOGLE_PROJECT_ID}.appspot.com
-#  config_id: ${GCENDPOINT_VERSION}
-# TODO make sure this config_id updates for every deployment
