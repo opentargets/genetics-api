@@ -3,7 +3,7 @@ package models
 import clickhouse.ClickHouseProfile
 import clickhouse.rep.SeqRep.{DSeqRep, LSeqRep, StrSeqRep}
 import clickhouse.rep.SeqRep.Implicits._
-import DNA.{Variant, Gene}
+import DNA._
 import Entities.Study
 
 object FRM {
@@ -51,7 +51,7 @@ object FRM {
     def rsId = column[Option[String]]("rs_id")
     def nearestGeneId = column[Option[String]]("gene_id")
     def nearestCodingGeneId = column[Option[String]]("gene_id_prot_coding")
-    def mostSevereConsequence = column[String]("most_severe_consequence")
+    def mostSevereConsequence = column[Option[String]]("most_severe_consequence")
     def caddRaw = column[Option[Double]]("raw")
     def caddPhred = column[Option[Double]]("phred")
     def gnomadAFR = column[Option[Double]]("gnomad_afr")
@@ -67,7 +67,21 @@ object FRM {
     def gnomadNFENWE = column[Option[Double]]("gnomad_nfe_nwe")
     def gnomadOTH = column[Option[Double]]("gnomad_oth")
 
-    def * = (id, chromosome, position, refAllele, altAllele, rsId, nearestGeneId, nearestCodingGeneId) <>
+    def annotations =
+      (nearestGeneId, nearestCodingGeneId, mostSevereConsequence) <>
+        (Annotation.tupled, Annotation.unapply)
+
+    def caddAnnotations =
+      (caddRaw, caddPhred) <> (CaddAnnotation.tupled, CaddAnnotation.unapply)
+
+    def gnomadAnnotations =
+      (gnomadAFR, gnomadSEU, gnomadAMR, gnomadASJ, gnomadEAS, gnomadFIN,
+        gnomadNFE, gnomadNFEEST, gnomadNFESEU, gnomadNFEONF, gnomadNFENWE, gnomadOTH) <>
+        (GnomadAnnotation.tupled, GnomadAnnotation.unapply)
+
+    def * =
+      (id, chromosome, position, segment, refAllele, altAllele, rsId,
+      annotations, caddAnnotations, gnomadAnnotations) <>
       (Variant.tupled, Variant.unapply)
   }
 
