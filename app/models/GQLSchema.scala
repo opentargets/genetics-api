@@ -89,7 +89,7 @@ object GQLSchema {
       Field("nearestGene", OptionType(gene),
         Some("Nearest gene"),
         resolve = r => {
-          r.value.nearestGeneId match {
+          r.value.annotation.nearestGeneId match {
             case Some(ng) => genesFetcher.deferOpt(ng)
             case _ => None
           }
@@ -97,7 +97,7 @@ object GQLSchema {
       Field("nearestCodingGene", OptionType(gene),
         Some("Nearest protein-coding gene"),
         resolve = r => {
-          r.value.nearestCodingGeneId match {
+          r.value.annotation.nearestCodingGeneId match {
             case Some(ng) => genesFetcher.deferOpt(ng)
             case _ => None
           }
