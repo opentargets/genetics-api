@@ -88,20 +88,59 @@ object GQLSchema {
         resolve = _.value.altAllele),
       Field("nearestGene", OptionType(gene),
         Some("Nearest gene"),
-        resolve = r => {
-          r.value.annotation.nearestGeneId match {
-            case Some(ng) => genesFetcher.deferOpt(ng)
-            case _ => None
-          }
+        resolve = _.value.annotation.nearestGeneId match {
+          case Some(ng) => genesFetcher.deferOpt(ng)
+          case _ => None
         }),
       Field("nearestCodingGene", OptionType(gene),
         Some("Nearest protein-coding gene"),
-        resolve = r => {
-          r.value.annotation.nearestCodingGeneId match {
-            case Some(ng) => genesFetcher.deferOpt(ng)
-            case _ => None
-          }
-        })
+        resolve = _.value.annotation.nearestCodingGeneId match {
+          case Some(ng) => genesFetcher.deferOpt(ng)
+          case _ => None
+        }),
+      Field("mostSevereConsequence", OptionType(StringType),
+        Some("Most severe consequence"),
+        resolve = _.value.annotation.mostSevereConsequence),
+      Field("caddRaw", OptionType(FloatType),
+        Some("Combined Annotation Dependent Depletion - Raw score"),
+        resolve = _.value.caddAnnotation.raw),
+      Field("caddPhred", OptionType(FloatType),
+        Some("Combined Annotation Dependent Depletion - Scaled score"),
+        resolve = _.value.caddAnnotation.phred),
+
+      Field("gnomadAFR", OptionType(FloatType),
+        Some("gnomAD Allele frequency (African/African-American population)"),
+        resolve = _.value.gnomadAnnotation.afr),
+      Field("gnomadAMR", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Latino/Admixed American population)"),
+        resolve = _.value.gnomadAnnotation.amr),
+      Field("gnomadASJ", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Ashkenazi Jewish population)"),
+        resolve = _.value.gnomadAnnotation.asj),
+      Field("gnomadEAS", OptionType(FloatType),
+        Some("gnomAD Allele frequency (East Asian population)"),
+        resolve = _.value.gnomadAnnotation.eas),
+      Field("gnomadFIN", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Finnish population)"),
+        resolve = _.value.gnomadAnnotation.fin),
+      Field("gnomadNFE", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Non-Finnish European population)"),
+        resolve = _.value.gnomadAnnotation.nfe),
+      Field("gnomadNFEEST", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Non-Finnish Eurpoean Estonian sub-population)"),
+        resolve = _.value.gnomadAnnotation.nfeEST),
+      Field("gnomadNFENWE", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Non-Finnish Eurpoean North-Western European sub-population)"),
+        resolve = _.value.gnomadAnnotation.nfeNWE),
+      Field("gnomadNFESEU", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Non-Finnish Eurpoean Southern European sub-population)"),
+        resolve = _.value.gnomadAnnotation.nfeSEU),
+      Field("gnomadNFEONF", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Non-Finnish Eurpoean Other non-Finnish European sub-population)"),
+        resolve = _.value.gnomadAnnotation.nfeONF),
+      Field("gnomadOTH", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Other (population not assigned) population)"),
+        resolve = _.value.gnomadAnnotation.oth)
     ))
 
   val studiesFetcher = Fetcher(
