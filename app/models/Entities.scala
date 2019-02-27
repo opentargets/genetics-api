@@ -202,19 +202,19 @@ object Entities {
         else {
           val mv = hit.sourceAsMap
 
-          Right(Gene(mv("gene_id").toString,
-            Option(mv("gene_name").asInstanceOf[String]),
-            Option(mv("biotype").asInstanceOf[String]),
-            Option(mv("chr").toString),
-            Option(mv("start").asInstanceOf[Int]),
-            Option(mv("end").asInstanceOf[Int]),
-            Option(mv("tss").asInstanceOf[Int]),
-            Option(mv("fwdstrand").asInstanceOf[Int] match {
+          Right(Gene(id=mv("gene_id").toString,
+            symbol=Option(mv("gene_name").asInstanceOf[String]),
+            bioType=Option(mv("biotype").asInstanceOf[String]),
+            chromosome=Option(mv("chr").toString),
+            start=Option(mv("start").asInstanceOf[Int]),
+            end=Option(mv("end").asInstanceOf[Int]),
+            tss=Option(mv("tss").asInstanceOf[Int]),
+            fwd=Option(mv("fwdstrand").asInstanceOf[Int] match {
               case 0 => false
               case 1 => true
               case _ => false
             }),
-            Seq.empty
+            exons=Seq.empty
           )
           )
         }
