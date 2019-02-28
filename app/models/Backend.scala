@@ -154,7 +154,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                 "_all" -> 1.0F)),
             simpleStringQuery(cleanedTokens)
               .defaultOperator("AND")
-            ) start limitClause._1 limit limitClause._2 sortByFieldDesc "n_initial"
+            ) start limitClause._1 limit limitClause._2 sortByFieldDesc "num_assoc_loci"
       }.zip {
         esQ.execute {
           search("variant_*") query boolQuery.should(matchQuery("variant_id", stoken),
