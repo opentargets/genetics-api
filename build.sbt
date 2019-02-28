@@ -21,12 +21,12 @@ mappings in Universal ++= directory(baseDirectory.value / "resources")
 resolvers += Resolver.sonatypeRepo("releases")
 
 libraryDependencies += guice
-libraryDependencies += "com.typesafe.slick" %% "slick" % "3.3.0"
-libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.1" % Test
-libraryDependencies += "com.typesafe.play" %% "play" % "2.7.0"
-libraryDependencies += "com.typesafe.play" %% "play-logback" % "2.7.0"
-libraryDependencies += "com.typesafe.play" %% "play-json" % "2.7.1"
-libraryDependencies += "com.typesafe.play" %% "play-slick" % "4.0.0"
+libraryDependencies += "com.typesafe.slick" %% "slick" % "3.2.3"
+libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
+libraryDependencies += "com.typesafe.play" %% "play" % "2.6.21"
+libraryDependencies += "com.typesafe.play" %% "play-logback" % "2.6.21"
+libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.12"
+libraryDependencies += "com.typesafe.play" %% "play-slick" % "3.0.3"
 libraryDependencies += "ru.yandex.clickhouse" % "clickhouse-jdbc" % "0.1.50"
 libraryDependencies += "org.sangria-graphql" %% "sangria" % "1.4.2"
 libraryDependencies += "org.sangria-graphql" %% "sangria-play-json" % "1.0.5"
@@ -38,7 +38,6 @@ libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
   // for the http client
   "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
-  // "com.sksamuel.elastic4s" %% "elastic4s-jackson" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-play-json" % elastic4sVersion
 )
 

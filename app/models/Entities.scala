@@ -242,19 +242,19 @@ object Entities {
 
               Right(Study(mv("study_id").toString,
                 mv.get("trait_reported").map(_.toString).get,
-                mv.get("trait_efos").map(_.asInstanceOf[Seq[String]]).get,
+                mv.get("trait_efos").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
                 mv.get("pmid").map(_.asInstanceOf[String]),
                 mv.get("pub_date").map(_.asInstanceOf[String]),
                 mv.get("pub_journal").map(_.asInstanceOf[String]),
                 mv.get("pub_title").map(_.asInstanceOf[String]),
                 mv.get("pub_author").map(_.asInstanceOf[String]),
-                mv.get("ancestry_initial").map(_.asInstanceOf[Seq[String]]).get,
-                mv.get("ancestry_replication").map(_.asInstanceOf[Seq[String]]).get,
+                mv.get("ancestry_initial").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
+                mv.get("ancestry_replication").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
                 mv.get("n_initial").map(_.asInstanceOf[Int].toLong),
                 mv.get("n_replication").map(_.asInstanceOf[Int].toLong),
                 mv.get("n_cases").map(_.asInstanceOf[Int].toLong),
                 mv.get("trait_category").map(_.asInstanceOf[String]),
-                mv.get("num_assoc_loci").map(_.asInstanceOf[Long]))
+                mv.get("num_assoc_loci").map(_.asInstanceOf[Int]))
               )
             }
           }
