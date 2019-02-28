@@ -92,12 +92,18 @@ object GQLSchema {
           case Some(ng) => genesFetcher.deferOpt(ng)
           case _ => None
         }),
+      Field("nearestGeneDistance", OptionType(LongType),
+        Some("Distance to the nearest gene (any biotype)"),
+        resolve = _.value.annotation.nearestGeneDistance),
       Field("nearestCodingGene", OptionType(gene),
         Some("Nearest protein-coding gene"),
         resolve = _.value.annotation.nearestCodingGeneId match {
           case Some(ng) => genesFetcher.deferOpt(ng)
           case _ => None
         }),
+      Field("nearestCodingGeneDistance", OptionType(LongType),
+        Some("Distance to the nearest gene (protein-coding biotype)"),
+        resolve = _.value.annotation.nearestCodingGeneDistance),
       Field("mostSevereConsequence", OptionType(StringType),
         Some("Most severe consequence"),
         resolve = _.value.annotation.mostSevereConsequence),
@@ -107,7 +113,6 @@ object GQLSchema {
       Field("caddPhred", OptionType(FloatType),
         Some("Combined Annotation Dependent Depletion - Scaled score"),
         resolve = _.value.caddAnnotation.phred),
-
       Field("gnomadAFR", OptionType(FloatType),
         Some("gnomAD Allele frequency (African/African-American population)"),
         resolve = _.value.gnomadAnnotation.afr),
@@ -163,9 +168,6 @@ object GQLSchema {
       Field("studyId", StringType,
         Some("Study Identifier"),
         resolve = _.value.studyId),
-      Field("traitCode", StringType,
-        Some("Trait Identifier"),
-        resolve = _.value.traitCode),
       Field("traitReported", StringType,
         Some("Trait Label as reported on the publication"),
         resolve = _.value.traitReported),
@@ -204,7 +206,10 @@ object GQLSchema {
         resolve = _.value.nCases),
       Field("traitCategory", OptionType(StringType),
         Some("Trait category"),
-        resolve = _.value.traitCategory)
+        resolve = _.value.traitCategory),
+      Field("numAssocLoci", OptionType(LongType),
+        Some("Number of associated loci"),
+        resolve = _.value.numAssocLoci)
     ))
 
   val indexVariantAssociation = ObjectType("IndexVariantAssociation",

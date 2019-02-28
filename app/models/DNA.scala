@@ -67,7 +67,9 @@ object DNA {
   }
 
   case class Annotation(nearestGeneId: Option[String] = None,
+                        nearestGeneDistance: Option[Long] = None,
                         nearestCodingGeneId: Option[String] = None,
+                        nearestCodingGeneDistance: Option[Long] = None,
                         mostSevereConsequence: Option[String] = None)
   case class CaddAnnotation(raw: Option[Double] = None, phred: Option[Double] = None)
   case class GnomadAnnotation(afr: Option[Double] = None, seu: Option[Double] = None,

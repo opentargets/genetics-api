@@ -287,11 +287,11 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getStudiesForGene(geneId: String): Future[Vector[String]] = {
     val studiesSQL = sql"""
-                           |SELECT DISTINCT stid
+                           |SELECT DISTINCT study_id
                            |FROM #$d2v2gTName
                            |PREWHERE
                            |  (gene_id = $geneId) AND
-                           |  (chr_id = dictGetString('gene','chr',tuple($geneId)))
+                           |  (tag_chrom = dictGetString('gene','chr',tuple($geneId)))
       """.stripMargin.as[String]
 
     db.run(studiesSQL.asTry).map {

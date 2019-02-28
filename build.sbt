@@ -7,7 +7,7 @@ version := "latest"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.12.6"
+scalaVersion := "2.12.8"
 
 scalacOptions in ThisBuild ++= Seq(
 "-language:_",
@@ -21,20 +21,19 @@ mappings in Universal ++= directory(baseDirectory.value / "resources")
 resolvers += Resolver.sonatypeRepo("releases")
 
 libraryDependencies += guice
-libraryDependencies += "com.typesafe.slick" %% "slick" % "3.2.3"
-libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
-libraryDependencies += "com.typesafe.play" %% "play" % "2.6.19"
-libraryDependencies += "com.typesafe.play" %% "play-logback" % "2.6.19"
-libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.10"
-libraryDependencies += "com.typesafe.play" %% "play-slick" % "3.0.3"
-libraryDependencies += "ru.yandex.clickhouse" % "clickhouse-jdbc" % "0.1.41"
+libraryDependencies += "com.typesafe.slick" %% "slick" % "3.3.0"
+libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.1" % Test
+libraryDependencies += "com.typesafe.play" %% "play" % "2.7.0"
+libraryDependencies += "com.typesafe.play" %% "play-logback" % "2.7.0"
+libraryDependencies += "com.typesafe.play" %% "play-json" % "2.7.1"
+libraryDependencies += "com.typesafe.play" %% "play-slick" % "4.0.0"
+libraryDependencies += "ru.yandex.clickhouse" % "clickhouse-jdbc" % "0.1.50"
 libraryDependencies += "org.sangria-graphql" %% "sangria" % "1.4.2"
-// libraryDependencies += "org.sangria-graphql" %% "sangria-relay" % "1.4.1"
-libraryDependencies += "org.sangria-graphql" %% "sangria-play-json" % "1.0.4"
+libraryDependencies += "org.sangria-graphql" %% "sangria-play-json" % "1.0.5"
 libraryDependencies += "com.nrinaudo" %% "kantan.csv" % "0.4.0"
 libraryDependencies += "com.nrinaudo" %% "kantan.csv-generic" % "0.4.0"
 
-val elastic4sVersion = "5.6.7"
+val elastic4sVersion = "5.6.9"
 libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
   // for the http client

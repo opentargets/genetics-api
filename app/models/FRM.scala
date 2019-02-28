@@ -49,8 +49,10 @@ object FRM {
     def refAllele = column[String]("ref_allele")
     def altAllele = column[String]("alt_allele")
     def rsId = column[Option[String]]("rs_id")
-    def nearestGeneId = column[Option[String]]("gene_id")
+    def nearestGeneId = column[Option[String]]("gene_id_any")
     def nearestCodingGeneId = column[Option[String]]("gene_id_prot_coding")
+    def nearestGeneDistance = column[Option[Long]]("gene_id_any_distance")
+    def nearestCodingGeneDistance = column[Option[Long]]("gene_id_prot_coding_distance")
     def mostSevereConsequence = column[Option[String]]("most_severe_consequence")
     def caddRaw = column[Option[Double]]("raw")
     def caddPhred = column[Option[Double]]("phred")
@@ -68,7 +70,8 @@ object FRM {
     def gnomadOTH = column[Option[Double]]("gnomad_oth")
 
     def annotations =
-      (nearestGeneId, nearestCodingGeneId, mostSevereConsequence) <>
+      (nearestGeneId, nearestGeneDistance, nearestCodingGeneId,
+        nearestCodingGeneDistance, mostSevereConsequence) <>
         (Annotation.tupled, Annotation.unapply)
 
     def caddAnnotations =
@@ -90,7 +93,6 @@ object FRM {
 
   class Studies(tag: Tag) extends Table[Study](tag, "studies") {
     def studyId = column[String]("study_id")
-    def traitCode = column[String]("trait_code")
     def traitReported = column[String]("trait_reported")
     def traitEfos = column[Seq[String]]("trait_efos")
     def pubId = column[Option[String]]("pmid")
@@ -104,10 +106,11 @@ object FRM {
     def nReplication = column[Option[Long]]("n_replication")
     def nCases = column[Option[Long]]("n_cases")
     def traitCategory = column[Option[String]]("trait_category")
+    def numAssocLoci = column[Option[Long]]("num_assoc_loci")
     def * = (
-      studyId, traitCode, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases, traitCategory
-    ) <> (Study.tupled, Study.unapply)
+      studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
+      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
+      traitCategory, numAssocLoci) <> (Study.tupled, Study.unapply)
   }
 
   //  // V2D (NOT CURRENTLY USED)

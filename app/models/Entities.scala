@@ -4,7 +4,6 @@ import com.sksamuel.elastic4s.{Hit, HitReader}
 import slick.jdbc.GetResult
 import models.Functions._
 import models.DNA._
-import sangria.execution.deferred.HasId
 import clickhouse.rep.SeqRep._
 import clickhouse.rep.SeqRep.Implicits._
 
@@ -67,11 +66,11 @@ object Entities {
 
     case class StudyInfo(study: Option[Study])
 
-    case class Study(studyId: String, traitCode: String, traitReported: String, traitEfos: Seq[String],
+    case class Study(studyId: String, traitReported: String, traitEfos: Seq[String],
                      pubId: Option[String], pubDate: Option[String], pubJournal: Option[String], pubTitle: Option[String],
                      pubAuthor: Option[String], ancestryInitial: Seq[String], ancestryReplication: Seq[String],
                      nInitial: Option[Long], nReplication: Option[Long], nCases: Option[Long],
-                     traitCategory: Option[String])
+                     traitCategory: Option[String], numAssocLoci: Option[Long])
 
     case class PheWASTable(associations: Vector[VariantPheWAS])
     case class VariantPheWAS(stid: String, pval: Double, beta: Double, se: Double, eaf: Double, maf: Double,
@@ -242,7 +241,6 @@ object Entities {
               val mv = hit.sourceAsMap
 
               Right(Study(mv("study_id").toString,
-                mv.get("trait_code").map(_.toString).get,
                 mv.get("trait_reported").map(_.toString).get,
                 mv.get("trait_efos").map(_.asInstanceOf[Seq[String]]).get,
                 mv.get("pmid").map(_.asInstanceOf[String]),
@@ -255,7 +253,8 @@ object Entities {
                 mv.get("n_initial").map(_.asInstanceOf[Int].toLong),
                 mv.get("n_replication").map(_.asInstanceOf[Int].toLong),
                 mv.get("n_cases").map(_.asInstanceOf[Int].toLong),
-                mv.get("trait_category").map(_.asInstanceOf[String]))
+                mv.get("trait_category").map(_.asInstanceOf[String]),
+                mv.get("num_assoc_loci").map(_.asInstanceOf[Long]))
               )
             }
           }
@@ -282,9 +281,9 @@ object Entities {
         GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<,
           r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
 
-      implicit val getStudy: GetResult[Study] =
-        GetResult(r => Study(r.<<, r.<<, r.<<, StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
-          StrSeqRep(r.<<), StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?))
+//      implicit val getStudy: GetResult[Study] =
+//        GetResult(r => Study(r.<<, r.<<, r.<<, StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
+//          StrSeqRep(r.<<), StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?))
 
       implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
         r => {
