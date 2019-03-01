@@ -197,6 +197,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   Future[Entities.OverlappedLociStudy] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
 
+    // TODO COMPLETE THIS!
+    // val q = overlaps.filter(_.studyIdA === stid)
     val topOverlappedsSQL = sql"""
                           |SELECT
                           |  study_id_b,
@@ -227,27 +229,22 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def getOverlapVariantsIntersectionForStudies(stid: String, stids: Seq[String]): Future[Vector[String]] = {
     val stidListString = stids.map("'" + _ + "'").mkString(",")
     val numStids = if (stids.nonEmpty) stids.length else 0
-    val overlapSQL = sql"""
-                          |SELECT index_variant_id_a
-                          |FROM
-                          |(
-                          |    SELECT
-                          |        index_variant_id_a,
-                          |        uniq(study_id_b) AS num_studies
-                          |    FROM #$studiesOverlapTName
-                          |    PREWHERE (study_id_a = $stid) AND
-                          |        (study_id_b IN (#${stidListString})) AND
-                          |        (set_type = 'combined')
-                          |    GROUP BY index_variant_id_a
-                          |    HAVING num_studies = ${numStids}
-                          |)
-      """.stripMargin.as[String]
 
-    db.run(overlapSQL.asTry).map {
-      case Success(v) => v
-      case Failure(ex) =>
-        logger.error(ex.getMessage)
-        Vector.empty
+    if (stids.nonEmpty) {
+      val q = overlaps
+        .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
+        .map(r => (r.chromA, r.posA, r.refA, r.altA))
+        .distinct
+
+      db.run(q.result.asTry).map {
+        case Success(v) =>
+          v.view.map(r => Variant(r._1, r._2, r._3, r._4).id).toVector
+        case Failure(ex) =>
+          logger.error(ex.getMessage)
+          Vector.empty
+      }
+    } else {
+      Future.successful(Vector.empty)
     }
   }
 
