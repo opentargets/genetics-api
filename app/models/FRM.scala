@@ -23,25 +23,25 @@ object FRM {
   implicit val seqStringType: ClickHouseProfile.BaseColumnType[Seq[String]] =
     MappedColumnType.base[Seq[String], String](_.map("'" + _ + "'").mkString("[", ",", "]"), StrSeqRep(_))
 
-  class Overlaps(tag: Tag) extends Table[VariantStudyOverlapsRow](tag, "studies_overlap") {
+  class Overlaps(tag: Tag) extends Table[VariantStudyOverlapsRow](tag, "studies_overlap_exploded") {
     def chromA  = column[String]("A_chrom")
     def posA = column[Long]("A_pos")
     def refA = column[String]("A_ref")
     def altA  = column[String]("A_alt")
     def studyIdA = column[String]("A_study_id")
 
-    def overlapsStudyIdB  = column[Seq[String]]("overlaps.B_study_id")
-    def overlapsChromB = column[Seq[String]]("overlaps.B_chrom")
-    def overlapsPosB = column[Seq[Long]]("overlaps.B_pos")
-    def overlapsRefB = column[Seq[String]]("overlaps.B_ref")
-    def overlapsAltB = column[Seq[String]]("overlaps.B_alt")
-    def overlapsAB = column[Seq[Int]]("overlaps.AB_overlap")
-    def overlapsDistinctA = column[Seq[Int]]("overlaps.A_distinct")
-    def overlapsDistinctB = column[Seq[Int]]("overlaps.B_distinct")
+    def studyIdB  = column[String]("B_study_id")
+    def chromB = column[String]("B_chrom")
+    def posB = column[Long]("B_pos")
+    def refB = column[String]("B_ref")
+    def altB = column[String]("B_alt")
+    def overlapsAB = column[Int]("AB_overlap")
+    def distinctA = column[Int]("A_distinct")
+    def distinctB = column[Int]("B_distinct")
     def * =
-      (chromA, posA, refA, altA, studyIdA, overlapsStudyIdB,
-      overlapsChromB, overlapsPosB, overlapsRefB, overlapsAltB,
-      overlapsAB, overlapsDistinctA, overlapsDistinctB) <>
+      (chromA, posA, refA, altA, studyIdA, studyIdB,
+      chromB, posB, refB, altB,
+      overlapsAB, distinctA, distinctB) <>
         (VariantStudyOverlapsRow.tupled, VariantStudyOverlapsRow.unapply)
   }
   // --------------------------------------------------------

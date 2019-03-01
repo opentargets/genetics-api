@@ -100,7 +100,7 @@ object DNA {
       }
     }
 
-    def apply(chromosome: String, position: Long, refAllele: String, altAllele: String) =
+    def apply(chromosome: String, position: Long, refAllele: String, altAllele: String): Variant =
       Variant(chromosome, position, refAllele, altAllele, None)
 
     def apply(variantId: String, chromosome: String, position: Long, segment: Long,

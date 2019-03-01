@@ -19,11 +19,12 @@ object Entities {
 
   case class VariantStudyOverlapsRow(chromA: String, posA: Long, refA: String,
                                      altA: String, studyIdA: String,
-                                     studyIdB: Seq[String], chromB: Seq[String],
-                                     posB: Seq[Long], refB: Seq[String],
-                                     altB: Seq[String], overlapAB: Seq[Int],
-                                     distinctA: Seq[Int], distinctB: Seq[Int]) {
+                                     studyIdB: String, chromB: String,
+                                     posB: Long, refB: String,
+                                     altB: String, overlapAB: Int,
+                                     distinctA: Int, distinctB: Int) {
     val variantA: Variant = Variant(chromA, posA, refA, altA)
+    val variantB: Variant = Variant(chromB, posB, refB, altB)
   }
 
   case class OverlappedVariantsStudy(studyId: String, overlaps: Seq[OverlappedVariant])

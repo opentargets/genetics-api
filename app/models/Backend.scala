@@ -25,7 +25,7 @@ import play.api.Logger
 import play.api.Environment
 import java.nio.file.{Path, Paths}
 
-import models.FRM.{Genes, Studies, Variants}
+import models.FRM.{Genes, Overlaps, Studies, Variants}
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
@@ -45,6 +45,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   lazy val genes = TableQuery[Genes]
   lazy val variants = TableQuery[Variants]
   lazy val studies = TableQuery[Studies]
+  lazy val overlaps = TableQuery[Overlaps]
 //  lazy val v2DsByChrPos = TableQuery[V2DsByChrPos]
 //  lazy val v2DsByStudy = TableQuery[V2DsByChrPos]
 
@@ -252,31 +253,21 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getOverlapVariantsForStudies(stid: String, stids: Seq[String]): Future[Vector[Entities.OverlappedVariantsStudy]] = {
     val stidListString = stids.map("'" + _ + "'").mkString(",")
-    val overlapSQL = sql"""
-                          |SELECT
-                          |  study_id_b,
-                          |  index_variant_id_a,
-                          |  index_variant_id_b,
-                          |  any(overlap_AB) AS overlap_AB,
-                          |  any(distinct_A) AS distinct_A,
-                          |  any(distinct_B) AS distinct_B
-                          |FROM #$studiesOverlapTName
-                          |PREWHERE (study_id_a = $stid) AND
-                          |  (study_id_b IN (#${stidListString})) AND
-                          |  (set_type = 'combined')
-                          |GROUP BY
-                          |  study_id_a,
-                          |  study_id_b,
-                          |  index_variant_id_a,
-                          |  index_variant_id_b
-      """.stripMargin.as[(String, String, String, Int, Int, Int)]
 
-    db.run(overlapSQL.asTry).map {
+    val q =
+      overlaps
+        .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
+        .distinct
+        .sortBy(r => (r.studyIdA, r.studyIdB, r.chromA, r.posA, r.refA, r.altA,
+          r.chromB, r.posB, r.refB, r.altB))
+
+    db.run(q.result.asTry).map {
       case Success(v) =>
         if (v.nonEmpty) {
-          v.view.groupBy(_._1).map(pair =>
+          v.view.groupBy(_.studyIdB).map(pair =>
             OverlappedVariantsStudy(pair._1,
-              pair._2.map(t => OverlappedVariant(t._2, t._3, t._4, t._5, t._6)))).toVector
+              pair._2.map(t => OverlappedVariant(t.variantA.id, t.variantB.id,
+                t.overlapAB, t.distinctA, t.distinctB)))).toVector
         } else {
           Vector.empty
         }
@@ -305,10 +296,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getGenes(geneIds: Seq[String]): Future[Seq[Gene]] = {
     if (geneIds.nonEmpty) {
-      val q = for {
-        g <- genes
-        if g.id inSetBind geneIds
-      } yield g
+      val q = genes.filter(_.id inSetBind geneIds)
 
       db.run(q.result.asTry).map {
         case Success(v) => v
