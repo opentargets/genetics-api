@@ -195,28 +195,19 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     */
   def getTopOverlappedStudies(stid: String, pageIndex: Option[Int] = Some(0), pageSize: Option[Int] = Some(defaultTopOverlapStudiesSize)):
   Future[Entities.OverlappedLociStudy] = {
-    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+    val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
+    val q = overlaps
+      .filter(_.studyIdA === stid)
+      .groupBy(_.studyIdB)
+      .map(r => (r._1, r._2.map(r => (r.chromA, r.posA, r.refA, r.altA)).length))
+      .sortBy(_._2.desc)
+      .drop(limitPair._1)
+      .take(limitPair._2)
 
-    // TODO COMPLETE THIS!
-    // val q = overlaps.filter(_.studyIdA === stid)
-    val topOverlappedsSQL = sql"""
-                          |SELECT
-                          |  study_id_b,
-                          |  uniq(index_variant_id_a) AS num_overlap_loci
-                          |FROM #$studiesOverlapTName
-                          |ARRAY JOIN overlaps
-                          |PREWHERE (study_id_a = $stid)
-                          |GROUP BY
-                          |  study_id_a,
-                          |  study_id_b
-                          |ORDER BY num_overlap_loci desc
-                          |#$limitClause
-      """.stripMargin.as[(String, Int)]
-
-    db.run(topOverlappedsSQL.asTry).map {
+    db.run(q.result.asTry).map {
       case Success(v) =>
         if (v.nonEmpty) {
-          OverlappedLociStudy(stid, v.map(t => OverlapRow(t._1, t._2)))
+          OverlappedLociStudy(stid, v.map(t => OverlapRow(t._1, t._2)).toVector)
         } else {
           OverlappedLociStudy(stid, Vector.empty)
         }
