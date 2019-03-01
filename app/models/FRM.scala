@@ -1,10 +1,10 @@
 package models
 
 import clickhouse.ClickHouseProfile
-import clickhouse.rep.SeqRep.{DSeqRep, LSeqRep, StrSeqRep}
+import clickhouse.rep.SeqRep.{DSeqRep, ISeqRep, LSeqRep, StrSeqRep}
 import clickhouse.rep.SeqRep.Implicits._
 import DNA._
-import Entities.Study
+import Entities.{Study, VariantStudyOverlapsRow}
 
 object FRM {
   import clickhouse.ClickHouseProfile.api._
@@ -14,6 +14,8 @@ object FRM {
     * be able to interpret them implicitily. It is worth noting these functions can be
     * moved into the slick driver for clickhouse
     */
+  implicit val seqIntType: ClickHouseProfile.BaseColumnType[Seq[Int]] =
+    MappedColumnType.base[Seq[Int], String](_.mkString("[", ",", "]"), ISeqRep(_))
   implicit val seqLongType: ClickHouseProfile.BaseColumnType[Seq[Long]] =
     MappedColumnType.base[Seq[Long], String](_.mkString("[", ",", "]"), LSeqRep(_))
   implicit val seqDoubleType: ClickHouseProfile.BaseColumnType[Seq[Double]] =
@@ -21,6 +23,27 @@ object FRM {
   implicit val seqStringType: ClickHouseProfile.BaseColumnType[Seq[String]] =
     MappedColumnType.base[Seq[String], String](_.map("'" + _ + "'").mkString("[", ",", "]"), StrSeqRep(_))
 
+  class Overlaps(tag: Tag) extends Table[VariantStudyOverlapsRow](tag, "studies_overlap") {
+    def chromA  = column[String]("A_chrom")
+    def posA = column[Long]("A_pos")
+    def refA = column[String]("A_ref")
+    def altA  = column[String]("A_alt")
+    def studyIdA = column[String]("A_study_id")
+
+    def overlapsStudyIdB  = column[Seq[String]]("overlaps.B_study_id")
+    def overlapsChromB = column[Seq[String]]("overlaps.B_chrom")
+    def overlapsPosB = column[Seq[Long]]("overlaps.B_pos")
+    def overlapsRefB = column[Seq[String]]("overlaps.B_ref")
+    def overlapsAltB = column[Seq[String]]("overlaps.B_alt")
+    def overlapsAB = column[Seq[Int]]("overlaps.AB_overlap")
+    def overlapsDistinctA = column[Seq[Int]]("overlaps.A_distinct")
+    def overlapsDistinctB = column[Seq[Int]]("overlaps.B_distinct")
+    def * =
+      (chromA, posA, refA, altA, studyIdA, overlapsStudyIdB,
+      overlapsChromB, overlapsPosB, overlapsRefB, overlapsAltB,
+      overlapsAB, overlapsDistinctA, overlapsDistinctB) <>
+        (VariantStudyOverlapsRow.tupled, VariantStudyOverlapsRow.unapply)
+  }
   // --------------------------------------------------------
   // GENE
 

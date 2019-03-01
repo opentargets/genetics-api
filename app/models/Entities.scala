@@ -17,6 +17,15 @@ object Entities {
 
   case class OverlappedLociStudy(studyId: String, topOverlappedStudies: IndexedSeq[OverlapRow])
 
+  case class VariantStudyOverlapsRow(chromA: String, posA: Long, refA: String,
+                                     altA: String, studyIdA: String,
+                                     studyIdB: Seq[String], chromB: Seq[String],
+                                     posB: Seq[Long], refB: Seq[String],
+                                     altB: Seq[String], overlapAB: Seq[Int],
+                                     distinctA: Seq[Int], distinctB: Seq[Int]) {
+    val variantA: Variant = Variant(chromA, posA, refA, altA)
+  }
+
   case class OverlappedVariantsStudy(studyId: String, overlaps: Seq[OverlappedVariant])
 
   case class OverlappedVariant(variantIdA: String, variantIdB: String, overlapAB: Int,
@@ -129,23 +138,28 @@ object Entities {
   case class G2VSchemaElement(id: String, sourceId: String, tissues: Seq[Tissue])
 
   case class G2VSchema(qtls: Seq[G2VSchemaElement], intervals: Seq[G2VSchemaElement],
-                       functionalPredictions: Seq[G2VSchemaElement])
+                       functionalPredictions: Seq[G2VSchemaElement], distances: Seq[G2VSchemaElement])
 
   case class G2VAssociation(geneId: String, variantId: String, overallScore: Double, qtls: Seq[G2VElement[QTLTissue]],
-                            intervals: Seq[G2VElement[IntervalTissue]], fpreds: Seq[G2VElement[FPredTissue]])
+                            intervals: Seq[G2VElement[IntervalTissue]], fpreds: Seq[G2VElement[FPredTissue]],
+                            distances: Seq[G2VElement[DistancelTissue]])
 
   object G2VAssociation {
     def toQtlTissues(scoreds: Seq[ScoredG2VLine]): Seq[QTLTissue] =
       scoreds.map(el =>
-        QTLTissue(Tissue(el.feature), el.qtlScoreQ, el.qtlBeta, el.qtlPval))
+        QTLTissue(Tissue(el.feature), el.qtlScoreQ.getOrElse(0D), el.qtlBeta, el.qtlPval))
 
     def toIntervalTissues(scoreds: Seq[ScoredG2VLine]): Seq[IntervalTissue] =
       scoreds.map(el =>
-        Entities.IntervalTissue(Tissue(el.feature), el.intervalScoreQ, el.intervalScore))
+        Entities.IntervalTissue(Tissue(el.feature), el.intervalScoreQ.getOrElse(0D), el.intervalScore))
 
     def toFPredTissues(scoreds: Seq[ScoredG2VLine]): Seq[FPredTissue] =
       scoreds.map(el =>
         Entities.FPredTissue(Tissue(el.feature), el.fpredMaxLabel, el.fpredMaxScore))
+
+    def toDistanceTissues(scoreds: Seq[ScoredG2VLine]): Seq[DistancelTissue] =
+      scoreds.map(el =>
+        Entities.DistancelTissue(Tissue(el.feature), el.distanceScoreQ.getOrElse(0D), el.distance, el.distanceScore))
 
     def apply(groupedGene: Seq[ScoredG2VLine]): G2VAssociation = {
       val geneId = groupedGene.head.geneId
@@ -174,7 +188,15 @@ object Entities {
             p.head.sourceScores(sc), toFPredTissues(p))
         }).values.toStream
 
-      G2VAssociation(geneId, variantId, score, qtls, intervals, fpreds)
+      val distances = grouped.filterKeys(k => defaultDistanceTypes.contains(k._1))
+        .mapValues(p => {
+          val sc = p.head.sourceId
+          G2VElement[DistancelTissue](p.head.typeId, p.head.sourceId, None,
+            p.head.sourceScores(sc), toDistanceTissues(p))
+        }).values.toStream
+
+
+      G2VAssociation(geneId, variantId, score, qtls, intervals, fpreds, distances)
     }
   }
 
@@ -185,13 +207,16 @@ object Entities {
 
   case class IntervalTissue(tissue: Tissue, quantile: Double, score: Option[Double])
 
+  case class DistancelTissue(tissue: Tissue, quantile: Double, distance: Option[Long], score: Option[Double])
+
   case class FPredTissue(tissue: Tissue, maxEffectLabel: Option[String], maxEffectScore: Option[Double])
 
   case class ScoredG2VLine(geneId: String, variantId: String, overallScore: Double, sourceScores: Map[String, Double],
                            typeId: String, sourceId: String, feature: String, fpredMaxLabel: Option[String],
                            fpredMaxScore: Option[Double], qtlBeta: Option[Double], qtlSE: Option[Double],
-                           qtlPval: Option[Double], intervalScore: Option[Double], qtlScoreQ: Double,
-                           intervalScoreQ: Double)
+                           qtlPval: Option[Double], intervalScore: Option[Double], qtlScoreQ: Option[Double],
+                           intervalScoreQ: Option[Double], distance: Option[Long], distanceScore: Option[Double],
+                           distanceScoreQ: Option[Double])
 
   object ESImplicits {
 
@@ -281,10 +306,6 @@ object Entities {
         GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<,
           r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
 
-//      implicit val getStudy: GetResult[Study] =
-//        GetResult(r => Study(r.<<, r.<<, r.<<, StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?,
-//          StrSeqRep(r.<<), StrSeqRep(r.<<), r.<<?, r.<<?, r.<<?, r.<<?, r.<<?))
-
       implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
         r => {
           val variant = DNA.Variant(r.<<, r.<<?)
@@ -326,7 +347,7 @@ object Entities {
         r => {
           ScoredG2VLine(r.<<, r.<<, r.<<,
             (StrSeqRep(r.nextString()).rep zip DSeqRep(r.nextString()).rep).toMap,
-            r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<)
+            r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<, r.<<?, r.<<?, r.<<?)
         }
       )
     }

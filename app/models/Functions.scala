@@ -11,6 +11,7 @@ object Functions {
   val defaultQtlTypes: List[String] = List("eqtl", "pqtl")
   val defaultIntervalTypes: List[String] = List("dhscor", "fantom5", "pchic")
   val defaultFPredTypes: List[String] = List("fpred")
+  val defaultDistanceTypes: List[String] = List("distance")
   val defaultSegmentDivFactor: Double = 1e6
   val defaultTopOverlapStudiesSize: Int = 10
   val defaultStudiesForGeneSize: Int = 10

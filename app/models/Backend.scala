@@ -122,11 +122,12 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         val qtlElems = toSeqStruct(mappedRows.filterKeys(defaultQtlTypes.contains(_)))
         val intervalElems = toSeqStruct(mappedRows.filterKeys(defaultIntervalTypes.contains(_)))
         val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains(_)))
+        val distanceElems = toSeqStruct(mappedRows.filterKeys(defaultDistanceTypes.contains(_)))
 
-        G2VSchema(qtlElems, intervalElems, fpredElems)
+        G2VSchema(qtlElems, intervalElems, fpredElems, distanceElems)
       case Failure(ex) =>
         logger.error(ex.getMessage)
-        G2VSchema(Seq.empty, Seq.empty, Seq.empty)
+        G2VSchema(Seq.empty, Seq.empty, Seq.empty, Seq.empty)
     }
   }
 
@@ -200,8 +201,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |  study_id_b,
                           |  uniq(index_variant_id_a) AS num_overlap_loci
                           |FROM #$studiesOverlapTName
-                          |PREWHERE (study_id_a = $stid) and
-                          |  set_type = 'combined'
+                          |ARRAY JOIN overlaps
+                          |PREWHERE (study_id_a = $stid)
                           |GROUP BY
                           |  study_id_a,
                           |  study_id_b
@@ -614,7 +615,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |    qtl_pval,
                           |    interval_score,
                           |    qtl_score_q,
-                          |    interval_score_q
+                          |    interval_score_q,
+                          |    d,
+                          |    distance_score,
+                          |    distance_score_q
                           |FROM
                           |(
                           |    SELECT
@@ -629,13 +633,15 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                           |        qtl_pval,
                           |        interval_score,
                           |        qtl_score_q,
-                          |        interval_score_q
+                          |        interval_score_q,
+                          |        d,
+                          |        distance_score,
+                          |        distance_score_q
                           |    FROM #$v2gTName
                           |    PREWHERE
                           |       (chr_id = ${v.chromosome}) AND
                           |       (position = ${v.position}) AND
-                          |       (variant_id = ${v.id}) AND
-                          |       (isNull(fpred_max_score) OR fpred_max_score > 0.)
+                          |       (variant_id = ${v.id})
                           |)
                           |ALL INNER JOIN
                           |(

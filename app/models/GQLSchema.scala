@@ -558,7 +558,10 @@ object GQLSchema {
         resolve = _.value.intervals),
       Field("functionalPredictions", ListType(g2vSchemaElement),
         Some("qtl structure definition"),
-        resolve = _.value.functionalPredictions)
+        resolve = _.value.functionalPredictions),
+      Field("distances", ListType(g2vSchemaElement),
+        Some("Distance structure definition"),
+        resolve = _.value.distances)
     ))
 
   val qtlTissue = ObjectType("QTLTissue",
@@ -604,6 +607,23 @@ object GQLSchema {
       Field("maxEffectScore", OptionType(FloatType),
         Some(""),
         resolve = _.value.maxEffectScore)
+    ))
+
+  val distanceTisse = ObjectType("DistanceTissue",
+    "",
+    fields[Backend, DistancelTissue](
+      Field("tissue", tissue,
+        Some(""),
+        resolve = _.value.tissue),
+      Field("distance", OptionType(LongType),
+        Some("Distance to the canonical TSS"),
+        resolve = _.value.distance),
+      Field("score", OptionType(FloatType),
+        Some("Score 1 / Distance"),
+        resolve = _.value.score),
+      Field("quantile", OptionType(FloatType),
+        Some("Quantile of the score"),
+        resolve = _.value.quantile)
     ))
 
   val qtlElement = ObjectType("QTLElement",
@@ -657,6 +677,23 @@ object GQLSchema {
         resolve = _.value.tissues)
     ))
 
+  val distElement = ObjectType("DistanceElement",
+    "A list of rows with each link",
+    fields[Backend, G2VElement[DistancelTissue]](
+      Field("typeId", StringType,
+        Some(""),
+        resolve = _.value.id),
+      Field("sourceId", StringType,
+        Some(""),
+        resolve = _.value.sourceId),
+      Field("aggregatedScore", FloatType,
+        Some(""),
+        resolve = _.value.aggregatedScore),
+      Field("tissues", ListType(distanceTisse),
+        Some(""),
+        resolve = _.value.tissues)
+    ))
+
   val geneForVariant = ObjectType("GeneForVariant",
     "A list of rows with each link",
     fields[Backend, G2VAssociation](
@@ -677,7 +714,10 @@ object GQLSchema {
         resolve = _.value.intervals),
       Field("functionalPredictions", ListType(fPredElement),
         Some(""),
-        resolve = _.value.fpreds)
+        resolve = _.value.fpreds),
+      Field("distances", ListType(distElement),
+        Some(""),
+        resolve = _.value.distances)
     ))
 
   val variantSearchResult = ObjectType("VariantSearchResult",

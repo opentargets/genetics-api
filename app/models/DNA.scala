@@ -95,10 +95,13 @@ object DNA {
     private[this] def parseVariant(variantId: String, rsId: Option[String]): Option[Variant] = {
       variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
         case List(chr: String, pos: String, ref: String, alt: String) =>
-          Some(Variant(chr, pos.toLong, ref, alt))
+          Some(Variant(chr, pos.toLong, ref, alt, None))
         case _ => None
       }
     }
+
+    def apply(chromosome: String, position: Long, refAllele: String, altAllele: String) =
+      Variant(chromosome, position, refAllele, altAllele, None)
 
     def apply(variantId: String, chromosome: String, position: Long, segment: Long,
               refAllele: String, altAllele: String, rsId: Option[String]): Variant =
@@ -123,6 +126,9 @@ object DNA {
       Annotation, CaddAnnotation, GnomadAnnotation)] =
       Some(v.id, v.chromosome, v.position, v.segment, v.refAllele, v.altAllele,
         v.rsId, v.annotation, v.caddAnnotation, v.gnomadAnnotation)
+//
+//    def unapply(v: Variant): Option[(String, Long, String, String)] =
+//      Some(v.chromosome, v.position, v.refAllele, v.altAllele)
   }
 
   case class Gene(id: String, symbol: Option[String], bioType: Option[String] = None, chromosome: Option[String] = None,
