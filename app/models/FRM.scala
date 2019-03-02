@@ -9,9 +9,9 @@ import Entities.{Study, VariantStudyOverlapsRow}
 object FRM {
   import clickhouse.ClickHouseProfile.api._
 
-  /** Clickhouse driver allows us to get serialised Arrays of all scalar types. But
-    * jdbc does not allows to map to a seq of a scalar so this columns are defined here to
-    * be able to interpret them implicitily. It is worth noting these functions can be
+  /** ClickHouse driver allows us to get serialised Arrays of all scalar types. But
+    * jdbc does not allow to map to a seq of a scalar so these columns are defined here to
+    * be able to interpret them implicitly. It is worth noting these functions can be
     * moved into the slick driver for clickhouse
     */
   implicit val seqIntType: ClickHouseProfile.BaseColumnType[Seq[Int]] =
@@ -41,8 +41,7 @@ object FRM {
     def * =
       (chromA, posA, refA, altA, studyIdA, studyIdB,
       chromB, posB, refB, altB,
-      overlapsAB, distinctA, distinctB) <>
-        (VariantStudyOverlapsRow.tupled, VariantStudyOverlapsRow.unapply)
+      overlapsAB, distinctA, distinctB).mapTo[VariantStudyOverlapsRow]
   }
   // --------------------------------------------------------
   // GENE
@@ -57,8 +56,7 @@ object FRM {
     def end = column[Option[Long]]("end")
     def fwd = column[Option[Boolean]]("fwdstrand")
     def exons = column[Seq[Long]]("exons")
-    def * = (id, symbol, bioType, chromosome, tss, start, end, fwd, exons) <>
-      (Gene.tupled, Gene.unapply)
+    def * = (id, symbol, bioType, chromosome, tss, start, end, fwd, exons).mapTo[Gene]
   }
 
   // --------------------------------------------------------
@@ -94,21 +92,19 @@ object FRM {
 
     def annotations =
       (nearestGeneId, nearestGeneDistance, nearestCodingGeneId,
-        nearestCodingGeneDistance, mostSevereConsequence) <>
-        (Annotation.tupled, Annotation.unapply)
+        nearestCodingGeneDistance, mostSevereConsequence).mapTo[Annotation]
 
     def caddAnnotations =
-      (caddRaw, caddPhred) <> (CaddAnnotation.tupled, CaddAnnotation.unapply)
+      (caddRaw, caddPhred).mapTo[CaddAnnotation]
 
     def gnomadAnnotations =
       (gnomadAFR, gnomadSEU, gnomadAMR, gnomadASJ, gnomadEAS, gnomadFIN,
-        gnomadNFE, gnomadNFEEST, gnomadNFESEU, gnomadNFEONF, gnomadNFENWE, gnomadOTH) <>
-        (GnomadAnnotation.tupled, GnomadAnnotation.unapply)
+        gnomadNFE, gnomadNFEEST, gnomadNFESEU, gnomadNFEONF, gnomadNFENWE, gnomadOTH)
+        .mapTo[GnomadAnnotation]
 
     def * =
       (id, chromosome, position, segment, refAllele, altAllele, rsId,
-      annotations, caddAnnotations, gnomadAnnotations) <>
-      (Variant.tupled, Variant.unapply)
+      annotations, caddAnnotations, gnomadAnnotations).mapTo[Variant]
   }
 
   // --------------------------------------------------------
@@ -133,7 +129,7 @@ object FRM {
     def * = (
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
       pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
-      traitCategory, numAssocLoci) <> (Study.tupled, Study.unapply)
+      traitCategory, numAssocLoci).mapTo[Study]
   }
 
   //  // V2D (NOT CURRENTLY USED)
