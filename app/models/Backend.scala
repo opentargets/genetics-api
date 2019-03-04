@@ -103,20 +103,20 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def getG2VSchema: Future[Entities.G2VSchema] = {
-    def toSeqStruct(elems: Map[(String, String), SeqView[String, Seq[_]]]) = {
-      for {
+    def toSeqStruct(elems: Map[(String, String), Seq[String]]) = {
+      (for {
         entry <- elems
       } yield Entities.G2VSchemaElement(entry._1._1, entry._1._2,
-        entry._2.map(Tissue).toVector)
+        entry._2.map(Tissue).toVector)).toSeq
     }
 
     db.run(v2gStructures.result.asTry).map {
       case Success(v) =>
-        val mappedRows = v.view.groupBy(r => (r.typeId, r.sourceId)).mapValues(_.flatMap(_.bioFeatureSet))
-        val qtlElems = toSeqStruct(mappedRows.filterKeys(defaultQtlTypes.contains)).toVector
-        val intervalElems = toSeqStruct(mappedRows.filterKeys(defaultIntervalTypes.contains)).toVector
-        val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains)).toVector
-        val distanceElems = toSeqStruct(mappedRows.filterKeys(defaultDistanceTypes.contains)).toVector
+        val mappedRows = v.groupBy(r => (r.typeId, r.sourceId)).mapValues(_.flatMap(_.bioFeatureSet))
+        val qtlElems = toSeqStruct(mappedRows.filterKeys(p => defaultQtlTypes.contains(p._1)))
+        val intervalElems = toSeqStruct(mappedRows.filterKeys(p => defaultIntervalTypes.contains(p._1)))
+        val fpredElems = toSeqStruct(mappedRows.filterKeys(p => defaultFPredTypes.contains(p._1)))
+        val distanceElems = toSeqStruct(mappedRows.filterKeys(p => defaultDistanceTypes.contains(p._1)))
 
         G2VSchema(qtlElems, intervalElems, fpredElems, distanceElems)
       case Failure(ex) =>
@@ -233,14 +233,12 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def getOverlapVariantsForStudies(stid: String, stids: Seq[String]): Future[Vector[Entities.OverlappedVariantsStudy]] = {
-    // TODO FIXME
     val q =
       overlaps
         .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
         .distinct
-        .result
 
-    db.run(q.asTry).map {
+    db.run(q.result.asTry).map {
       case Success(v) =>
         if (v.nonEmpty) {
           v.view.groupBy(_.studyIdB).map(pair =>
@@ -638,7 +636,5 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   private val d2v2gOScoresTName: String = "d2v2g_score_by_overall"
   private val v2gTName: String = "v2g"
   private val v2gOScoresTName: String = "v2g_score_by_overall"
-  private val v2gStructureTName: String = "v2g_structure"
-  private val studiesOverlapTName: String = "studies_overlap"
   private val gwasSumStatsTName: String = "gwas_chr_%s"
 }
