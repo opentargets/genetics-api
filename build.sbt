@@ -21,6 +21,7 @@ mappings in Universal ++= directory(baseDirectory.value / "resources")
 resolvers += Resolver.sonatypeRepo("releases")
 
 libraryDependencies += guice
+libraryDependencies += "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0"
 libraryDependencies += "com.typesafe.slick" %% "slick" % "3.2.3"
 libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
 libraryDependencies += "com.typesafe.play" %% "play" % "2.6.21"

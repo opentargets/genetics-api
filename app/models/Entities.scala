@@ -21,16 +21,16 @@ object Entities {
                                      altA: String, studyIdA: String,
                                      studyIdB: String, chromB: String,
                                      posB: Long, refB: String,
-                                     altB: String, overlapAB: Int,
-                                     distinctA: Int, distinctB: Int) {
+                                     altB: String, overlapAB: Long,
+                                     distinctA: Long, distinctB: Long) {
     val variantA: Variant = Variant(chromA, posA, refA, altA)
     val variantB: Variant = Variant(chromB, posB, refB, altB)
   }
 
   case class OverlappedVariantsStudy(studyId: String, overlaps: Seq[OverlappedVariant])
 
-  case class OverlappedVariant(variantIdA: String, variantIdB: String, overlapAB: Int,
-                               distinctA: Int, distinctB: Int)
+  case class OverlappedVariant(variantIdA: String, variantIdB: String, overlapAB: Long,
+                               distinctA: Long, distinctB: Long)
 
   case class TagVariantTable(associations: Seq[TagVariantAssociation])
 
@@ -70,6 +70,10 @@ object Entities {
   case class ManhattanAssociation(variantId: String, pval: Double,
                                   bestGenes: Seq[(String, Double)], crediblbeSetSize: Option[Long],
                                   ldSetSize: Option[Long], totalSetSize: Long)
+
+  case class V2DStructure(typeId: String,
+                           sourceId: String,
+                          bioFeatureSet: Seq[String])
 
   case class V2DByStudy(index_variant_id: String, pval: Double,
                         credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long, topGenes: Seq[(String, Double)])

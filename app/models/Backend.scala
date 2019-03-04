@@ -25,7 +25,9 @@ import play.api.Logger
 import play.api.Environment
 import java.nio.file.{Path, Paths}
 
-import models.FRM.{Genes, Overlaps, Studies, Variants}
+import models.FRM.{Genes, Overlaps, Studies, V2GStructure, Variants}
+
+import scala.collection.SeqView
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
@@ -46,6 +48,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   lazy val variants = TableQuery[Variants]
   lazy val studies = TableQuery[Studies]
   lazy val overlaps = TableQuery[Overlaps]
+  lazy val v2gStructures = TableQuery[V2GStructure]
 //  lazy val v2DsByChrPos = TableQuery[V2DsByChrPos]
 //  lazy val v2DsByStudy = TableQuery[V2DsByChrPos]
 
@@ -100,30 +103,20 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def getG2VSchema: Future[Entities.G2VSchema] = {
-    def toSeqStruct(elems: Map[String, Map[String, String]]) = {
-      (for {
-        triple <- elems
-        tuple <- triple._2
-
-      } yield Entities.G2VSchemaElement(triple._1, tuple._1,
-        StrSeqRep(tuple._2).rep.map(el => Tissue(el)))).toSeq
+    def toSeqStruct(elems: Map[(String, String), SeqView[String, Seq[_]]]) = {
+      for {
+        entry <- elems
+      } yield Entities.G2VSchemaElement(entry._1._1, entry._1._2,
+        entry._2.map(Tissue).toVector)
     }
 
-    val studyQ = sql"""
-                      |select
-                      | type_id,
-                      | source_id,
-                      | feature_set
-                      |from #$v2gStructureTName
-      """.stripMargin.as[(String, String, String)]
-
-    db.run(studyQ.asTry).map {
+    db.run(v2gStructures.result.asTry).map {
       case Success(v) =>
-        val mappedRows = v.groupBy(_._1).mapValues(_.groupBy(_._2).mapValues(_.head._3))
-        val qtlElems = toSeqStruct(mappedRows.filterKeys(defaultQtlTypes.contains(_)))
-        val intervalElems = toSeqStruct(mappedRows.filterKeys(defaultIntervalTypes.contains(_)))
-        val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains(_)))
-        val distanceElems = toSeqStruct(mappedRows.filterKeys(defaultDistanceTypes.contains(_)))
+        val mappedRows = v.view.groupBy(r => (r.typeId, r.sourceId)).mapValues(_.flatMap(_.bioFeatureSet))
+        val qtlElems = toSeqStruct(mappedRows.filterKeys(defaultQtlTypes.contains)).toVector
+        val intervalElems = toSeqStruct(mappedRows.filterKeys(defaultIntervalTypes.contains)).toVector
+        val fpredElems = toSeqStruct(mappedRows.filterKeys(defaultFPredTypes.contains)).toVector
+        val distanceElems = toSeqStruct(mappedRows.filterKeys(defaultDistanceTypes.contains)).toVector
 
         G2VSchema(qtlElems, intervalElems, fpredElems, distanceElems)
       case Failure(ex) =>
@@ -240,16 +233,14 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def getOverlapVariantsForStudies(stid: String, stids: Seq[String]): Future[Vector[Entities.OverlappedVariantsStudy]] = {
-    val stidListString = stids.map("'" + _ + "'").mkString(",")
-
+    // TODO FIXME
     val q =
       overlaps
         .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
         .distinct
-        .sortBy(r => (r.studyIdA, r.studyIdB, r.chromA, r.posA, r.refA, r.altA,
-          r.chromB, r.posB, r.refB, r.altB))
+        .result
 
-    db.run(q.result.asTry).map {
+    db.run(q.asTry).map {
       case Success(v) =>
         if (v.nonEmpty) {
           v.view.groupBy(_.studyIdB).map(pair =>
@@ -307,10 +298,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     */
   def getVariants(variantIds: Seq[String]): Future[Seq[DNA.Variant]] = {
     if (variantIds.nonEmpty) {
-      val q = for {
-        v <- variants
-        if v.id inSetBind variantIds
-      } yield v
+      val q = variants.filter(_.id inSetBind variantIds)
 
       db.run(q.result.asTry).map {
         case Success(v) =>

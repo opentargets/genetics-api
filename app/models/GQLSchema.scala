@@ -426,9 +426,9 @@ object GQLSchema {
     fields[Backend, OverlappedVariant](
       Field("variantIdA", StringType, None, resolve = _.value.variantIdA),
       Field("variantIdB", StringType, None, resolve = _.value.variantIdB),
-      Field("overlapAB", IntType, None, resolve = _.value.overlapAB),
-      Field("distinctA", IntType, None, resolve = _.value.distinctA),
-      Field("distinctB", IntType, None, resolve = _.value.distinctB),
+      Field("overlapAB", LongType, None, resolve = _.value.overlapAB),
+      Field("distinctA", LongType, None, resolve = _.value.distinctA),
+      Field("distinctB", LongType, None, resolve = _.value.distinctB),
     ))
 
   val overlappedStudy = ObjectType("OverlappedStudy",

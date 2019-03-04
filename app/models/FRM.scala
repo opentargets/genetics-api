@@ -4,7 +4,7 @@ import clickhouse.ClickHouseProfile
 import clickhouse.rep.SeqRep.{DSeqRep, ISeqRep, LSeqRep, StrSeqRep}
 import clickhouse.rep.SeqRep.Implicits._
 import DNA._
-import Entities.{Study, VariantStudyOverlapsRow}
+import Entities.{Study, V2DStructure, VariantStudyOverlapsRow}
 
 object FRM {
   import clickhouse.ClickHouseProfile.api._
@@ -35,9 +35,10 @@ object FRM {
     def posB = column[Long]("B_pos")
     def refB = column[String]("B_ref")
     def altB = column[String]("B_alt")
-    def overlapsAB = column[Int]("AB_overlap")
-    def distinctA = column[Int]("A_distinct")
-    def distinctB = column[Int]("B_distinct")
+    def overlapsAB = column[Long]("AB_overlap")
+    def distinctA = column[Long]("A_distinct")
+    def distinctB = column[Long]("B_distinct")
+
     def * =
       (chromA, posA, refA, altA, studyIdA, studyIdB,
       chromB, posB, refB, altB,
@@ -65,7 +66,6 @@ object FRM {
   class Variants(tag: Tag) extends Table[Variant](tag, "variants") {
     def id = column[String]("variant_id")
     def chromosome = column[String]("chr_id")
-    def segment = column[Long]("segment")
     def position = column[Long]("position")
     def refAllele = column[String]("ref_allele")
     def altAllele = column[String]("alt_allele")
@@ -103,7 +103,7 @@ object FRM {
         .mapTo[GnomadAnnotation]
 
     def * =
-      (id, chromosome, position, segment, refAllele, altAllele, rsId,
+      (chromosome, position, refAllele, altAllele, rsId,
       annotations, caddAnnotations, gnomadAnnotations).mapTo[Variant]
   }
 
@@ -130,6 +130,14 @@ object FRM {
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
       pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
       traitCategory, numAssocLoci).mapTo[Study]
+  }
+
+  class V2GStructure(tag: Tag) extends Table[V2DStructure](tag, "v2g_structure") {
+    def typeId = column[String]("type_id")
+    def sourceId = column[String]("source_id")
+    def bioFeatureSet = column[Seq[String]]("feature_set")
+
+    def * = (typeId, sourceId, bioFeatureSet).mapTo[V2DStructure]
   }
 
   //  // V2D (NOT CURRENTLY USED)
