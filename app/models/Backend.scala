@@ -536,13 +536,15 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
           (r.refAllele === v.refAllele) && (r.altAllele === v.altAllele))
         val filteredV2GScores = v2gScores.filter(r => (r.chromosome === v.chromosome) && (r.position === v.position) &&
           (r.refAllele === v.refAllele) && (r.altAllele === v.altAllele))
-        val q = for {
-          v2g <- filteredV2Gs
-          v2gScore <- filteredV2GScores if v2g.geneId === v2gScore.geneId
-        } yield (v2g, v2gScore)
+
+        val q = filteredV2Gs
+          .joinFull(filteredV2GScores)
+          .on((l, r) => l.geneId === r.geneId)
+            .map(p => (p._1, p._2))
 
         db.run(q.result.asTry).map {
           case Success(r) =>
+            r.view.map() // TODO FIXME generate something similar to ScoredG2VLine using groupby and so on
             r.foreach(println)
             Seq.empty
           case Failure(ex) =>
@@ -623,7 +625,5 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   private val v2dByStTName: String = "v2d_by_stchr"
   private val d2v2gTName: String = "d2v2g"
   private val d2v2gOScoresTName: String = "d2v2g_score_by_overall"
-  private val v2gTName: String = "v2g"
-  private val v2gOScoresTName: String = "v2g_score_by_overall"
   private val gwasSumStatsTName: String = "gwas_chr_%s"
 }
