@@ -79,14 +79,25 @@ object DNA {
                               nfeSEU: Option[Double] = None, nfeONF: Option[Double] = None,
                               nfeNWE: Option[Double] = None, oth: Option[Double] = None)
 
-  case class Variant(chromosome: String, position: Long, refAllele: String, altAllele: String,
-                     rsId: Option[String], annotation: Annotation,
-                     caddAnnotation: CaddAnnotation,
-                     gnomadAnnotation: GnomadAnnotation) {
+  sealed trait SkelVariant {
+    val chromosome: String
+    val position: Long
+    val refAllele: String
+    val altAllele: String
+
     lazy val id: String = List(chromosome, position.toString, refAllele, altAllele)
       .map(_.toUpperCase)
       .mkString("_")
   }
+
+  case class SimpleVariant(override val chromosome: String, override val position: Long,
+                           override val refAllele: String, override val altAllele: String) extends SkelVariant
+
+  case class Variant(override val chromosome: String, override val position: Long,
+                     override val refAllele: String, override val altAllele: String,
+                     rsId: Option[String], annotation: Annotation,
+                     caddAnnotation: CaddAnnotation,
+                     gnomadAnnotation: GnomadAnnotation) extends SkelVariant
 
   object Variant extends ((String, Long, String, String, Option[String],
     Annotation, CaddAnnotation, GnomadAnnotation) => Variant) {

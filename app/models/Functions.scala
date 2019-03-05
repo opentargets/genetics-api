@@ -62,7 +62,7 @@ object Functions {
     val pair = List(pageIndex, pageSize).map(_.map(_.abs).getOrElse(0))
 
     pair match {
-      case List(0, 0) => (0, 0)
+      case List(0, 0) => (0, defaultPaginationSize.get)
       case List(0, s) => (0, s)
       case List(i, 0) => (i*defaultPaginationSize.get, defaultPaginationSize.get)
       case List(i, s) => (i*s, s)

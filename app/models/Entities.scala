@@ -8,10 +8,17 @@ import clickhouse.rep.SeqRep._
 import clickhouse.rep.SeqRep.Implicits._
 
 object Entities {
-  case class V2DAssociation(pval: Double, r2: Option[Double], log10Abf: Option[Double],
+
+  case class V2DOdds(oddsCI: Double, oddsCILower: Double, oddsCIUpper: Double)
+  case class V2DBeta(direction: String, betaCI: Double, betaCILower: Double, betaCIUpper: Double)
+  case class V2DAssociation(pval: Double, pvalExponent: Long, pvalMantissa: Double,
+                            r2: Option[Double], log10Abf: Option[Double],
                             posteriorProbability: Option[Double], afr1000GProp: Option[Double],
                             amr1000GProp: Option[Double], eas1000GProp: Option[Double],
                             eur1000GProp: Option[Double], sas1000GProp: Option[Double])
+
+  case class V2DRow(tag: SimpleVariant, lead: SimpleVariant, study: Study, association: V2DAssociation,
+                    odds: V2DOdds, beta: V2DBeta)
 
   case class OverlapRow(stid: String, numOverlapLoci: Int)
 
@@ -32,38 +39,7 @@ object Entities {
   case class OverlappedVariant(variantIdA: String, variantIdB: String, overlapAB: Long,
                                distinctA: Long, distinctB: Long)
 
-  case class TagVariantTable(associations: Seq[TagVariantAssociation])
-
-  case class TagVariantAssociation(indexVariant: DNA.Variant,
-                                   studyId: String,
-                                   pval: Double,
-                                   nTotal: Int, // n_initial + n_replication which could be null as well both fields
-                                   nCases: Int,
-                                   r2: Option[Double],
-                                   afr1000GProp: Option[Double],
-                                   amr1000GProp: Option[Double],
-                                   eas1000GProp: Option[Double],
-                                   eur1000GProp: Option[Double],
-                                   sas1000GProp: Option[Double],
-                                   log10Abf: Option[Double],
-                                   posteriorProbability: Option[Double])
-
-
-  case class IndexVariantTable(associations: Seq[IndexVariantAssociation])
-
-  case class IndexVariantAssociation(tagVariant: DNA.Variant,
-                                     studyId: String,
-                                     pval: Double,
-                                     nTotal: Int, // n_initial + n_replication which could be null as well both fields
-                                     nCases: Int,
-                                     r2: Option[Double],
-                                     afr1000GProp: Option[Double],
-                                     amr1000GProp: Option[Double],
-                                     eas1000GProp: Option[Double],
-                                     eur1000GProp: Option[Double],
-                                     sas1000GProp: Option[Double],
-                                     log10Abf: Option[Double],
-                                     posteriorProbability: Option[Double])
+  case class VariantToDiseaseTable(associations: Seq[V2DRow])
 
   case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
 
@@ -223,6 +199,16 @@ object Entities {
                            intervalScoreQ: Option[Double], distance: Option[Long], distanceScore: Option[Double],
                            distanceScoreQ: Option[Double])
 
+  case class FPredSection(labels: Seq[String], scores: Seq[Double], maxLabel: Option[String], maxScore: Option[Double])
+  case class QTLSection(beta: Option[Double], se: Option[Double], pval: Option[Double], score: Option[Double], scoreQ: Option[Double])
+  case class IntervalSection(score: Option[Double], scoreQ: Option[Double])
+  case class DistanceSection(distance: Option[Long], score: Option[Double], scoreQ: Option[Double])
+  case class V2GRow(variant: SimpleVariant, geneId: String, typeId: String, sourceId: String, feature: String,
+                    fpred: FPredSection, qtl: QTLSection, interval: IntervalSection, distance: DistanceSection)
+
+  case class V2GScoreRow(variant: SimpleVariant, geneId: String, sources: Seq[String], sourceScores: Seq[Double],
+                         overallScore: Double)
+
   object ESImplicits {
 
     implicit object GeneHitReader extends HitReader[Gene] {
@@ -310,22 +296,6 @@ object Entities {
       implicit val getSumStatsByVariantPheWAS: GetResult[VariantPheWAS] =
         GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<,
           r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
-
-      implicit val getIndexVariantAssoc: GetResult[IndexVariantAssociation] = GetResult(
-        r => {
-          val variant = DNA.Variant(r.<<, r.<<?)
-          IndexVariantAssociation(variant.right.get, r.<<,
-            r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-        }
-      )
-
-      implicit val getTagVariantAssoc: GetResult[TagVariantAssociation] = GetResult(
-        r => {
-          val variant = DNA.Variant(r.<<, r.<<?)
-          TagVariantAssociation(variant.right.get, r.<<,
-            r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?)
-        }
-      )
 
       implicit val getGeckoLine: GetResult[GeckoLine] = GetResult(
         r => {
