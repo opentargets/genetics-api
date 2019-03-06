@@ -11,7 +11,6 @@ import models.DNA._
 import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
 import models.Violations._
-import clickhouse.rep.SeqRep.StrSeqRep
 import com.sksamuel.elastic4s.analyzers._
 import sangria.validation.Violation
 
@@ -24,10 +23,11 @@ import play.db.NamedDatabase
 import play.api.Logger
 import play.api.Environment
 import java.nio.file.{Path, Paths}
+import slick.lifted.SimpleExpression
 
-import models.FRM.{Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GScore, V2GStructure, Variants}
+import models.FRM.{D2V2GOverallScore, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
 
-import scala.collection.SeqView
+
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
@@ -52,7 +52,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   lazy val v2DsByChrPos = TableQuery[V2DsByChrPos]
   lazy val v2DsByStudy = TableQuery[V2DsByStudy]
   lazy val v2gs = TableQuery[V2G]
-  lazy val v2gScores = TableQuery[V2GScore]
+  lazy val v2gScores = TableQuery[V2GOverallScore]
+  lazy val d2v2gScores = TableQuery[D2V2GOverallScore]
 
   // you must import the DSL to use the syntax helpers
   import com.sksamuel.elastic4s.http.ElasticDsl._
@@ -334,7 +335,12 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def buildManhattanTable(studyId: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.ManhattanTable] = {
+//    val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
+
+//    val indexVariants = v2DsByStudy.filter(_.studyId === studyId)
+//      .groupBy(_.leadVariant)
+//      .map(r => (r._1, r._2.map(l => (l.pval, l)))
 
     val idxVariants = sql"""
       |SELECT
@@ -447,15 +453,11 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         if (denseRegionChecker.matchRegion(inRegion)) {
           Future.failed(InputParameterCheckError(Vector(RegionViolation(inRegion))))
         } else {
-            val geneIdsInLoci = sql"""
-                                     |SELECT
-                                     | gene_id
-                                     |FROM ot.gene
-                                     |WHERE
-                                     | chr = $chr and (
-                                     | (start >= $start and start <= $end) or
-                                     | (end >= $start and end <= $end))
-                """.stripMargin.as[String]
+          val geneIdsInLoci = genes.filter(r =>
+            (r.chromosome === chr) &&
+              (r.start >= start && r.start <= end) ||
+              (r.end >= start && r.end <= end))
+            .map(_.id)
 
             val assocs = sql"""
                               |SELECT
@@ -502,8 +504,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                 """.stripMargin
               .as[GeckoLine]
 
-              db.run(
-                geneIdsInLoci.asTry zip assocs.asTry).map {
+              db.run(geneIdsInLoci.result.asTry zip assocs.asTry).map {
                 case (Success(geneIds), Success(assocs
                 )) => Entities.
                   Gecko(assocs.view, geneIds.toSet)
@@ -532,10 +533,14 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     variant match {
       case Right(v) =>
 
-        val filteredV2Gs = v2gs.filter(r => (r.chromosome === v.chromosome) && (r.position === v.position) &&
-          (r.refAllele === v.refAllele) && (r.altAllele === v.altAllele))
-        val filteredV2GScores = v2gScores.filter(r => (r.chromosome === v.chromosome) && (r.position === v.position) &&
-          (r.refAllele === v.refAllele) && (r.altAllele === v.altAllele))
+        val filteredV2Gs = v2gs.filter(r => (r.chromosome === v.chromosome) &&
+          (r.position === v.position) &&
+          (r.refAllele === v.refAllele) &&
+          (r.altAllele === v.altAllele))
+        val filteredV2GScores = v2gScores.filter(r => (r.chromosome === v.chromosome) &&
+          (r.position === v.position) &&
+          (r.refAllele === v.refAllele) &&
+          (r.altAllele === v.altAllele))
 
         val q = filteredV2Gs
           .joinFull(filteredV2GScores)
@@ -544,80 +549,21 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
         db.run(q.result.asTry).map {
           case Success(r) =>
-            r.view.map() // TODO FIXME generate something similar to ScoredG2VLine using groupby and so on
-            r.foreach(println)
-            Seq.empty
+            r.view.filter(p => p._1.isDefined && p._2.isDefined).map(p => {
+              val (Some(v2g), Some(score)) = p
+
+              ScoredG2VLine(v2g.geneId, v2g.variant.id, score.overallScore,
+                (score.sources zip score.sourceScores).toMap, v2g.typeId, v2g.sourceId, v2g.feature,
+                v2g.fpred.maxLabel, v2g.fpred.maxScore,
+                v2g.qtl.beta, v2g.qtl.se, v2g.qtl.pval, v2g.interval.score, v2g.qtl.scoreQ,
+                v2g.interval.scoreQ, v2g.distance.distance, v2g.distance.score, v2g.distance.scoreQ)
+            }).groupBy(_.geneId).mapValues(G2VAssociation(_)).values.toSeq
+
           case Failure(ex) =>
             logger.error(ex.getMessage)
             Seq.empty
         }
 
-//        val assocs = sql"""
-//                          |SELECT
-//                          |    gene_id,
-//                          |    variant_id,
-//                          |    overall_score,
-//                          |    source_list,
-//                          |    source_score_list,
-//                          |    type_id,
-//                          |    source_id,
-//                          |    feature,
-//                          |    fpred_max_label,
-//                          |    fpred_max_score,
-//                          |    qtl_beta,
-//                          |    qtl_se,
-//                          |    qtl_pval,
-//                          |    interval_score,
-//                          |    qtl_score_q,
-//                          |    interval_score_q,
-//                          |    d,
-//                          |    distance_score,
-//                          |    distance_score_q
-//                          |FROM
-//                          |(
-//                          |    SELECT
-//                          |        gene_id,
-//                          |        type_id,
-//                          |        source_id,
-//                          |        feature,
-//                          |        fpred_max_label,
-//                          |        fpred_max_score,
-//                          |        qtl_beta,
-//                          |        qtl_se,
-//                          |        qtl_pval,
-//                          |        interval_score,
-//                          |        qtl_score_q,
-//                          |        interval_score_q,
-//                          |        d,
-//                          |        distance_score,
-//                          |        distance_score_q
-//                          |    FROM #$v2gTName
-//                          |    PREWHERE
-//                          |       (chr_id = ${v.chromosome}) AND
-//                          |       (position = ${v.position}) AND
-//                          |       (variant_id = ${v.id})
-//                          |)
-//                          |ALL INNER JOIN
-//                          |(
-//                          |    SELECT
-//                          |        variant_id,
-//                          |        gene_id,
-//                          |        source_list,
-//                          |        source_score_list,
-//                          |        overall_score
-//                          |    FROM #$v2gOScoresTName
-//                          |    PREWHERE (chr_id = ${v.chromosome}) AND
-//                          |       (variant_id = ${v.id})
-//                          |) USING (gene_id)
-//                          |ORDER BY gene_id ASC
-//          """.stripMargin.as[ScoredG2VLine]
-//
-//        db.run(assocs.asTry).map {
-//          case Success(r) => r.view.groupBy(_.geneId).mapValues(G2VAssociation(_)).values.toSeq
-//          case Failure(ex) =>
-//            logger.error(ex.getMessage)
-//            Seq.empty
-//        }
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
     }
   }

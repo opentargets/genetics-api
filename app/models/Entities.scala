@@ -7,6 +7,8 @@ import models.DNA._
 import clickhouse.rep.SeqRep._
 import clickhouse.rep.SeqRep.Implicits._
 
+import scala.collection.SeqView
+
 object Entities {
 
   case class V2DOdds(oddsCI: Double, oddsCILower: Double, oddsCIUpper: Double)
@@ -142,11 +144,11 @@ object Entities {
       scoreds.map(el =>
         Entities.DistancelTissue(Tissue(el.feature), el.distanceScoreQ.getOrElse(0D), el.distance, el.distanceScore))
 
-    def apply(groupedGene: Seq[ScoredG2VLine]): G2VAssociation = {
+    def apply(groupedGene: SeqView[ScoredG2VLine, Seq[_]]): G2VAssociation = {
       val geneId = groupedGene.head.geneId
       val variantId = groupedGene.head.variantId
       val score = groupedGene.head.overallScore
-      val grouped = groupedGene.view.groupBy(r => (r.typeId, r.sourceId))
+      val grouped = groupedGene.groupBy(r => (r.typeId, r.sourceId))
 
       val qtls = grouped.filterKeys(k => defaultQtlTypes.contains(k._1))
         .mapValues(p => {
@@ -177,7 +179,8 @@ object Entities {
         }).values.toStream
 
 
-      G2VAssociation(geneId, variantId, score, qtls, intervals, fpreds, distances)
+      G2VAssociation(geneId, variantId, score,
+        qtls.force, intervals.force, fpreds.force, distances.force)
     }
   }
 
@@ -206,8 +209,11 @@ object Entities {
   case class V2GRow(variant: SimpleVariant, geneId: String, typeId: String, sourceId: String, feature: String,
                     fpred: FPredSection, qtl: QTLSection, interval: IntervalSection, distance: DistanceSection)
 
-  case class V2GScoreRow(variant: SimpleVariant, geneId: String, sources: Seq[String], sourceScores: Seq[Double],
-                         overallScore: Double)
+  case class D2V2GRow(d2v: V2DRow, v2g: V2GRow)
+  case class D2V2GScoreRow(d2vRow: V2DRow, v2gRow: V2GRow, overallScoreRow: OverallScoreRow)
+
+  case class OverallScoreRow(variant: SimpleVariant, geneId: String, sources: Seq[String], sourceScores: Seq[Double],
+                             overallScore: Double)
 
   object ESImplicits {
 

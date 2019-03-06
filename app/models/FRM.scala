@@ -196,17 +196,19 @@ object FRM {
     def association =
       (pval, pvalExponent, pvalMantissa, r2, log10Abf, posteriorProbability, afr1000GProp,
       amr1000GProp, eas1000GProp, eur1000GProp, sas1000GProp).mapTo[V2DAssociation]
+
+    def v2dRow = (tagVariant, leadVariant, study, association, odds, beta).mapTo[V2DRow]
   }
 
   class V2DsByStudy(tag: Tag) extends Table[V2DRow](tag, "v2d_by_stchr") with V2DTableFields {
-    def * = (tagVariant, leadVariant, study, association, odds, beta).mapTo[V2DRow]
+    def * = v2dRow
   }
 
   class V2DsByChrPos(tag: Tag) extends Table[V2DRow](tag, "v2d_by_chrpos") with V2DTableFields {
-    def * = (tagVariant, leadVariant, study, association, odds, beta).mapTo[V2DRow]
+    def * = v2dRow
   }
 
-  class V2G(tag: Tag) extends Table[V2GRow](tag, "v2g") {
+  trait V2GTableFields extends Table[V2GRow] {
     def chromosome = column[String]("chr_id")
     def position = column[Long]("position")
     def refAllele = column[String]("ref_allele")
@@ -245,15 +247,16 @@ object FRM {
 
     def distanceSection = (distance, distanceScore, distanceScoreQ).mapTo[DistanceSection]
 
-    //  case class V2GRow(variant: SimpleVariant, geneId: String, typeId: String, sourceId: String, feature: String,
-    //                    fpred: FPredSection, qtl: QTLSection, interval: IntervalSection, distance: DistanceSection)
-
-    def * =
+    def v2gRow =
       (variant, geneId, typeId, sourceId, feature, fpredSection,
         qtlSection, intervalSection, distanceSection).mapTo[V2GRow]
   }
 
-  class V2GScore(tag: Tag) extends Table[V2GScoreRow](tag, "v2g_score_by_overall") {
+  class V2G(tag: Tag) extends Table[V2GRow](tag, "v2g") with V2GTableFields {
+    def * = v2gRow
+  }
+
+  trait OverallScoreTableFields extends Table[OverallScoreRow] {
     def chromosome = column[String]("chr_id")
     def position = column[Long]("position")
     def refAllele = column[String]("ref_allele")
@@ -266,7 +269,25 @@ object FRM {
     def sources = column[Seq[String]]("source_list")
     def sourceScores = column[Seq[Double]]("source_score_list")
     def overallScore = column[Double]("overall_score")
-    def * =
-      (variant, geneId, sources, sourceScores, overallScore).mapTo[V2GScoreRow]
+    def overallScoreRow =
+      (variant, geneId, sources, sourceScores, overallScore).mapTo[OverallScoreRow]
+  }
+
+  class V2GOverallScore(tag: Tag) extends Table[OverallScoreRow](tag, "v2g_score_by_overall") with OverallScoreTableFields {
+    def * = overallScoreRow
+  }
+
+  class D2V2G(tag: Tag) extends Table[D2V2GRow](tag, "d2v2g") with V2DTableFields with V2GTableFields {
+    def * = (v2dRow, v2gRow).mapTo[D2V2GRow]
+
+  }
+
+  class D2V2GScored(tag: Tag) extends Table[D2V2GScoreRow](tag, "d2v2g") with V2DTableFields with V2GTableFields with OverallScoreTableFields {
+    def * = (v2dRow, v2gRow, overallScoreRow).mapTo[D2V2GScoreRow]
+
+  }
+
+  class D2V2GOverallScore(tag: Tag) extends Table[OverallScoreRow](tag, "d2v2g_score_by_overall") with OverallScoreTableFields {
+    def * = overallScoreRow
   }
 }
