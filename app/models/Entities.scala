@@ -68,35 +68,37 @@ object Entities {
     case class VariantPheWAS(stid: String, pval: Double, beta: Double, se: Double, eaf: Double, maf: Double,
                              nSamplesVariant: Option[Long], nSamplesStudy: Option[Long], nCasesStudy: Option[Long],
                              nCasesVariant: Option[Long], oddRatio: Option[Double], chip: String, info: Option[Double])
-
     case class GeneTagVariant(geneId: String, tagVariantId: String, overallScore: Double)
     case class TagVariantIndexVariantStudy(tagVariantId: String, indexVariantId: String, studyId: String,
-                                           r2: Option[Double], pval: Double, posteriorProb: Option[Double])
-    case class Gecko(geneIds: Seq[String], tagVariants: Seq[Variant], indexVariants: Seq[Variant],
+                                           v2DAssociation: V2DAssociation)
+    case class Gecko(geneIds: Seq[String], tagVariants: Seq[String], indexVariants: Seq[String],
                      studies: Seq[String], geneTagVariants: Seq[GeneTagVariant],
                      tagVariantIndexVariantStudies: Seq[TagVariantIndexVariantStudy])
-    case class GeckoLine(geneId: String, tagVariant: Variant, indexVariant: Variant, studyId: String,
-                         geneTagVariant: GeneTagVariant, tagVariantIndexVariantStudy: TagVariantIndexVariantStudy)
+  case class GeckoRow(geneId: String, tagVariant: SimpleVariant, indexVariant: SimpleVariant, studyId: String,
+                      v2dAssociation: V2DAssociation, overallScore: Double)
 
     object Gecko {
-      def apply(geckoLines: Seq[GeckoLine], geneIdsInLoci: Set[String] = Set.empty): Option[Gecko] = {
+      def apply(geckoLines: SeqView[GeckoRow, Seq[_]], geneIdsInLoci: Set[String] = Set.empty): Option[Gecko] = {
         if (geckoLines.isEmpty)
           Some(Gecko(Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty))
         else {
           var geneIds: Set[String] = Set.empty
-          var tagVariants: Set[Variant] = Set.empty
-          var indexVariants: Set[Variant] = Set.empty
+          var tagVariants: Set[String] = Set.empty
+          var indexVariants: Set[String] = Set.empty
           var studies: Set[String] = Set.empty
           var tagVariantIndexVariantStudies: Set[TagVariantIndexVariantStudy] = Set.empty
           var geneTagVariants: Set[GeneTagVariant] = Set.empty
 
           geckoLines.foreach(line => {
+            val lVID = line.indexVariant.id
+            val tVID = line.tagVariant.id
             geneIds += line.geneId
-            tagVariants += line.tagVariant
-            indexVariants += line.indexVariant
+            tagVariants += lVID
+            indexVariants += tVID
             studies += line.studyId
-            geneTagVariants += line.geneTagVariant
-            tagVariantIndexVariantStudies += line.tagVariantIndexVariantStudy
+            geneTagVariants += GeneTagVariant(line.geneId, tVID, line.overallScore)
+            tagVariantIndexVariantStudies += TagVariantIndexVariantStudy(tVID, lVID,
+              line.studyId, line.v2dAssociation)
           })
 
           // breakOut could be a good way to map virtually to a other collection of a different type
@@ -206,11 +208,15 @@ object Entities {
   case class QTLSection(beta: Option[Double], se: Option[Double], pval: Option[Double], score: Option[Double], scoreQ: Option[Double])
   case class IntervalSection(score: Option[Double], scoreQ: Option[Double])
   case class DistanceSection(distance: Option[Long], score: Option[Double], scoreQ: Option[Double])
+  case class PureV2GRow(geneId: String, typeId: String, sourceId: String, feature: String,
+                        fpred: FPredSection, qtl: QTLSection, interval: IntervalSection, distance: DistanceSection)
   case class V2GRow(variant: SimpleVariant, geneId: String, typeId: String, sourceId: String, feature: String,
                     fpred: FPredSection, qtl: QTLSection, interval: IntervalSection, distance: DistanceSection)
 
-  case class D2V2GRow(d2v: V2DRow, v2g: V2GRow)
-  case class D2V2GScoreRow(d2vRow: V2DRow, v2gRow: V2GRow, overallScoreRow: OverallScoreRow)
+  case class D2V2GRow(v2d: V2DRow, pureV2g: PureV2GRow)
+  case class D2V2GScoreRow(v2dRow: V2DRow, pureV2gRow: PureV2GRow, pureOverallScoreRow: PureOverallScoreRow)
+
+  case class PureOverallScoreRow(sources: Seq[String], sourceScores: Seq[Double], overallScore: Double)
 
   case class OverallScoreRow(variant: SimpleVariant, geneId: String, sources: Seq[String], sourceScores: Seq[Double],
                              overallScore: Double)
@@ -303,34 +309,6 @@ object Entities {
         GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<,
           r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
 
-      implicit val getGeckoLine: GetResult[GeckoLine] = GetResult(
-        r => {
-          val tagVariant = Variant(r.<<, r.<<?).right.get
-          val indexVariant = Variant(r.<<, r.<<?).right.get
-
-          val geneId = r.nextString()
-          val studyId: String = r.<<
-
-          val r2 = r.nextDoubleOption()
-          val posteriorProb = r.nextDoubleOption()
-          val pval = r.nextDouble()
-          val overallScore = r.nextDouble()
-
-          val geneTagVariant = GeneTagVariant(geneId, tagVariant.id, overallScore)
-          val tagVariantIndexVariantStudy = TagVariantIndexVariantStudy(tagVariant.id, indexVariant.id,
-            studyId, r2, pval, posteriorProb)
-
-          GeckoLine(geneId, tagVariant, indexVariant, studyId, geneTagVariant, tagVariantIndexVariantStudy)
-        }
-      )
-
-      implicit val getScoredG2VLine: GetResult[ScoredG2VLine] = GetResult(
-        r => {
-          ScoredG2VLine(r.<<, r.<<, r.<<,
-            (StrSeqRep(r.nextString()).rep zip DSeqRep(r.nextString()).rep).toMap,
-            r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<, r.<<?, r.<<?, r.<<?)
-        }
-      )
     }
   }
 

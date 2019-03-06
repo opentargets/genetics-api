@@ -23,10 +23,8 @@ import play.db.NamedDatabase
 import play.api.Logger
 import play.api.Environment
 import java.nio.file.{Path, Paths}
-import slick.lifted.SimpleExpression
 
-import models.FRM.{D2V2GOverallScore, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
-
+import models.FRM.{D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
 
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
@@ -53,6 +51,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   lazy val v2DsByStudy = TableQuery[V2DsByStudy]
   lazy val v2gs = TableQuery[V2G]
   lazy val v2gScores = TableQuery[V2GOverallScore]
+  lazy val d2v2g = TableQuery[D2V2G]
+  lazy val d2v2gScored = TableQuery[D2V2GScored]
   lazy val d2v2gScores = TableQuery[D2V2GOverallScore]
 
   // you must import the DSL to use the syntax helpers
@@ -214,7 +214,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def getOverlapVariantsIntersectionForStudies(stid: String, stids: Seq[String]): Future[Vector[String]] = {
-    val stidListString = stids.map("'" + _ + "'").mkString(",")
     val numStids = if (stids.nonEmpty) stids.length else 0
 
     if (stids.nonEmpty) {
@@ -258,16 +257,14 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def getStudiesForGene(geneId: String): Future[Vector[String]] = {
-    val studiesSQL = sql"""
-                           |SELECT DISTINCT study_id
-                           |FROM #$d2v2gTName
-                           |PREWHERE
-                           |  (gene_id = $geneId) AND
-                           |  (tag_chrom = dictGetString('gene','chr',tuple($geneId)))
-      """.stripMargin.as[String]
+    val geneQ = genes.filter(_.id === geneId)
 
-    db.run(studiesSQL.asTry).map {
-      case Success(v) => v
+    val studiesQ =
+      d2v2g.filter(r => (r.geneId in geneQ.map(_.id)) && (r.tagChromosome in geneQ.map(_.chromosome)))
+        .map(_.studyId).distinct
+
+    db.run(studiesQ.result.asTry).map {
+      case Success(v) => v.toVector
       case Failure(ex) =>
         logger.error(ex.getMessage)
         Vector.empty
@@ -459,67 +456,25 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
               (r.end >= start && r.end <= end))
             .map(_.id)
 
-            val assocs = sql"""
-                              |SELECT
-                              |  variant_id,
-                              |  rs_id,
-                              |  index_variant_id,
-                              |  index_variant_rsid,
-                              |  gene_id,
-                              |  stid,
-                              |  r2,
-                              |  posterior_prob,
-                              |  pval,
-                              |  overall_score
-                              |FROM (
-                              | SELECT
-                              |  stid,
-                              |  variant_id,
-                              |  any(rs_id) as rs_id,
-                              |  index_variant_id,
-                              |  any(index_variant_rsid) as index_variant_rsid,
-                              |  gene_id,
-                              |  any(r2) as r2,
-                              |  any(posterior_prob) as posterior_prob,
-                              |  any(pval) as pval
-                              | FROM #$d2v2gTName
-                              | PREWHERE
-                              |   chr_id = $chr and (
-                              |   (position >= $start and position <= $end) or
-                              |   (index_position >= $start and index_position <= $end) or
-                              |   (dictGetUInt32('gene','start',tuple(gene_id)) >= $start and
-                              |     dictGetUInt32('gene','start',tuple(gene_id)) <= $end) or
-                              |   (dictGetUInt32('gene','end',tuple(gene_id)) >= $start and
-                              |     dictGetUInt32('gene','end',tuple(gene_id)) <= $end))
-                              | group by stid, index_variant_id, variant_id, gene_id
-                              |) all inner join (
-                              | SELECT
-                              |   variant_id,
-                              |   gene_id,
-                              |   overall_score
-                              | FROM #$d2v2gOScoresTName
-                              | PREWHERE chr_id = $chr and
-                              | overall_score > 0.
-                              |) USING (variant_id, gene_id)
-                """.stripMargin
-              .as[GeckoLine]
+          val assocsQ = d2v2gScored.filter(r => (r.leadChromosome === chr) && (
+            ((r.leadPosition >= start) && (r.leadPosition <= end)) ||
+              (r.geneId in geneIdsInLoci)
+            )).map(_.geckoRow).distinct
 
-              db.run(geneIdsInLoci.result.asTry zip assocs.asTry).map {
-                case (Success(geneIds), Success(assocs
-                )) => Entities.
-                  Gecko(assocs.view, geneIds.toSet)
-                case (Success(geneIds), Failure(
-                asscsEx)) =>
-                  logger.
-                    error(asscsEx.getMessage)
-                  Entities.Gecko(Seq.
-                    empty, geneIds.toSet)
-                case (_, _) =>
-                  logger.error("Something really wrong happened while getting geneIds from gene " +
-                    "dictionary and also from d2v2g table")
-                  Entities.Gecko(Seq.empty, Set.empty)
-              }
-            }
+          db.run(geneIdsInLoci.result.asTry zip assocsQ.result.asTry).map {
+            case (Success(geneIds), Success(assocs)) =>
+              Entities.Gecko(assocs.view, geneIds.toSet)
+
+            case (Success(geneIds), Failure(asscsEx)) =>
+              logger.error(asscsEx.getMessage)
+              Entities.Gecko(Seq().view, geneIds.toSet)
+
+            case (_, _) =>
+              logger.error("Something really wrong happened while getting geneIds from gene " +
+                "dictionary and also from d2v2g table")
+              Entities.Gecko(Seq().view, Set.empty)
+          }
+        }
 
       case (chrEither, rangeEither) =>
         Future.failed(InputParameterCheckError(
@@ -570,6 +525,5 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   private val v2dByStTName: String = "v2d_by_stchr"
   private val d2v2gTName: String = "d2v2g"
-  private val d2v2gOScoresTName: String = "d2v2g_score_by_overall"
   private val gwasSumStatsTName: String = "gwas_chr_%s"
 }
