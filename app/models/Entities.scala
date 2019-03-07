@@ -45,7 +45,7 @@ object Entities {
 
   case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
 
-  case class ManhattanAssociation(variantId: String, pval: Double,
+  case class ManhattanAssociation(variantId: String, pval: Double, pvalMantissa: Double, pvalExponent: Long,
                                   bestGenes: Seq[(String, Double)], crediblbeSetSize: Option[Long],
                                   ldSetSize: Option[Long], totalSetSize: Long)
 
@@ -53,7 +53,8 @@ object Entities {
                            sourceId: String,
                           bioFeatureSet: Seq[String])
 
-  case class V2DByStudy(index_variant_id: String, pval: Double,
+  case class V2DByStudy(lead_chrom: String, lead_pos: Long, lead_ref: String, lead_alt: String, pval: Double,
+                        pval_mantissa: Double, pval_exponent: Long,
                         credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long, topGenes: Seq[(String, Double)])
 
     case class StudyInfo(study: Option[Study])
@@ -301,7 +302,7 @@ object Entities {
           }
         }
 
-        GetResult(r => V2DByStudy(r.<<, r.<<, r.<<?, r.<<?, r.<<,
+        GetResult(r => V2DByStudy(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<,
           toGeneScoreTuple(StrSeqRep(r.<<), DSeqRep(r.<<))))
       }
 

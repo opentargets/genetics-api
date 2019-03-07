@@ -214,8 +214,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def getOverlapVariantsIntersectionForStudies(stid: String, stids: Seq[String]): Future[Vector[String]] = {
-    val numStids = if (stids.nonEmpty) stids.length else 0
-
     if (stids.nonEmpty) {
       val q = overlaps
         .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
@@ -314,10 +312,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getStudies(stids: Seq[String]): Future[Seq[Study]] = {
     if (stids.nonEmpty) {
-      val q = for {
-        v <- studies
-        if v.studyId inSetBind stids
-      } yield v
+      val q = studies.filter(_.studyId inSetBind stids)
 
       db.run(q.result.asTry).map {
         case Success(v) => v
@@ -332,44 +327,59 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def buildManhattanTable(studyId: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.ManhattanTable] = {
-//    val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
 
-//    val indexVariants = v2DsByStudy.filter(_.studyId === studyId)
-//      .groupBy(_.leadVariant)
-//      .map(r => (r._1, r._2.map(l => (l.pval, l)))
-
     val idxVariants = sql"""
-      |SELECT
-      |    index_variant_id,
+      |SELECT DISTINCT
+      |    lead_chrom,
+      |    lead_pos,
+      |    lead_ref,
+      |    lead_alt,
       |    pval,
+      |    pval_mantissa,
+      |    pval_exponent,
       |    credibleSetSize,
       |    ldSetSize,
       |    uniq_variants,
-      |    top_genes_ids,
-      |    top_genes_scores
+      |    top_pairs.1 as top_genes_ids,
+      |    top_pairs.2 as top_genes_scores
       |FROM
       |(
-      |    SELECT
-      |        index_variant_id,
-      |        any(pval) AS pval,
-      |        uniqIf(variant_id, posterior_prob > 0) AS credibleSetSize,
-      |        uniqIf(variant_id, r2 > 0) AS ldSetSize,
-      |        uniq(variant_id) AS uniq_variants
-      |    FROM #$v2dByStTName
-      |    PREWHERE stid = $studyId
-      |    GROUP BY index_variant_id
+      |   SELECT
+      |    lead_chrom,
+      |    lead_pos,
+      |    lead_ref,
+      |    lead_alt,
+      |    any(pval) AS pval,
+      |    any(pval_mantissa) AS pval_mantissa,
+      |    any(pval_exponent) AS pval_exponent,
+      |    uniqIf((tag_chrom, tag_pos, tag_ref, tag_alt), posterior_prob > 0.) AS credibleSetSize,
+      |    uniqIf((tag_chrom, tag_pos, tag_ref, tag_alt), overall_r2 > 0.) AS ldSetSize,
+      |    uniq(tag_chrom, tag_pos, tag_ref, tag_alt) AS uniq_variants
+      |FROM ot.v2d_by_stchr
+      |PREWHERE study_id = $studyId
+      |GROUP BY
+      |    lead_chrom,
+      |    lead_pos,
+      |    lead_ref,
+      |    lead_alt
       |)
-      |ALL LEFT OUTER JOIN
+      | ALL LEFT OUTER JOIN
       |(
       |    SELECT
-      |        variant_id AS index_variant_id,
-      |        groupArray(gene_id) AS top_genes_ids,
-      |        groupArray(overall_score) AS top_genes_scores
-      |    FROM ot.d2v2g_score_by_overall
-      |    PREWHERE (variant_id = index_variant_id) AND (overall_score > 0.)
-      |    GROUP BY variant_id
-      |) USING (index_variant_id)
+      |        lead_chrom,
+      |        lead_pos,
+      |        lead_ref,
+      |        lead_alt,
+      |        arrayReverseSort(arrayReduce('groupUniqArray', groupArray((gene_id, overall_score)))) AS top_pairs
+      |    FROM ot.d2v2g_scored
+      |    PREWHERE study_id = $studyId
+      |    GROUP BY
+      |     lead_chrom,
+      |     lead_pos,
+      |     lead_ref,
+      |     lead_alt
+      |) USING (lead_chrom, lead_pos, lead_ref, lead_alt)
       |#$limitClause
       """.stripMargin.as[V2DByStudy]
 
@@ -377,8 +387,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     db.run(idxVariants.asTry).map {
       case Success(v) => ManhattanTable(studyId,
         v.map(el => {
-          ManhattanAssociation(el.index_variant_id, el.pval, el.topGenes,
-            el.credibleSetSize, el.ldSetSize, el.totalSetSize)
+          ManhattanAssociation(SimpleVariant(el.lead_chrom, el.lead_pos, el.lead_ref, el.lead_alt).id, el.pval,
+            el.pval_mantissa, el.pval_exponent,
+            el.topGenes, el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
       case Failure(ex) =>
@@ -523,7 +534,5 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
-  private val v2dByStTName: String = "v2d_by_stchr"
-  private val d2v2gTName: String = "d2v2g"
   private val gwasSumStatsTName: String = "gwas_chr_%s"
 }
