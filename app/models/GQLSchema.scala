@@ -22,6 +22,20 @@ object GQLSchema {
   implicit val variantHasId = HasId[Variant, String](_.id)
   implicit val studyHasId = HasId[Study, String](_.studyId)
 
+  val studiesFetcher = Fetcher(
+    config = FetcherConfig.maxBatchSize(100),
+    fetch = (ctx: Backend, stids: Seq[String]) => {ctx.getStudies(stids)})
+
+  val genesFetcher = Fetcher(
+    config = FetcherConfig.maxBatchSize(100),
+    fetch = (ctx: Backend, geneIds: Seq[String]) => {ctx.getGenes(geneIds)})
+
+  val variantsFetcher = Fetcher(
+    config = FetcherConfig.maxBatchSize(1000),
+    fetch = (ctx: Backend, variantIds: Seq[String]) => {ctx.getVariants(variantIds)})
+
+  val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
+
   val gene = ObjectType("Gene",
   "This element represents a simple gene object which contains id and name",
     fields[Backend, Gene](
@@ -88,19 +102,13 @@ object GQLSchema {
         resolve = _.value.altAllele),
       Field("nearestGene", OptionType(gene),
         Some("Nearest gene"),
-        resolve = _.value.annotation.nearestGeneId match {
-          case Some(ng) => genesFetcher.deferOpt(ng)
-          case _ => None
-        }),
+        resolve = el => genesFetcher.deferOpt(el.value.annotation.nearestGeneId)),
       Field("nearestGeneDistance", OptionType(LongType),
         Some("Distance to the nearest gene (any biotype)"),
         resolve = _.value.annotation.nearestGeneDistance),
       Field("nearestCodingGene", OptionType(gene),
         Some("Nearest protein-coding gene"),
-        resolve = _.value.annotation.nearestCodingGeneId match {
-          case Some(ng) => genesFetcher.deferOpt(ng)
-          case _ => None
-        }),
+        resolve = el => genesFetcher.deferOpt(el.value.annotation.nearestCodingGeneId)),
       Field("nearestCodingGeneDistance", OptionType(LongType),
         Some("Distance to the nearest gene (protein-coding biotype)"),
         resolve = _.value.annotation.nearestCodingGeneDistance),
@@ -147,20 +155,6 @@ object GQLSchema {
         Some("gnomAD Allele frequency (Other (population not assigned) population)"),
         resolve = _.value.gnomadAnnotation.oth)
     ))
-
-  val studiesFetcher = Fetcher(
-    config = FetcherConfig.maxBatchSize(100),
-    fetch = (ctx: Backend, stids: Seq[String]) => {ctx.getStudies(stids)})
-
-  val genesFetcher = Fetcher(
-    config = FetcherConfig.maxBatchSize(100),
-    fetch = (ctx: Backend, geneIds: Seq[String]) => {ctx.getGenes(geneIds)})
-
-  val variantsFetcher = Fetcher(
-    config = FetcherConfig.maxBatchSize(1000),
-    fetch = (ctx: Backend, variantIds: Seq[String]) => {ctx.getVariants(variantIds)})
-
-  val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
 
   val study = ObjectType("Study",
   "This element contains all study fields",
