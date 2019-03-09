@@ -131,9 +131,9 @@ object DNA {
         v.rsId, v.annotation, v.caddAnnotation, v.gnomadAnnotation)
   }
 
-  case class Gene(id: String, symbol: Option[String], bioType: Option[String] = None, chromosome: Option[String] = None,
-                  tss: Option[Long] = None, start: Option[Long] = None, end: Option[Long] = None,
-                  fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
+  case class Gene(id: String, symbol: Option[String], bioType: Option[String], chromosome: Option[String],
+                  tss: Option[Long], start: Option[Long], end: Option[Long],
+                  fwd: Option[Boolean], exons: Seq[Long])
 
   object Gene extends ((String, Option[String], Option[String], Option[String], Option[Long],
     Option[Long], Option[Long], Option[Boolean], Seq[Long]) => Gene) {
@@ -154,6 +154,9 @@ object DNA {
       val pg = parseGene(geneId, None)
       Either.cond(pg.isDefined, pg.get, GeneViolation(geneId))
     }
+
+    def apply(geneId: String, symbol: Option[String]): Gene =
+      Gene(geneId, symbol, None, None, None, None, None, None, Seq.empty)
 
     def unapply(gene: Gene): Option[(String, Option[String], Option[String], Option[String], Option[Long],
       Option[Long], Option[Long], Option[Boolean], Seq[Long])] = Some(gene.id, gene.symbol, gene.bioType,

@@ -23,8 +23,11 @@ import play.db.NamedDatabase
 import play.api.Logger
 import play.api.Environment
 import java.nio.file.{Path, Paths}
+import play.api.libs.functional.syntax._
+import play.api.libs.json.{JsValue, Json, _}
 
 import models.FRM.{D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
+import play.libs.Json
 
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
@@ -130,6 +133,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getSearchResultSet(qString: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.SearchResultSet] = {
+    import com.sksamuel.elastic4s.playjson._
     val limitClause = parsePaginationTokensForES(pageIndex, pageSize)
     val stoken = qString.toLowerCase
     // val stoken = qString
@@ -175,7 +179,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       }.map{
         case ((studiesRS, variantsRS), genesRS) =>
           SearchResultSet(genesRS.totalHits, genesRS.to[Gene],
-            variantsRS.totalHits, variantsRS.to[VariantSearchResult],
+            variantsRS.totalHits, variantsRS.to[Variant],
             studiesRS.totalHits, studiesRS.to[Study])
       }
     } else {
@@ -215,14 +219,47 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getOverlapVariantsIntersectionForStudies(stid: String, stids: Seq[String]): Future[Vector[String]] = {
     if (stids.nonEmpty) {
-      val q = overlaps
-        .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
-        .map(r => (r.chromA, r.posA, r.refA, r.altA))
-        .distinct
+      val numStudies = stids.length.toLong
+      val stidListString = stids.map("'" + _ + "'").mkString(",")
 
-      db.run(q.result.asTry).map {
+//      val q = overlaps
+//        .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
+//        .groupBy(_.variantA)
+//        .map(r => (r._1, uniq(r._2.map(_.studyIdB))))
+//        .filter(_._2 === numStudies)
+//        .map(_._1)
+
+      // TODO temporal fix while this https://github.com/slick/slick/issues/1760
+      val sqlQ = sql"""
+                       |SELECT
+                       |    A_chrom,
+                       |    A_pos,
+                       |    A_ref,
+                       |    A_alt
+                       |FROM
+                       |(
+                       |    SELECT
+                       |        A_chrom,
+                       |        A_pos,
+                       |        A_ref,
+                       |        A_alt,
+                       |        uniq(B_study_id) AS uniqs
+                       |    FROM ot.studies_overlap_exploded
+                       |    WHERE (A_study_id = $stid) AND (B_study_id IN (#$stidListString))
+                       |    GROUP BY
+                       |        A_chrom,
+                       |        A_pos,
+                       |        A_ref,
+                       |        A_alt
+                       |    HAVING uniqs = $numStudies
+                       |)
+                       """.stripMargin.as[(String, Long, String, String)]
+
+//      q.result.statements.foreach(println)
+
+      db.run(sqlQ.asTry).map {
         case Success(v) =>
-          v.view.map(r => Variant(r._1, r._2, r._3, r._4).id).toVector
+          v.view.map(r => SimpleVariant(r._1, r._2, r._3, r._4).id).toVector
         case Failure(ex) =>
           logger.error(ex.getMessage)
           Vector.empty

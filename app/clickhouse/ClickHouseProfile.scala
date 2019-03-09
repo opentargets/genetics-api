@@ -1,5 +1,6 @@
 package clickhouse
 
+import slick.ast.Library.SqlOperator
 import slick.relational.RelationalCapabilities
 import slick.sql.SqlCapabilities
 import slick.jdbc._
@@ -10,6 +11,8 @@ import slick.ast._
 import slick.util.MacroSupport.macroSupportInterpolation
 import slick.compiler.CompilerState
 import slick.jdbc.meta._
+import slick.lifted
+import slick.lifted._
 
 trait ClickHouseProfile extends JdbcProfile {
   override protected def computeCapabilities: Set[Capability] = (super.computeCapabilities
@@ -91,6 +94,30 @@ trait ClickHouseProfile extends JdbcProfile {
   class ColumnDDLBuilder(column: FieldSymbol) extends super.ColumnDDLBuilder(column)
   class CountingInsertActionComposerImpl[U](compiled: CompiledInsert)
     extends super.CountingInsertActionComposerImpl[U](compiled)
+
+  trait ExtApi extends API {
+    // nice page to read about extending profile apis
+    // https://virtuslab.com/blog/smooth-operator-with-slick-3/
+
+    //def xor = SimpleFunction.binary[Int, Int, Int]("xorf")
+    //
+    //def xor(rep1: Rep[Option[Int]], rep2: Rep[Option[Int]]) = {
+    //val func = SimpleFunction.binary[Option[Int], Option[Int], Option[Int]]("xorf")
+    //func(rep1, rep2)
+    //}
+
+    //  val myExpr = SimpleExpression.binary[Int, Int, Int] { (l, r, qb) =>
+    //    qb.sqlBuilder += '('
+    //    qb.expr(l)
+    //    qb.sqlBuilder += '+'
+    //    qb.expr(r)
+    //    qb.sqlBuilder += "+1)"
+    //  }
+    def uniq[T]: Rep[T] => Rep[Long] = lifted.SimpleFunction.unary[T, Long]("uniq")
+    // def uniq[T](c: Rep[T]): Rep[Long] = SimpleFunction[Long]("uniq").apply(Seq(c))
+  }
+
+  override val api: ExtApi = new ExtApi {}
 }
 
 object ClickHouseProfile extends ClickHouseProfile

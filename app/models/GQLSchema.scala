@@ -804,7 +804,7 @@ object GQLSchema {
       Field("genes", ListType(gene),
         Some("Gene search result list"),
         resolve = _.value.genes),
-      Field("variants", ListType(variantSearchResult),
+      Field("variants", ListType(variant),
         Some("Variant search result list"),
         resolve = _.value.variants),
       Field("studies", ListType(study),

@@ -39,6 +39,9 @@ object FRM {
     def distinctA = column[Long]("A_distinct")
     def distinctB = column[Long]("B_distinct")
 
+    def variantA = (chromA, posA, refA, altA).mapTo[SimpleVariant]
+    def variantB = (chromB, posB, refB, altB).mapTo[SimpleVariant]
+
     def * =
       (chromA, posA, refA, altA, studyIdA, studyIdB,
       chromB, posB, refB, altB,

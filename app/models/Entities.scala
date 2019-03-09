@@ -114,7 +114,7 @@ object Entities {
     case class VariantSearchResult (variant: Variant)
 
     case class SearchResultSet(totalGenes: Long, genes: Seq[Gene],
-                               totalVariants: Long, variants: Seq[VariantSearchResult],
+                               totalVariants: Long, variants: Seq[Variant],
                                totalStudies: Long, studies: Seq[Study])
 
   case class Tissue(id: String) {
@@ -223,93 +223,95 @@ object Entities {
                              overallScore: Double)
 
   object ESImplicits {
-
     implicit object GeneHitReader extends HitReader[Gene] {
       override def read(hit: Hit): Either[Throwable, Gene] = {
         if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
         else {
           val mv = hit.sourceAsMap
 
-          Right(Gene(id=mv("gene_id").toString,
-            symbol=Option(mv("gene_name").asInstanceOf[String]),
-            bioType=Option(mv("biotype").asInstanceOf[String]),
-            chromosome=Option(mv("chr").toString),
-            start=Option(mv("start").asInstanceOf[Int]),
-            end=Option(mv("end").asInstanceOf[Int]),
-            tss=Option(mv("tss").asInstanceOf[Int]),
-            fwd=Option(mv("fwdstrand").asInstanceOf[Int] match {
+          //  case class Gene(id: String, symbol: Option[String], bioType: Option[String] = None, chromosome: Option[String] = None,
+          //                  tss: Option[Long] = None, start: Option[Long] = None, end: Option[Long] = None,
+          //                  fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
+
+          Right(Gene(mv("gene_id").toString,
+            mv.get("gene_name").map(_.toString),
+            mv.get("biotype").map(_.toString),
+            mv.get("chr").map(_.toString),
+            mv.get("tss").map(_.toString.toLong),
+            mv.get("start").map(_.toString.toLong),
+            mv.get("end").map(_.toString.toLong),
+            mv.get("fwdstrand").map(_.toString.toInt match {
               case 0 => false
               case 1 => true
               case _ => false
             }),
-            exons=Seq.empty
-          )
-          )
+            mv.get("exons").map(_.asInstanceOf[Seq[Long]]).getOrElse(Seq.empty)
+          ))
         }
       }
     }
 
-        implicit object VariantHitReader extends HitReader[VariantSearchResult] {
-          override def read(hit: Hit): Either[Throwable, VariantSearchResult] = {
-            if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
-            else {
-              val mv = hit.sourceAsMap
+    implicit object VariantHitReader extends HitReader[Variant] {
+      override def read(hit: Hit): Either[Throwable, Variant] = {
+        if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
+        else {
+          val mv = hit.sourceAsMap
 
-              val variant = Variant(mv("chr_id").toString, mv("position").asInstanceOf[Int],
-                mv("ref_allele").toString, mv("alt_allele").toString, Option(mv("rs_id").toString))
+          val variant = Variant(mv("chr_id").toString, mv("position").asInstanceOf[Int],
+            mv("ref_allele").toString, mv("alt_allele").toString, Option(mv("rs_id").toString))
 
-              Right(VariantSearchResult(variant))
-            }
-          }
-        }
-
-        implicit object StudyHitReader extends HitReader[Study] {
-          override def read(hit: Hit): Either[Throwable, Study] = {
-            if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
-            else {
-              val mv = hit.sourceAsMap
-
-              Right(Study(mv("study_id").toString,
-                mv.get("trait_reported").map(_.toString).get,
-                mv.get("trait_efos").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
-                mv.get("pmid").map(_.asInstanceOf[String]),
-                mv.get("pub_date").map(_.asInstanceOf[String]),
-                mv.get("pub_journal").map(_.asInstanceOf[String]),
-                mv.get("pub_title").map(_.asInstanceOf[String]),
-                mv.get("pub_author").map(_.asInstanceOf[String]),
-                mv.get("ancestry_initial").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
-                mv.get("ancestry_replication").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
-                mv.get("n_initial").map(_.asInstanceOf[Int].toLong),
-                mv.get("n_replication").map(_.asInstanceOf[Int].toLong),
-                mv.get("n_cases").map(_.asInstanceOf[Int].toLong),
-                mv.get("trait_category").map(_.asInstanceOf[String]),
-                mv.get("num_assoc_loci").map(_.asInstanceOf[Int]))
-              )
-            }
-          }
+          Right(variant)
         }
       }
+    }
 
-    object DBImplicits {
-      implicit val getV2DByStudy: GetResult[V2DByStudy] = {
-        def toGeneScoreTuple(geneIds: Seq[String], geneScores: Seq[Double]): Seq[(String, Double)] = {
-          val ordScored = (geneIds zip geneScores)
-            .sortBy(_._2)(Ordering[Double].reverse)
+    implicit object StudyHitReader extends HitReader[Study] {
+      override def read(hit: Hit): Either[Throwable, Study] = {
+        if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
+        else {
+          val mv = hit.sourceAsMap
 
-          if (ordScored.isEmpty) ordScored
-          else {
-            ordScored.takeWhile(_._2 == ordScored.head._2)
-          }
+          Right(Study(mv("study_id").toString,
+            mv.get("trait_reported").map(_.toString).get,
+            mv.get("trait_efos").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
+            mv.get("pmid").map(_.asInstanceOf[String]),
+            mv.get("pub_date").map(_.asInstanceOf[String]),
+            mv.get("pub_journal").map(_.asInstanceOf[String]),
+            mv.get("pub_title").map(_.asInstanceOf[String]),
+            mv.get("pub_author").map(_.asInstanceOf[String]),
+            mv.get("ancestry_initial").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
+            mv.get("ancestry_replication").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
+            mv.get("n_initial").map(_.asInstanceOf[Int].toLong),
+            mv.get("n_replication").map(_.asInstanceOf[Int].toLong),
+            mv.get("n_cases").map(_.asInstanceOf[Int].toLong),
+            mv.get("trait_category").map(_.asInstanceOf[String]),
+            mv.get("num_assoc_loci").map(_.asInstanceOf[Int]))
+          )
         }
-
-        GetResult(r => V2DByStudy(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<,
-          toGeneScoreTuple(StrSeqRep(r.<<), DSeqRep(r.<<))))
       }
-
-      implicit val getSumStatsByVariantPheWAS: GetResult[VariantPheWAS] =
-        GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<,
-          r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
-
     }
   }
+
+  object DBImplicits {
+    implicit val getV2DByStudy: GetResult[V2DByStudy] = {
+      def toGeneScoreTuple(geneIds: Seq[String], geneScores: Seq[Double]): Seq[(String, Double)] = {
+        val ordScored = (geneIds zip geneScores)
+          .sortBy(_._2)(Ordering[Double].reverse)
+
+        if (ordScored.isEmpty) ordScored
+        else {
+          ordScored.takeWhile(_._2 == ordScored.head._2)
+        }
+      }
+
+      GetResult(r => V2DByStudy(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<,
+        toGeneScoreTuple(StrSeqRep(r.<<), DSeqRep(r.<<))))
+    }
+
+    implicit val getSumStatsByVariantPheWAS: GetResult[VariantPheWAS] =
+      GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<,
+        r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
+
+  }
+}
 
