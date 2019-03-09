@@ -243,16 +243,20 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def getOverlapVariantsForStudies(stid: String, stids: Seq[String]): Future[Vector[Entities.OverlappedVariantsStudy]] = {
     val q =
       overlaps
-        .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
-        .distinct
+          .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
+          .groupBy(r => (r.studyIdB, r.variantA, r.variantB))
+          .map { case (l, g) =>
+            (l._1, l._2, l._3) -> (g.map(_.overlapsAB).any, g.map(_.distinctA).any, g.map(_.distinctB).any)}
+
+//    q.result.statements.foreach(println)
 
     db.run(q.result.asTry).map {
       case Success(v) =>
         if (v.nonEmpty) {
-          v.view.groupBy(_.studyIdB).map(pair =>
+          v.view.groupBy(_._1._1).map(pair =>
             OverlappedVariantsStudy(pair._1,
-              pair._2.map(t => OverlappedVariant(t.variantA.id, t.variantB.id,
-                t.overlapAB, t.distinctA, t.distinctB)))).toVector
+              pair._2.map(t => OverlappedVariant(t._1._2.id, t._1._3.id,
+                t._2._1.get, t._2._2.get, t._2._3.get)))).toVector
         } else {
           Vector.empty
         }

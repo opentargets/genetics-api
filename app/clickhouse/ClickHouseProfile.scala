@@ -34,7 +34,7 @@ final class OptionCHColumnExtensionMethods[B1](val c: Rep[Option[B1]]) extends A
 final class CHSingleColumnQueryExtensionMethods[B1, P1, C[_]](val q: Query[Rep[P1], _, C]) extends AnyVal {
   type OptionTM =  TypedType[Option[B1]]
   def uniq(implicit tm: OptionTM) = CHLibrary.Uniq.column[Option[Long]](q.toNode)
-  def any(implicit tm: OptionTM) = CHLibrary.Uniq.column[Option[B1]](q.toNode)
+  def any(implicit tm: OptionTM) = CHLibrary.Any.column[Option[B1]](q.toNode)
 }
 
 trait ClickHouseProfile extends JdbcProfile {
