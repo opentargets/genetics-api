@@ -1,18 +1,32 @@
 package clickhouse
 
-import slick.ast.Library.SqlOperator
+import scala.concurrent.ExecutionContext
 import slick.relational.RelationalCapabilities
 import slick.sql.SqlCapabilities
 import slick.jdbc._
-
-import scala.concurrent.ExecutionContext
 import slick.basic.Capability
-import slick.ast._
 import slick.util.MacroSupport.macroSupportInterpolation
 import slick.compiler.CompilerState
 import slick.jdbc.meta._
 import slick.lifted
-import slick.lifted._
+import slick.lifted.{NumericColumnExtensionMethods, Query, Rep, _}
+import slick.util.ConstArray
+
+import scala.language.{higherKinds, implicitConversions}
+import slick.ast._
+import FunctionSymbolExtensionMethods._
+import ScalaBaseType._
+import slick.ast.Library.{AggregateFunction, SqlAggregateFunction, SqlFunction}
+
+object CHLibrary {
+  val Uniq = new SqlAggregateFunction("uniq")
+}
+
+/** Extension methods for Queries of a single column */
+final class CHSingleColumnQueryExtensionMethods[B1, P1, C[_]](val q: Query[Rep[P1], _, C]) extends AnyVal {
+  type OptionTM =  TypedType[Option[B1]]
+  def uniq(implicit tm: OptionTM) = CHLibrary.Uniq.column[Option[Long]](q.toNode)
+}
 
 trait ClickHouseProfile extends JdbcProfile {
   override protected def computeCapabilities: Set[Capability] = (super.computeCapabilities
@@ -99,22 +113,8 @@ trait ClickHouseProfile extends JdbcProfile {
     // nice page to read about extending profile apis
     // https://virtuslab.com/blog/smooth-operator-with-slick-3/
 
-    //def xor = SimpleFunction.binary[Int, Int, Int]("xorf")
-    //
-    //def xor(rep1: Rep[Option[Int]], rep2: Rep[Option[Int]]) = {
-    //val func = SimpleFunction.binary[Option[Int], Option[Int], Option[Int]]("xorf")
-    //func(rep1, rep2)
-    //}
-
-    //  val myExpr = SimpleExpression.binary[Int, Int, Int] { (l, r, qb) =>
-    //    qb.sqlBuilder += '('
-    //    qb.expr(l)
-    //    qb.sqlBuilder += '+'
-    //    qb.expr(r)
-    //    qb.sqlBuilder += "+1)"
-    //  }
-    def uniq[T]: Rep[T] => Rep[Long] = lifted.SimpleFunction.unary[T, Long]("uniq")
-    // def uniq[T](c: Rep[T]): Rep[Long] = SimpleFunction[Long]("uniq").apply(Seq(c))
+    implicit def chSingleColumnQueryExtensionMethods[B1 : BaseTypedType, C[_]](q: Query[Rep[B1], _, C]): CHSingleColumnQueryExtensionMethods[B1, B1, C] = new CHSingleColumnQueryExtensionMethods[B1, B1, C](q)
+    implicit def chSingleOptionColumnQueryExtensionMethods[B1 : BaseTypedType, C[_]](q: Query[Rep[Option[B1]], _, C]): CHSingleColumnQueryExtensionMethods[B1, Option[B1], C] = new CHSingleColumnQueryExtensionMethods[B1, Option[B1], C](q)
   }
 
   override val api: ExtApi = new ExtApi {}

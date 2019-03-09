@@ -4,6 +4,7 @@ import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.Configuration
 import clickhouse.ClickHouseProfile
+import clickhouse._
 import com.sksamuel.elastic4s.ElasticsearchClientUri
 import models.Entities._
 import models.Functions._
@@ -23,12 +24,8 @@ import play.db.NamedDatabase
 import play.api.Logger
 import play.api.Environment
 import java.nio.file.{Path, Paths}
-import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsValue, Json, _}
 
 import models.FRM.{D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
-import play.libs.Json
-
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
@@ -222,48 +219,55 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       val numStudies = stids.length.toLong
       val stidListString = stids.map("'" + _ + "'").mkString(",")
 
-//      val q = overlaps
-//        .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
-//        .groupBy(_.variantA)
-//        .map(r => (r._1, uniq(r._2.map(_.studyIdB))))
-//        .filter(_._2 === numStudies)
-//        .map(_._1)
+      val q = overlaps
+        .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
+        .groupBy(_.variantA)
+        .map { case(vA, g) => vA -> g.map(_.studyIdB).uniq }
+        .filter(_._2 === numStudies)
+        .map(_._1)
 
-      // TODO temporal fix while this https://github.com/slick/slick/issues/1760
-      val sqlQ = sql"""
-                       |SELECT
-                       |    A_chrom,
-                       |    A_pos,
-                       |    A_ref,
-                       |    A_alt
-                       |FROM
-                       |(
-                       |    SELECT
-                       |        A_chrom,
-                       |        A_pos,
-                       |        A_ref,
-                       |        A_alt,
-                       |        uniq(B_study_id) AS uniqs
-                       |    FROM ot.studies_overlap_exploded
-                       |    WHERE (A_study_id = $stid) AND (B_study_id IN (#$stidListString))
-                       |    GROUP BY
-                       |        A_chrom,
-                       |        A_pos,
-                       |        A_ref,
-                       |        A_alt
-                       |    HAVING uniqs = $numStudies
-                       |)
-                       """.stripMargin.as[(String, Long, String, String)]
+      // q.result.statements.foreach(println)
 
-//      q.result.statements.foreach(println)
-
-      db.run(sqlQ.asTry).map {
+      db.run(q.result.asTry).map {
         case Success(v) =>
-          v.view.map(r => SimpleVariant(r._1, r._2, r._3, r._4).id).toVector
+          v.view.map(_.id).toVector
         case Failure(ex) =>
           logger.error(ex.getMessage)
           Vector.empty
       }
+
+//      val sqlQ = sql"""
+//                       |SELECT
+//                       |    A_chrom,
+//                       |    A_pos,
+//                       |    A_ref,
+//                       |    A_alt
+//                       |FROM
+//                       |(
+//                       |    SELECT
+//                       |        A_chrom,
+//                       |        A_pos,
+//                       |        A_ref,
+//                       |        A_alt,
+//                       |        uniq(B_study_id) AS uniqs
+//                       |    FROM ot.studies_overlap_exploded
+//                       |    WHERE (A_study_id = $stid) AND (B_study_id IN (#$stidListString))
+//                       |    GROUP BY
+//                       |        A_chrom,
+//                       |        A_pos,
+//                       |        A_ref,
+//                       |        A_alt
+//                       |    HAVING uniqs = $numStudies
+//                       |)
+//                       """.stripMargin.as[(String, Long, String, String)]
+//
+//      db.run(sqlQ.asTry).map {
+//        case Success(v) =>
+//          v.view.map(r => SimpleVariant(r._1, r._2, r._3, r._4).id).toVector
+//        case Failure(ex) =>
+//          logger.error(ex.getMessage)
+//          Vector.empty
+//      }
     } else {
       Future.successful(Vector.empty)
     }
@@ -506,6 +510,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
           val assocsQ = d2v2gScored.filter(r => (r.leadChromosome === chr) && (
             ((r.leadPosition >= start) && (r.leadPosition <= end)) ||
+              ((r.tagPosition >= start) && (r.tagPosition <= end)) ||
               (r.geneId in geneIdsInLoci)
             )).map(_.geckoRow).distinct
 
