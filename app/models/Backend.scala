@@ -235,39 +235,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
           logger.error(ex.getMessage)
           Vector.empty
       }
-
-//      val sqlQ = sql"""
-//                       |SELECT
-//                       |    A_chrom,
-//                       |    A_pos,
-//                       |    A_ref,
-//                       |    A_alt
-//                       |FROM
-//                       |(
-//                       |    SELECT
-//                       |        A_chrom,
-//                       |        A_pos,
-//                       |        A_ref,
-//                       |        A_alt,
-//                       |        uniq(B_study_id) AS uniqs
-//                       |    FROM ot.studies_overlap_exploded
-//                       |    WHERE (A_study_id = $stid) AND (B_study_id IN (#$stidListString))
-//                       |    GROUP BY
-//                       |        A_chrom,
-//                       |        A_pos,
-//                       |        A_ref,
-//                       |        A_alt
-//                       |    HAVING uniqs = $numStudies
-//                       |)
-//                       """.stripMargin.as[(String, Long, String, String)]
-//
-//      db.run(sqlQ.asTry).map {
-//        case Success(v) =>
-//          v.view.map(r => SimpleVariant(r._1, r._2, r._3, r._4).id).toVector
-//        case Failure(ex) =>
-//          logger.error(ex.getMessage)
-//          Vector.empty
-//      }
     } else {
       Future.successful(Vector.empty)
     }
