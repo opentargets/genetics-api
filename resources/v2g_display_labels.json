@@ -1,0 +1,38 @@
+{
+  "gtex_v7": {
+    "display_label": "eQTL (GTEx V7)",
+    "overview_tooltip": "Summary of evidence linking this variant to gene expression in *any* of the 44 GTEx V7 tissues. See **eQTL (GTEx V7)** tab for tissue breakdown.",
+    "tab_subtitle": "Evidence linking this variant to gene expression in each of the 44 GTEx V7 tissues.",
+    "pmid": "PMID:29022597"
+  },
+  "sun2018": {
+    "display_label": "pQTL (Sun, 2018)",
+    "overview_tooltip": "Summary of evidence linking this variant to protein abundance in blood plasma.",
+    "tab_subtitle": "Evidence linking this variant to protein abundance in Sun *et al.* (2018) pQTL data.",
+    "pmid": "PMID:29875488"
+  },
+  "thurman2012": {
+    "display_label": "DHS-promoter corr (Thurman, 2012)",
+    "overview_tooltip": "Summary of evidence linking this variant to genes using correlation of DNase I hypersensitive site and gene promoters across 125 cell and tissue types from ENCODE.",
+    "tab_subtitle": "Evidence linking this variant to genes using correlation of DNase I hypersensitive site and gene promoters across 125 cell and tissue types from ENCODE.",
+    "pmid": "PMID:22955617"
+  },
+  "andersson2014": {
+    "display_label": "Enhancer-TSS corr (FANTOM5)",
+    "overview_tooltip": "Summary of evidence linking this variant to genes using correlation between the transcriptional activity of enhancers and transcription start sites using the FANTOM5 CAGE expression atlas.",
+    "tab_subtitle": "Evidence linking this variant to genes using correlation between the transcriptional activity of enhancers and transcription start sites using the FANTOM5 CAGE expression atlas.",
+    "pmid": "PMID:24670763"
+  },
+  "javierre2016": {
+    "display_label": "PCHi-C (Javierre, 2016)",
+    "overview_tooltip": "Summary of evidence linking this variant to genes using Promoter Capture Hi-C in *any* of the 17 human primary hematopoietic cell types",
+    "tab_subtitle": "Evidence linking this variant to genes using Promoter Capture Hi-C in each of the 17 human primary hematopoietic cell types",
+    "pmid": "PMID:27863249"
+  },
+  "vep": {
+    "display_label": "VEP (Ensembl)",
+    "overview_tooltip": "Most severe coding-sequence consequence(s) from Ensembl's Variant Effect Predictor",
+    "tab_subtitle": "Most severe coding-sequence consequence(s) from Ensembl's Variant Effect Predictor",
+    "pmid": "PMID:27268795"
+  }
+}

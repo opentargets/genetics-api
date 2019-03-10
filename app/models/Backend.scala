@@ -4,7 +4,6 @@ import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.Configuration
 import clickhouse.ClickHouseProfile
-import clickhouse._
 import com.sksamuel.elastic4s.ElasticsearchClientUri
 import models.Entities._
 import models.Functions._
@@ -23,6 +22,10 @@ import org.elasticsearch.index.query.MultiMatchQueryBuilder
 import play.db.NamedDatabase
 import play.api.Logger
 import play.api.Environment
+import play.api.libs.json._
+import play.api.libs.json.Reads._
+import play.api.libs.functional.syntax._
+
 import java.nio.file.{Path, Paths}
 
 import models.FRM.{D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
@@ -39,6 +42,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   val denseRegionsPath: Path = Paths.get(env.rootPath.getAbsolutePath, "resources", "dense_regions.tsv")
   val denseRegionChecker: DenseRegionChecker = DenseRegionChecker(denseRegionsPath.toString)
+
+  val v2gLabelsPath: Path = Paths.get(env.rootPath.getAbsolutePath, "resources", "v2g_display_labels.json")
+  val v2gLabels = loadJSONFromFilename(v2gLabelsPath.toString)
 
   import dbConfig.profile.api._
 
@@ -110,6 +116,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       (for {
         entry <- elems
       } yield Entities.G2VSchemaElement(entry._1._1, entry._1._2,
+        v2gLabels.flatMap(s => (s \ entry._1._2 \ "display_label").asOpt[String]),
+        v2gLabels.flatMap(s => (s \ entry._1._2 \ "overview_tooltip").asOpt[String]),
+        v2gLabels.flatMap(s => (s \ entry._1._2 \ "tab_subtitle").asOpt[String]),
+        v2gLabels.flatMap(s => (s \ entry._1._2 \ "pmid").asOpt[String]),
         entry._2.map(Tissue).toVector)).toSeq
     }
 

@@ -1,6 +1,9 @@
 package models
 
 import models.Violations.{ChromosomeViolation, InChromosomeRegionViolation}
+import play.api.libs.json._
+
+import scala.io.Source
 
 object Functions {
   val defaultPaginationSize: Option[Int] = Some(500000)
@@ -15,6 +18,15 @@ object Functions {
   val defaultSegmentDivFactor: Double = 1e6
   val defaultTopOverlapStudiesSize: Int = 10
   val defaultStudiesForGeneSize: Int = 10
+
+  /** Given a `filename`, the function fully loads the content into an option and
+    * maps it with `Json.parse`
+    * @param filename fully filename of a resource file
+    * @return A wrapped Json object from the given filename with an Option
+    */
+  def loadJSONFromFilename(filename: String): Option[JsValue] =
+    Option(Source.fromFile(filename).mkString)
+      .map(Json.parse)
 
   def toSumStatsSegment(from: Long, factor: Double = defaultSegmentDivFactor): Long =
     (from / factor).toLong

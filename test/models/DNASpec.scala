@@ -3,7 +3,6 @@ package models
 import java.nio.file.{Path, Paths}
 
 import models.DNA.{DenseRegionChecker, Gene, Region, Variant}
-import models.Violations.VariantViolation
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerTest
 import play.api.test.Injecting

@@ -57,71 +57,73 @@ object Entities {
                         pval_mantissa: Double, pval_exponent: Long,
                         credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long, topGenes: Seq[(String, Double)])
 
-    case class StudyInfo(study: Option[Study])
+  case class StudyInfo(study: Option[Study])
 
-    case class Study(studyId: String, traitReported: String, traitEfos: Seq[String],
-                     pubId: Option[String], pubDate: Option[String], pubJournal: Option[String], pubTitle: Option[String],
-                     pubAuthor: Option[String], ancestryInitial: Seq[String], ancestryReplication: Seq[String],
-                     nInitial: Option[Long], nReplication: Option[Long], nCases: Option[Long],
-                     traitCategory: Option[String], numAssocLoci: Option[Long])
+  case class Study(studyId: String, traitReported: String, traitEfos: Seq[String],
+                   pubId: Option[String], pubDate: Option[String], pubJournal: Option[String], pubTitle: Option[String],
+                   pubAuthor: Option[String], ancestryInitial: Seq[String], ancestryReplication: Seq[String],
+                   nInitial: Option[Long], nReplication: Option[Long], nCases: Option[Long],
+                   traitCategory: Option[String], numAssocLoci: Option[Long])
 
-    case class PheWASTable(associations: Vector[VariantPheWAS])
-    case class VariantPheWAS(stid: String, pval: Double, beta: Double, se: Double, eaf: Double, maf: Double,
-                             nSamplesVariant: Option[Long], nSamplesStudy: Option[Long], nCasesStudy: Option[Long],
-                             nCasesVariant: Option[Long], oddRatio: Option[Double], chip: String, info: Option[Double])
-    case class GeneTagVariant(geneId: String, tagVariantId: String, overallScore: Double)
-    case class TagVariantIndexVariantStudy(tagVariantId: String, indexVariantId: String, studyId: String,
-                                           v2DAssociation: V2DAssociation)
-    case class Gecko(geneIds: Seq[String], tagVariants: Seq[String], indexVariants: Seq[String],
-                     studies: Seq[String], geneTagVariants: Seq[GeneTagVariant],
-                     tagVariantIndexVariantStudies: Seq[TagVariantIndexVariantStudy])
+  case class PheWASTable(associations: Vector[VariantPheWAS])
+  case class VariantPheWAS(stid: String, pval: Double, beta: Double, se: Double, eaf: Double, maf: Double,
+                           nSamplesVariant: Option[Long], nSamplesStudy: Option[Long], nCasesStudy: Option[Long],
+                           nCasesVariant: Option[Long], oddRatio: Option[Double], chip: String, info: Option[Double])
+  case class GeneTagVariant(geneId: String, tagVariantId: String, overallScore: Double)
+  case class TagVariantIndexVariantStudy(tagVariantId: String, indexVariantId: String, studyId: String,
+                                         v2DAssociation: V2DAssociation)
+  case class Gecko(geneIds: Seq[String], tagVariants: Seq[String], indexVariants: Seq[String],
+                   studies: Seq[String], geneTagVariants: Seq[GeneTagVariant],
+                   tagVariantIndexVariantStudies: Seq[TagVariantIndexVariantStudy])
   case class GeckoRow(geneId: String, tagVariant: SimpleVariant, indexVariant: SimpleVariant, studyId: String,
                       v2dAssociation: V2DAssociation, overallScore: Double)
 
-    object Gecko {
-      def apply(geckoLines: SeqView[GeckoRow, Seq[_]], geneIdsInLoci: Set[String] = Set.empty): Option[Gecko] = {
-        if (geckoLines.isEmpty)
-          Some(Gecko(Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty))
-        else {
-          var geneIds: Set[String] = Set.empty
-          var tagVariants: Set[String] = Set.empty
-          var indexVariants: Set[String] = Set.empty
-          var studies: Set[String] = Set.empty
-          var tagVariantIndexVariantStudies: Set[TagVariantIndexVariantStudy] = Set.empty
-          var geneTagVariants: Set[GeneTagVariant] = Set.empty
+  object Gecko {
+    def apply(geckoLines: SeqView[GeckoRow, Seq[_]], geneIdsInLoci: Set[String] = Set.empty): Option[Gecko] = {
+      if (geckoLines.isEmpty)
+        Some(Gecko(Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty, Seq.empty))
+      else {
+        var geneIds: Set[String] = Set.empty
+        var tagVariants: Set[String] = Set.empty
+        var indexVariants: Set[String] = Set.empty
+        var studies: Set[String] = Set.empty
+        var tagVariantIndexVariantStudies: Set[TagVariantIndexVariantStudy] = Set.empty
+        var geneTagVariants: Set[GeneTagVariant] = Set.empty
 
-          geckoLines.foreach(line => {
-            val lVID = line.indexVariant.id
-            val tVID = line.tagVariant.id
-            geneIds += line.geneId
-            tagVariants += lVID
-            indexVariants += tVID
-            studies += line.studyId
-            geneTagVariants += GeneTagVariant(line.geneId, tVID, line.overallScore)
-            tagVariantIndexVariantStudies += TagVariantIndexVariantStudy(tVID, lVID,
-              line.studyId, line.v2dAssociation)
-          })
+        geckoLines.foreach(line => {
+          val lVID = line.indexVariant.id
+          val tVID = line.tagVariant.id
+          geneIds += line.geneId
+          tagVariants += lVID
+          indexVariants += tVID
+          studies += line.studyId
+          geneTagVariants += GeneTagVariant(line.geneId, tVID, line.overallScore)
+          tagVariantIndexVariantStudies += TagVariantIndexVariantStudy(tVID, lVID,
+            line.studyId, line.v2dAssociation)
+        })
 
-          // breakOut could be a good way to map virtually to a other collection of a different type
-          // https://stackoverflow.com/questions/46509951/how-do-i-efficiently-count-distinct-fields-in-a-collection
-          // val genes = geckoLines.map(_.gene)(breakOut).toSet.toSeq
-           Some(Gecko((geneIds union geneIdsInLoci).toSeq, tagVariants.toSeq, indexVariants.toSeq, studies.toSeq,
-                    geneTagVariants.toSeq, tagVariantIndexVariantStudies.toSeq))
-        }
+        // breakOut could be a good way to map virtually to a other collection of a different type
+        // https://stackoverflow.com/questions/46509951/how-do-i-efficiently-count-distinct-fields-in-a-collection
+        // val genes = geckoLines.map(_.gene)(breakOut).toSet.toSeq
+         Some(Gecko((geneIds union geneIdsInLoci).toSeq, tagVariants.toSeq, indexVariants.toSeq, studies.toSeq,
+                  geneTagVariants.toSeq, tagVariantIndexVariantStudies.toSeq))
       }
     }
+  }
 
-    case class VariantSearchResult (variant: Variant)
+  case class VariantSearchResult (variant: Variant)
 
-    case class SearchResultSet(totalGenes: Long, genes: Seq[Gene],
-                               totalVariants: Long, variants: Seq[Variant],
-                               totalStudies: Long, studies: Seq[Study])
+  case class SearchResultSet(totalGenes: Long, genes: Seq[Gene],
+                             totalVariants: Long, variants: Seq[Variant],
+                             totalStudies: Long, studies: Seq[Study])
 
   case class Tissue(id: String) {
     lazy val name: Option[String] = Option(id.replace("_", " ").toLowerCase.capitalize)
   }
 
-  case class G2VSchemaElement(id: String, sourceId: String, tissues: Seq[Tissue])
+  case class G2VSchemaElement(id: String, sourceId: String, displayLabel: Option[String],
+                              overviewTooltip: Option[String], tagSubtitle: Option[String],
+                              pmid: Option[String], tissues: Seq[Tissue])
 
   case class G2VSchema(qtls: Seq[G2VSchemaElement], intervals: Seq[G2VSchemaElement],
                        functionalPredictions: Seq[G2VSchemaElement], distances: Seq[G2VSchemaElement])
