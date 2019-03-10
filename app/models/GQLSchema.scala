@@ -4,40 +4,17 @@ import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
 import models.DNA.{Gene, Variant}
+import models.GQLSchema.{gene, genesFetcher, scoredGene, studiesFetcher, study, variant, variantsFetcher}
 
-object GQLSchema {
-  val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
-  val geneId = Argument("geneId", StringType, description = "Gene ID using Ensembl identifier")
-  val studyIds = Argument("studyIds", ListInputType(StringType), description = "List of study IDs")
-  val variantId = Argument("variantId", StringType, description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
-  val variantIds = Argument("variantIds", ListInputType(StringType), description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
-  val chromosome = Argument("chromosome", StringType, description = "Chromosome as String between 1..22 or X, Y, MT")
-  val pageIndex = Argument("pageIndex", OptionInputType(IntType), description = "pagination index >= 0")
-  val pageSize = Argument("pageSize", OptionInputType(IntType), description = "pagination size > 0")
-  val dnaPosStart = Argument("start", LongType, description = "Start position in a specified chromosome")
-  val dnaPosEnd = Argument("end", LongType, description = "End position in a specified chromosome")
-  val queryString = Argument("queryString", StringType, description = "Query text to search for")
-
+trait GQLGene {
   implicit val geneHasId = HasId[Gene, String](_.id)
-  implicit val variantHasId = HasId[Variant, String](_.id)
-  implicit val studyHasId = HasId[Study, String](_.studyId)
-
-  val studiesFetcher = Fetcher(
-    config = FetcherConfig.maxBatchSize(100),
-    fetch = (ctx: Backend, stids: Seq[String]) => {ctx.getStudies(stids)})
 
   val genesFetcher = Fetcher(
     config = FetcherConfig.maxBatchSize(100),
     fetch = (ctx: Backend, geneIds: Seq[String]) => {ctx.getGenes(geneIds)})
 
-  val variantsFetcher = Fetcher(
-    config = FetcherConfig.maxBatchSize(1000),
-    fetch = (ctx: Backend, variantIds: Seq[String]) => {ctx.getVariants(variantIds)})
-
-  val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
-
   val gene = ObjectType("Gene",
-  "This element represents a simple gene object which contains id and name",
+    "This element represents a simple gene object which contains id and name",
     fields[Backend, Gene](
       Field("id", StringType,
         Some("Ensembl Gene ID of a gene"),
@@ -69,7 +46,7 @@ object GQLSchema {
     ))
 
   val scoredGene = ObjectType("ScoredGene",
-  "This object link a Gene with a score",
+    "This object link a Gene with a score",
     fields[Backend, (String, Double)](
       Field("gene", gene,
         Some("Gene Info"),
@@ -78,6 +55,14 @@ object GQLSchema {
         Some("Score a Float number between [0. .. 1.]"),
         resolve = _.value._2)
     ))
+}
+
+trait GQLVariant {
+  implicit val variantHasId = HasId[Variant, String](_.id)
+
+  val variantsFetcher = Fetcher(
+    config = FetcherConfig.maxBatchSize(1000),
+    fetch = (ctx: Backend, variantIds: Seq[String]) => {ctx.getVariants(variantIds)})
 
   val variant = ObjectType("Variant",
     "This element represents a variant object",
@@ -155,9 +140,17 @@ object GQLSchema {
         Some("gnomAD Allele frequency (Other (population not assigned) population)"),
         resolve = _.value.gnomadAnnotation.oth)
     ))
+}
+
+trait GQLStudy {
+  implicit val studyHasId = HasId[Study, String](_.studyId)
+
+  val studiesFetcher = Fetcher(
+    config = FetcherConfig.maxBatchSize(100),
+    fetch = (ctx: Backend, stids: Seq[String]) => {ctx.getStudies(stids)})
 
   val study = ObjectType("Study",
-  "This element contains all study fields",
+    "This element contains all study fields",
     fields[Backend, Study](
       Field("studyId", StringType,
         Some("Study Identifier"),
@@ -205,7 +198,9 @@ object GQLSchema {
         Some("Number of associated loci"),
         resolve = _.value.numAssocLoci)
     ))
+}
 
+trait GQLIndexVariantAssociation {
   val indexVariantAssociation = ObjectType("IndexVariantAssociation",
     "This object represent a link between a triple (study, trait, index_variant) and a tag variant " +
       "via an expansion method (either ldExpansion or FineMapping)",
@@ -277,8 +272,9 @@ object GQLSchema {
         Some(""),
         resolve = _.value.beta.direction)
     ))
+}
 
-
+trait GQLTagVariantAssociation {
   val tagVariantAssociation = ObjectType("TagVariantAssociation",
     "This object represent a link between a triple (study, trait, index_variant) and a tag variant " +
       "via an expansion method (either ldExpansion or FineMapping)",
@@ -350,9 +346,11 @@ object GQLSchema {
         Some(""),
         resolve = _.value.beta.direction)
     ))
+}
 
+trait GQLManhattanAssociation {
   val manhattanAssociation = ObjectType("ManhattanAssociation",
-  "This element represents an association between a trait and a variant through a study",
+    "This element represents an association between a trait and a variant through a study",
     fields[Backend, ManhattanAssociation](
       Field("variant", variant,
         Some("Index variant"),
@@ -370,7 +368,7 @@ object GQLSchema {
         Some("A list of best genes associated"),
         resolve = _.value.bestGenes),
       Field("credibleSetSize", OptionType(LongType),
-      Some("The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
+        Some("The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
         resolve = _.value.crediblbeSetSize),
       Field("ldSetSize", OptionType(LongType),
         Some("The cardinal of the set defined as tag variants for an index variant coming from ld expansion"),
@@ -379,7 +377,24 @@ object GQLSchema {
         Some("The cardinal of the set defined as tag variants for an index variant coming from any expansion"),
         resolve = _.value.totalSetSize)
     ))
+}
 
+object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVariantAssociation
+  with GQLTagVariantAssociation with GQLManhattanAssociation {
+
+  val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
+  val geneId = Argument("geneId", StringType, description = "Gene ID using Ensembl identifier")
+  val studyIds = Argument("studyIds", ListInputType(StringType), description = "List of study IDs")
+  val variantId = Argument("variantId", StringType, description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
+  val variantIds = Argument("variantIds", ListInputType(StringType), description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
+  val chromosome = Argument("chromosome", StringType, description = "Chromosome as String between 1..22 or X, Y, MT")
+  val pageIndex = Argument("pageIndex", OptionInputType(IntType), description = "pagination index >= 0")
+  val pageSize = Argument("pageSize", OptionInputType(IntType), description = "pagination size > 0")
+  val dnaPosStart = Argument("start", LongType, description = "Start position in a specified chromosome")
+  val dnaPosEnd = Argument("end", LongType, description = "End position in a specified chromosome")
+  val queryString = Argument("queryString", StringType, description = "Query text to search for")
+
+  val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
 
   val pheWASAssociation = ObjectType("PheWASAssociation",
     "This element represents an association between a variant and a reported trait through a study",

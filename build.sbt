@@ -8,6 +8,7 @@ version := "latest"
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 scalaVersion := "2.12.8"
+maintainer := "ops@opentargets.org"
 
 scalacOptions in ThisBuild ++= Seq(
 "-language:_",
