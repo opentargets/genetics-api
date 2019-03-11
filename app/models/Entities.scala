@@ -231,10 +231,6 @@ object Entities {
         else {
           val mv = hit.sourceAsMap
 
-          //  case class Gene(id: String, symbol: Option[String], bioType: Option[String] = None, chromosome: Option[String] = None,
-          //                  tss: Option[Long] = None, start: Option[Long] = None, end: Option[Long] = None,
-          //                  fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
-
           Right(Gene(mv("gene_id").toString,
             mv.get("gene_name").map(_.toString),
             mv.get("biotype").map(_.toString),
@@ -247,7 +243,7 @@ object Entities {
               case 1 => true
               case _ => false
             }),
-            mv.get("exons").map(_.asInstanceOf[Seq[Long]]).getOrElse(Seq.empty)
+            LSeqRep(mv.get("exons").map(_.toString).getOrElse(""))
           ))
         }
       }
@@ -258,11 +254,30 @@ object Entities {
         if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
         else {
           val mv = hit.sourceAsMap
-
-          val variant = Variant(mv("chr_id").toString, mv("position").asInstanceOf[Int],
-            mv("ref_allele").toString, mv("alt_allele").toString, Option(mv("rs_id").toString))
-
-          Right(variant)
+          Right(Variant(mv("chr_id").toString,
+            mv("position").toString.toLong,
+            mv("ref_allele").toString,
+            mv("alt_allele").toString,
+            mv.get("rs_id").map(_.toString),
+            Annotation(mv.get("gene_id").map(_.toString),
+              mv.get("gene_id_distance").map(_.toString.toLong),
+              mv.get("gene_id_prot_coding").map(_.toString),
+              mv.get("gene_id_prot_coding_distance").map(_.toString.toLong),
+              mv.get("most_severe_consequence").map(_.toString)),
+            CaddAnnotation(mv.get("raw").map(_.toString.toDouble),
+              mv.get("phred").map(_.toString.toDouble)),
+            GnomadAnnotation(mv.get("gnomad_afr").map(_.toString.toDouble),
+              mv.get("gnomad_seu").map(_.toString.toDouble),
+              mv.get("gnomad_amr").map(_.toString.toDouble),
+              mv.get("gnomad_asj").map(_.toString.toDouble),
+              mv.get("gnomad_eas").map(_.toString.toDouble),
+              mv.get("gnomad_fin").map(_.toString.toDouble),
+              mv.get("gnomad_nfe").map(_.toString.toDouble),
+              mv.get("gnomad_nfe_est").map(_.toString.toDouble),
+              mv.get("gnomad_nfe_seu").map(_.toString.toDouble),
+              mv.get("gnomad_nfe_onf").map(_.toString.toDouble),
+              mv.get("gnomad_nfe_nwe").map(_.toString.toDouble),
+              mv.get("gnomad_oth").map(_.toString.toDouble))))
         }
       }
     }

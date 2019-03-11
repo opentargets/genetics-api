@@ -845,6 +845,9 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         arguments = queryString :: pageIndex :: pageSize :: Nil,
         resolve = ctx =>
           ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("geneInfo", OptionType(gene),
+        arguments = geneId :: Nil,
+        resolve = ctx => genesFetcher.deferOpt(ctx.arg(geneId))),
       Field("studyInfo", OptionType(study),
         arguments = studyId :: Nil,
         resolve = ctx => studiesFetcher.deferOpt(ctx.arg(studyId))),
