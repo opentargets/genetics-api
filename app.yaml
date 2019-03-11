@@ -1,10 +1,11 @@
 runtime: custom
-env: flex
+api_version: '1.0'
+env: flexible
+threadsafe: true
 resources:
   cpu: 2
   memory_gb: 7.5
   disk_size_gb: 10
-network: {}
 automatic_scaling:
   min_num_instances: 1
   max_num_instances: 1
