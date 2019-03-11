@@ -493,11 +493,24 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
             ((r.leadPosition >= start) && (r.leadPosition <= end)) ||
               ((r.tagPosition >= start) && (r.tagPosition <= end)) ||
               (r.geneId in geneIdsInLoci)
-            )).map(_.geckoRow).distinct
+            )).groupBy(r => (r.studyId, r.leadVariant, r.tagVariant, r.geneId))
+            .map {case (g, q) =>
+              g -> (q.map(_.r2).any,
+                q.map(_.log10Abf).any,
+                q.map(_.posteriorProbability).any,
+                q.map(_.pval).any,
+                q.map(_.pvalExponent).any,
+                q.map(_.pvalMantissa).any,
+                q.map(_.overallScore).any)}
 
           db.run(geneIdsInLoci.result.asTry zip assocsQ.result.asTry).map {
             case (Success(geneIds), Success(assocs)) =>
-              Entities.Gecko(assocs.view, geneIds.toSet)
+              val geckoRows = assocs.view
+                .map(r => GeckoRow(r._1._4, r._1._3, r._1._2, r._1._1,
+                  V2DAssociation(r._2._4.get, r._2._5.get, r._2._6.get, r._2._1, r._2._2, r._2._3,
+                    None, None, None, None, None),
+                  r._2._7.getOrElse(0D)))
+              Entities.Gecko(geckoRows, geneIds.toSet)
 
             case (Success(geneIds), Failure(asscsEx)) =>
               logger.error(asscsEx.getMessage)

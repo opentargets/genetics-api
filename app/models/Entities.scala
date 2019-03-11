@@ -94,8 +94,8 @@ object Entities {
           val lVID = line.indexVariant.id
           val tVID = line.tagVariant.id
           geneIds += line.geneId
-          tagVariants += lVID
-          indexVariants += tVID
+          tagVariants += tVID
+          indexVariants += lVID
           studies += line.studyId
           geneTagVariants += GeneTagVariant(line.geneId, tVID, line.overallScore)
           tagVariantIndexVariantStudies += TagVariantIndexVariantStudy(tVID, lVID,
