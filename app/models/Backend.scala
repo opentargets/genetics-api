@@ -67,6 +67,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     config.get[Int]("ot.elasticsearch.port"))
   val esQ = HttpClient(esUri)
 
+  val geneExclusionList = config.get[Seq[String]]("ot.genes.exclude")
+
   def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.PheWASTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
@@ -485,8 +487,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         } else {
           val geneIdsInLoci = genes.filter(r =>
             (r.chromosome === chr) &&
-              (r.start >= start && r.start <= end) ||
-              (r.end >= start && r.end <= end))
+              ((r.start >= start && r.start <= end) ||
+              (r.end >= start && r.end <= end)) &&
+              !(r.bioType inSet geneExclusionList))
             .map(_.id)
 
           val assocsQ = d2v2gScored.filter(r => (r.leadChromosome === chr) && (
