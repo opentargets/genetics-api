@@ -275,7 +275,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     val studiesQ =
       d2v2g.filter(r => (r.geneId in geneQ.map(_.id)) && (r.tagChromosome in geneQ.map(_.chromosome)))
-        .map(_.studyId).distinct
+        .groupBy(_.studyId)
+        .map(_._1)
 
     db.run(studiesQ.result.asTry).map {
       case Success(v) => v.toVector
