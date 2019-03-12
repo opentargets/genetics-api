@@ -28,6 +28,7 @@ import play.api.libs.functional.syntax._
 import java.nio.file.{Path, Paths}
 
 import models.FRM.{D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
+import org.elasticsearch.common.lucene.search.function.FieldValueFactorFunction
 import org.elasticsearch.search.suggest.term.TermSuggestionBuilder
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
@@ -145,19 +146,23 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     import com.sksamuel.elastic4s.playjson._
     val limitClause = parsePaginationTokensForES(pageIndex, pageSize)
     val stoken = qString.toLowerCase
-    // val stoken = qString
     val cleanedTokens = stoken.replaceAll("-", " ")
 
     if (stoken.length > 0) {
       esQ.execute {
           search("studies") query boolQuery.should(matchQuery("study_id", stoken),
             matchQuery("pmid", stoken),
-            matchQuery("mixed_field", stoken)
-              .fuzziness("10")
-              .maxExpansions(10)
-              .prefixLength(2)
-              .operator("AND")
-            ) start limitClause._1 limit limitClause._2 sortByFieldDesc "num_assoc_loci"
+            functionScoreQuery(
+              matchQuery("mixed_field", stoken)
+                .fuzziness("10")
+                .maxExpansions(10)
+                .prefixLength(2)
+                .operator("AND")
+            ).scorers(fieldFactorScore("num_assoc_loci").
+              factor(1.2)
+              .missing(1D)
+              .modifier(FieldValueFactorFunction.Modifier.SQRT))
+          ) start limitClause._1 limit limitClause._2
       }.zip {
         esQ.execute {
           search("variant_*") query boolQuery.should(matchQuery("variant_id", stoken),
@@ -166,16 +171,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       }.zip {
         esQ.execute {
           search("genes") query boolQuery.should(matchQuery("gene_id", stoken),
-            matchQuery("gene_name", stoken),
-            multiMatchQuery(cleanedTokens)
-              .matchType(MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
-              .lenient(true)
-              .slop(10)
-              .prefixLength(2)
-              .maxExpansions(50)
-              .operator("OR")
-              .analyzer(WhitespaceAnalyzer)
-              .fields("gene_name")) start limitClause._1 limit limitClause._2
+            matchPhrasePrefixQuery("gene_name", stoken),
+          ) start limitClause._1 limit limitClause._2
         }
       }.map{
         case ((studiesRS, variantsRS), genesRS) =>
