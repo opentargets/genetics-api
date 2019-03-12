@@ -25,10 +25,10 @@ import play.api.Environment
 import play.api.libs.json._
 import play.api.libs.json.Reads._
 import play.api.libs.functional.syntax._
-
 import java.nio.file.{Path, Paths}
 
 import models.FRM.{D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
+import org.elasticsearch.search.suggest.term.TermSuggestionBuilder
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
@@ -152,19 +152,11 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       esQ.execute {
           search("studies") query boolQuery.should(matchQuery("study_id", stoken),
             matchQuery("pmid", stoken),
-            multiMatchQuery(cleanedTokens)
-              .matchType(MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
-              .lenient(true)
-              .slop(10)
+            matchQuery("mixed_field", stoken)
+              .fuzziness("10")
+              .maxExpansions(10)
               .prefixLength(2)
-              .maxExpansions(50)
-              .operator("OR")
-              .analyzer(WhitespaceAnalyzer)
-              .fields(Map("trait_reported" -> 1.5F,
-                "pub_author" -> 1.2F,
-                "_all" -> 1.0F)),
-            simpleStringQuery(cleanedTokens)
-              .defaultOperator("AND")
+              .operator("AND")
             ) start limitClause._1 limit limitClause._2 sortByFieldDesc "num_assoc_loci"
       }.zip {
         esQ.execute {
