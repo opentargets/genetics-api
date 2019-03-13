@@ -148,9 +148,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
             functionScoreQuery(
               matchQuery("mixed_field", stoken)
                 .fuzziness("10")
-                .maxExpansions(10)
-                .prefixLength(1)
-                .operator("AND")
+                .maxExpansions(20)
+                .prefixLength(0)
+                .operator("OR")
             ).scorers(fieldFactorScore("num_assoc_loci").
               factor(1.2)
               .missing(1D)
