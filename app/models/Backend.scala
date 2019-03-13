@@ -538,15 +538,21 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     variant match {
       case Right(v) =>
+        val geneIdsInLoci = genes.filter(r => (r.chromosome === v.chromosome) &&
+          !(r.bioType inSet geneExclusionList))
+          .map(_.id)
 
         val filteredV2Gs = v2gs.filter(r => (r.chromosome === v.chromosome) &&
           (r.position === v.position) &&
           (r.refAllele === v.refAllele) &&
-          (r.altAllele === v.altAllele))
+          (r.altAllele === v.altAllele) &&
+          (r.geneId in geneIdsInLoci))
+
         val filteredV2GScores = v2gScores.filter(r => (r.chromosome === v.chromosome) &&
           (r.position === v.position) &&
           (r.refAllele === v.refAllele) &&
-          (r.altAllele === v.altAllele))
+          (r.altAllele === v.altAllele) &&
+          (r.geneId in geneIdsInLoci))
 
         val q = filteredV2Gs
           .joinFull(filteredV2GScores)
