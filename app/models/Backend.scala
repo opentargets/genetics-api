@@ -150,9 +150,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                 .fuzziness("5")
                 .maxExpansions(20)
                 .prefixLength(2)
-                .operator("OR")
-            ).scorers(fieldFactorScore("num_assoc_loci").
-              factor(1.2)
+                .operator("AND")
+            ).scorers(fieldFactorScore("num_assoc_loci")
+              .factor(0D)
               .missing(1D)
               .modifier(FieldValueFactorFunction.Modifier.SQRT))
           ) start limitClause._1 limit limitClause._2
