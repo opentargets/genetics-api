@@ -1,15 +1,41 @@
 package clickhouse
 
+import scala.concurrent.ExecutionContext
 import slick.relational.RelationalCapabilities
 import slick.sql.SqlCapabilities
 import slick.jdbc._
-
-import scala.concurrent.ExecutionContext
 import slick.basic.Capability
-import slick.ast._
 import slick.util.MacroSupport.macroSupportInterpolation
 import slick.compiler.CompilerState
 import slick.jdbc.meta._
+import slick.lifted.{Query, Rep, _}
+
+import scala.language.{higherKinds, implicitConversions}
+import slick.ast._
+import FunctionSymbolExtensionMethods._
+import ScalaBaseType._
+import slick.ast.Library.SqlAggregateFunction
+
+object CHLibrary {
+  val Uniq = new SqlAggregateFunction("uniq")
+  val Any = new SqlAggregateFunction("any")
+}
+
+trait CHColumnExtensionMethods[B1, P1] extends Any with ExtensionMethods[B1, P1] {
+  def uniq = CHLibrary.Uniq.column[Long](n)
+}
+
+final class BaseCHColumnExtensionMethods[P1](val c: Rep[P1]) extends AnyVal with CHColumnExtensionMethods[P1, P1] with BaseExtensionMethods[P1]
+
+final class OptionCHColumnExtensionMethods[B1](val c: Rep[Option[B1]]) extends AnyVal with CHColumnExtensionMethods[B1, Option[B1]] with OptionExtensionMethods[B1]
+
+
+/** Extension methods for Queries of a single column */
+final class CHSingleColumnQueryExtensionMethods[B1, P1, C[_]](val q: Query[Rep[P1], _, C]) extends AnyVal {
+  type OptionTM =  TypedType[Option[B1]]
+  def uniq(implicit tm: OptionTM) = CHLibrary.Uniq.column[Option[Long]](q.toNode)
+  def any(implicit tm: OptionTM) = CHLibrary.Any.column[Option[B1]](q.toNode)
+}
 
 trait ClickHouseProfile extends JdbcProfile {
   override protected def computeCapabilities: Set[Capability] = (super.computeCapabilities
@@ -91,6 +117,18 @@ trait ClickHouseProfile extends JdbcProfile {
   class ColumnDDLBuilder(column: FieldSymbol) extends super.ColumnDDLBuilder(column)
   class CountingInsertActionComposerImpl[U](compiled: CompiledInsert)
     extends super.CountingInsertActionComposerImpl[U](compiled)
+
+  trait ExtApi extends API {
+    // nice page to read about extending profile apis
+    // https://virtuslab.com/blog/smooth-operator-with-slick-3/
+
+    implicit def chSingleColumnQueryExtensionMethods[B1 : BaseTypedType, C[_]](q: Query[Rep[B1], _, C]): CHSingleColumnQueryExtensionMethods[B1, B1, C] = new CHSingleColumnQueryExtensionMethods[B1, B1, C](q)
+    implicit def chSingleOptionColumnQueryExtensionMethods[B1 : BaseTypedType, C[_]](q: Query[Rep[Option[B1]], _, C]): CHSingleColumnQueryExtensionMethods[B1, Option[B1], C] = new CHSingleColumnQueryExtensionMethods[B1, Option[B1], C](q)
+    implicit def chColumnExtensionMethods[B1](c: Rep[B1])(implicit tm: BaseTypedType[B1]/* with NumericTypedType*/): BaseCHColumnExtensionMethods[B1] = new BaseCHColumnExtensionMethods[B1](c)
+    implicit def chOptionColumnExtensionMethods[B1](c: Rep[Option[B1]])(implicit tm: BaseTypedType[B1]/* with NumericTypedType*/): OptionCHColumnExtensionMethods[B1] = new OptionCHColumnExtensionMethods[B1](c)
+  }
+
+  override val api: ExtApi = new ExtApi {}
 }
 
 object ClickHouseProfile extends ClickHouseProfile

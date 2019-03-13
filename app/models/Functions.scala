@@ -1,6 +1,9 @@
 package models
 
 import models.Violations.{ChromosomeViolation, InChromosomeRegionViolation}
+import play.api.libs.json._
+
+import scala.io.Source
 
 object Functions {
   val defaultPaginationSize: Option[Int] = Some(500000)
@@ -11,9 +14,19 @@ object Functions {
   val defaultQtlTypes: List[String] = List("eqtl", "pqtl")
   val defaultIntervalTypes: List[String] = List("dhscor", "fantom5", "pchic")
   val defaultFPredTypes: List[String] = List("fpred")
+  val defaultDistanceTypes: List[String] = List("distance")
   val defaultSegmentDivFactor: Double = 1e6
   val defaultTopOverlapStudiesSize: Int = 10
   val defaultStudiesForGeneSize: Int = 10
+
+  /** Given a `filename`, the function fully loads the content into an option and
+    * maps it with `Json.parse`
+    * @param filename fully filename of a resource file
+    * @return A wrapped Json object from the given filename with an Option
+    */
+  def loadJSONFromFilename(filename: String): Option[JsValue] =
+    Option(Source.fromFile(filename).mkString)
+      .map(Json.parse)
 
   def toSumStatsSegment(from: Long, factor: Double = defaultSegmentDivFactor): Long =
     (from / factor).toLong
@@ -48,6 +61,23 @@ object Functions {
       case List(0, s) => s"LIMIT $s"
       case List(i, 0)  => s"LIMIT ${i*defaultPaginationSize.get}, ${defaultPaginationSize.get}"
       case List(i, s) => s"LIMIT ${i*s} , $s"
+    }
+  }
+
+  /** the indexation of the pagination starts at page number 0 set by pageIndex and takes pageSize chunks
+    * each time. The default pageSize is defaultPaginationSize
+    * @param pageIndex ordinal of the pages chunked by pageSize. It 0-start based
+    * @param pageSize the number of elements to get per page. default number defaultPaginationSize
+    * @return Clickhouse SQL dialect string to be used when you want to paginate
+    */
+  def parsePaginationTokensForSlick(pageIndex: Option[Int], pageSize: Option[Int] = defaultPaginationSize): (Int, Int) = {
+    val pair = List(pageIndex, pageSize).map(_.map(_.abs).getOrElse(0))
+
+    pair match {
+      case List(0, 0) => (0, defaultPaginationSize.get)
+      case List(0, s) => (0, s)
+      case List(i, 0) => (i*defaultPaginationSize.get, defaultPaginationSize.get)
+      case List(i, s) => (i*s, s)
     }
   }
 

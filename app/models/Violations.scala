@@ -34,11 +34,11 @@ object Violations {
       "update that will show an aggregation of the raw data (aggregating across the tag variants). We hope " +
       "to have this ready by our next release in February 2019, so please try this region again soon."
 
-  case class VariantViolation(msg: String) extends BaseViolation(variantErrorMsg format(msg))
+  case class VariantViolation(msg: String) extends BaseViolation(variantErrorMsg format msg)
   case class RegionViolation(region: Region) extends BaseViolation(denseRegionErrorMsg format(region.chrId,
     region.start, region.end))
-  case class GeneViolation(msg: String) extends BaseViolation(geneErrorMsg format(msg))
-  case class ChromosomeViolation(msg: String) extends BaseViolation(chromosomeErrorMsg format(msg))
+  case class GeneViolation(msg: String) extends BaseViolation(geneErrorMsg format msg)
+  case class ChromosomeViolation(msg: String) extends BaseViolation(chromosomeErrorMsg format msg)
   case class InChromosomeRegionViolation() extends BaseViolation(inChromosomeRegionErrorMsg)
   case class SearchStringViolation() extends BaseViolation(searchStringErrorMsg)
 

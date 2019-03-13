@@ -4,26 +4,17 @@ import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
 import models.DNA.{Gene, Variant}
+import models.GQLSchema.{gene, genesFetcher, scoredGene, studiesFetcher, study, variant, variantsFetcher}
 
-object GQLSchema {
-  val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
-  val geneId = Argument("geneId", StringType, description = "Gene ID using Ensembl identifier")
-  val studyIds = Argument("studyIds", ListInputType(StringType), description = "List of study IDs")
-  val variantId = Argument("variantId", StringType, description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
-  val variantIds = Argument("variantIds", ListInputType(StringType), description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
-  val chromosome = Argument("chromosome", StringType, description = "Chromosome as String between 1..22 or X, Y, MT")
-  val pageIndex = Argument("pageIndex", OptionInputType(IntType), description = "pagination index >= 0")
-  val pageSize = Argument("pageSize", OptionInputType(IntType), description = "pagination size > 0")
-  val dnaPosStart = Argument("start", LongType, description = "Start position in a specified chromosome")
-  val dnaPosEnd = Argument("end", LongType, description = "End position in a specified chromosome")
-  val queryString = Argument("queryString", StringType, description = "Query text to search for")
-
+trait GQLGene {
   implicit val geneHasId = HasId[Gene, String](_.id)
-  implicit val variantHasId = HasId[Variant, String](_.id)
-  implicit val studyHasId = HasId[Study, String](_.studyId)
+
+  val genesFetcher = Fetcher(
+    config = FetcherConfig.maxBatchSize(100),
+    fetch = (ctx: Backend, geneIds: Seq[String]) => {ctx.getGenes(geneIds)})
 
   val gene = ObjectType("Gene",
-  "This element represents a simple gene object which contains id and name",
+    "This element represents a simple gene object which contains id and name",
     fields[Backend, Gene](
       Field("id", StringType,
         Some("Ensembl Gene ID of a gene"),
@@ -55,7 +46,7 @@ object GQLSchema {
     ))
 
   val scoredGene = ObjectType("ScoredGene",
-  "This object link a Gene with a score",
+    "This object link a Gene with a score",
     fields[Backend, (String, Double)](
       Field("gene", gene,
         Some("Gene Info"),
@@ -64,6 +55,14 @@ object GQLSchema {
         Some("Score a Float number between [0. .. 1.]"),
         resolve = _.value._2)
     ))
+}
+
+trait GQLVariant {
+  implicit val variantHasId = HasId[Variant, String](_.id)
+
+  val variantsFetcher = Fetcher(
+    config = FetcherConfig.maxBatchSize(1000),
+    fetch = (ctx: Backend, variantIds: Seq[String]) => {ctx.getVariants(variantIds)})
 
   val variant = ObjectType("Variant",
     "This element represents a variant object",
@@ -88,45 +87,74 @@ object GQLSchema {
         resolve = _.value.altAllele),
       Field("nearestGene", OptionType(gene),
         Some("Nearest gene"),
-        resolve = r => {
-          r.value.nearestGeneId match {
-            case Some(ng) => genesFetcher.deferOpt(ng)
-            case _ => None
-          }
-        }),
+        resolve = el => genesFetcher.deferOpt(el.value.annotation.nearestGeneId)),
+      Field("nearestGeneDistance", OptionType(LongType),
+        Some("Distance to the nearest gene (any biotype)"),
+        resolve = _.value.annotation.nearestGeneDistance),
       Field("nearestCodingGene", OptionType(gene),
         Some("Nearest protein-coding gene"),
-        resolve = r => {
-          r.value.nearestCodingGeneId match {
-            case Some(ng) => genesFetcher.deferOpt(ng)
-            case _ => None
-          }
-        })
+        resolve = el => genesFetcher.deferOpt(el.value.annotation.nearestCodingGeneId)),
+      Field("nearestCodingGeneDistance", OptionType(LongType),
+        Some("Distance to the nearest gene (protein-coding biotype)"),
+        resolve = _.value.annotation.nearestCodingGeneDistance),
+      Field("mostSevereConsequence", OptionType(StringType),
+        Some("Most severe consequence"),
+        resolve = _.value.annotation.mostSevereConsequence),
+      Field("caddRaw", OptionType(FloatType),
+        Some("Combined Annotation Dependent Depletion - Raw score"),
+        resolve = _.value.caddAnnotation.raw),
+      Field("caddPhred", OptionType(FloatType),
+        Some("Combined Annotation Dependent Depletion - Scaled score"),
+        resolve = _.value.caddAnnotation.phred),
+      Field("gnomadAFR", OptionType(FloatType),
+        Some("gnomAD Allele frequency (African/African-American population)"),
+        resolve = _.value.gnomadAnnotation.afr),
+      Field("gnomadAMR", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Latino/Admixed American population)"),
+        resolve = _.value.gnomadAnnotation.amr),
+      Field("gnomadASJ", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Ashkenazi Jewish population)"),
+        resolve = _.value.gnomadAnnotation.asj),
+      Field("gnomadEAS", OptionType(FloatType),
+        Some("gnomAD Allele frequency (East Asian population)"),
+        resolve = _.value.gnomadAnnotation.eas),
+      Field("gnomadFIN", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Finnish population)"),
+        resolve = _.value.gnomadAnnotation.fin),
+      Field("gnomadNFE", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Non-Finnish European population)"),
+        resolve = _.value.gnomadAnnotation.nfe),
+      Field("gnomadNFEEST", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Non-Finnish Eurpoean Estonian sub-population)"),
+        resolve = _.value.gnomadAnnotation.nfeEST),
+      Field("gnomadNFENWE", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Non-Finnish Eurpoean North-Western European sub-population)"),
+        resolve = _.value.gnomadAnnotation.nfeNWE),
+      Field("gnomadNFESEU", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Non-Finnish Eurpoean Southern European sub-population)"),
+        resolve = _.value.gnomadAnnotation.nfeSEU),
+      Field("gnomadNFEONF", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Non-Finnish Eurpoean Other non-Finnish European sub-population)"),
+        resolve = _.value.gnomadAnnotation.nfeONF),
+      Field("gnomadOTH", OptionType(FloatType),
+        Some("gnomAD Allele frequency (Other (population not assigned) population)"),
+        resolve = _.value.gnomadAnnotation.oth)
     ))
+}
+
+trait GQLStudy {
+  implicit val studyHasId = HasId[Study, String](_.studyId)
 
   val studiesFetcher = Fetcher(
     config = FetcherConfig.maxBatchSize(100),
     fetch = (ctx: Backend, stids: Seq[String]) => {ctx.getStudies(stids)})
 
-  val genesFetcher = Fetcher(
-    config = FetcherConfig.maxBatchSize(100),
-    fetch = (ctx: Backend, geneIds: Seq[String]) => {ctx.getGenes(geneIds)})
-
-  val variantsFetcher = Fetcher(
-    config = FetcherConfig.maxBatchSize(1000),
-    fetch = (ctx: Backend, variantIds: Seq[String]) => {ctx.getVariants(variantIds)})
-
-  val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
-
   val study = ObjectType("Study",
-  "This element contains all study fields",
+    "This element contains all study fields",
     fields[Backend, Study](
       Field("studyId", StringType,
         Some("Study Identifier"),
         resolve = _.value.studyId),
-      Field("traitCode", StringType,
-        Some("Trait Identifier"),
-        resolve = _.value.traitCode),
       Field("traitReported", StringType,
         Some("Trait Label as reported on the publication"),
         resolve = _.value.traitReported),
@@ -165,101 +193,164 @@ object GQLSchema {
         resolve = _.value.nCases),
       Field("traitCategory", OptionType(StringType),
         Some("Trait category"),
-        resolve = _.value.traitCategory)
+        resolve = _.value.traitCategory),
+      Field("numAssocLoci", OptionType(LongType),
+        Some("Number of associated loci"),
+        resolve = _.value.numAssocLoci)
     ))
+}
 
+trait GQLIndexVariantAssociation {
   val indexVariantAssociation = ObjectType("IndexVariantAssociation",
     "This object represent a link between a triple (study, trait, index_variant) and a tag variant " +
       "via an expansion method (either ldExpansion or FineMapping)",
-    fields[Backend, IndexVariantAssociation](
+    fields[Backend, V2DRow](
       Field("tagVariant", variant,
         Some("Tag variant ID as ex. 1_12345_A_T"),
-        resolve = _.value.tagVariant),
+        resolve = rsl => variantsFetcher.defer(rsl.value.tag.id)),
       Field("study", study,
         Some("study ID"),
-        resolve = rsl => studiesFetcher.defer(rsl.value.studyId)),
+        resolve = rsl => studiesFetcher.defer(rsl.value.study.studyId)),
       Field("pval", FloatType,
         Some("p-val between a study and an the provided index variant"),
-        resolve = _.value.pval),
-      Field("nTotal", IntType,
+        resolve = _.value.association.pval),
+      Field("pvalMantissa", FloatType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.association.pvalMantissa),
+      Field("pvalExponent", LongType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.association.pvalExponent),
+      Field("nTotal", LongType,
         Some("n total cases (n initial + n replication)"),
-        resolve = _.value.nTotal),
-      Field("nCases", IntType,
+        resolve = r => r.value.study.nInitial.getOrElse(0L) + r.value.study.nReplication.getOrElse(0L)),
+      Field("nCases", LongType,
         Some("n cases"),
-        resolve = _.value.nCases),
+        resolve = _.value.study.nCases.getOrElse(0L)),
       Field("overallR2", OptionType(FloatType),
         Some("study ID"),
-        resolve = _.value.r2),
+        resolve = _.value.association.r2),
       Field("afr1000GProp", OptionType(FloatType),
         Some(""),
-        resolve = _.value.afr1000GProp),
+        resolve = _.value.association.afr1000GProp),
       Field("amr1000GProp", OptionType(FloatType),
         Some(""),
-        resolve = _.value.amr1000GProp),
+        resolve = _.value.association.amr1000GProp),
       Field("eas1000GProp", OptionType(FloatType),
         Some(""),
-        resolve = _.value.eas1000GProp),
+        resolve = _.value.association.eas1000GProp),
       Field("eur1000GProp", OptionType(FloatType),
         Some(""),
-        resolve = _.value.eur1000GProp),
+        resolve = _.value.association.eur1000GProp),
       Field("sas1000GProp", OptionType(FloatType),
         Some(""),
-        resolve = _.value.sas1000GProp),
+        resolve = _.value.association.sas1000GProp),
       Field("log10Abf", OptionType(FloatType),
         Some(""),
-        resolve = _.value.log10Abf),
+        resolve = _.value.association.log10Abf),
       Field("posteriorProbability", OptionType(FloatType),
         Some(""),
-        resolve = _.value.posteriorProbability)
+        resolve = _.value.association.posteriorProbability),
+      Field("oddsRatio", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCI),
+      Field("oddsRatioCILower", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCILower),
+      Field("oddsRatioCIUpper", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCIUpper),
+      Field("beta", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCI),
+      Field("betaCILower", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCILower),
+      Field("betaCIUpper", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCIUpper),
+      Field("direction", OptionType(StringType),
+        Some(""),
+        resolve = _.value.beta.direction)
     ))
+}
 
+trait GQLTagVariantAssociation {
   val tagVariantAssociation = ObjectType("TagVariantAssociation",
     "This object represent a link between a triple (study, trait, index_variant) and a tag variant " +
       "via an expansion method (either ldExpansion or FineMapping)",
-    fields[Backend, TagVariantAssociation](
+    fields[Backend, V2DRow](
       Field("indexVariant", variant,
         Some("Tag variant ID as ex. 1_12345_A_T"),
-        resolve = _.value.indexVariant),
+        resolve = rsl => variantsFetcher.defer(rsl.value.lead.id)),
       Field("study", study,
         Some("study ID"),
-        resolve = rsl => studiesFetcher.defer(rsl.value.studyId)),
+        resolve = rsl => studiesFetcher.defer(rsl.value.study.studyId)),
       Field("pval", FloatType,
         Some("p-val between a study and an the provided index variant"),
-        resolve = _.value.pval),
-      Field("nTotal", IntType,
+        resolve = _.value.association.pval),
+      Field("pvalMantissa", FloatType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.association.pvalMantissa),
+      Field("pvalExponent", LongType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.association.pvalExponent),
+      Field("nTotal", LongType,
         Some("n total cases (n initial + n replication)"),
-        resolve = _.value.nTotal),
-      Field("nCases", IntType,
+        resolve = r => r.value.study.nInitial.getOrElse(0L) + r.value.study.nReplication.getOrElse(0L)),
+      Field("nCases", LongType,
         Some("n cases"),
-        resolve = _.value.nCases),
+        resolve = _.value.study.nCases.getOrElse(0L)),
       Field("overallR2", OptionType(FloatType),
         Some("study ID"),
-        resolve = _.value.r2),
+        resolve = _.value.association.r2),
       Field("afr1000GProp", OptionType(FloatType),
         Some(""),
-        resolve = _.value.afr1000GProp),
+        resolve = _.value.association.afr1000GProp),
       Field("amr1000GProp", OptionType(FloatType),
         Some(""),
-        resolve = _.value.amr1000GProp),
+        resolve = _.value.association.amr1000GProp),
       Field("eas1000GProp", OptionType(FloatType),
         Some(""),
-        resolve = _.value.eas1000GProp),
+        resolve = _.value.association.eas1000GProp),
       Field("eur1000GProp", OptionType(FloatType),
         Some(""),
-        resolve = _.value.eur1000GProp),
+        resolve = _.value.association.eur1000GProp),
       Field("sas1000GProp", OptionType(FloatType),
         Some(""),
-        resolve = _.value.sas1000GProp),
+        resolve = _.value.association.sas1000GProp),
       Field("log10Abf", OptionType(FloatType),
         Some(""),
-        resolve = _.value.log10Abf),
+        resolve = _.value.association.log10Abf),
       Field("posteriorProbability", OptionType(FloatType),
         Some(""),
-        resolve = _.value.posteriorProbability)
+        resolve = _.value.association.posteriorProbability),
+      Field("oddsRatio", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCI),
+      Field("oddsRatioCILower", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCILower),
+      Field("oddsRatioCIUpper", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCIUpper),
+      Field("beta", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCI),
+      Field("betaCILower", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCILower),
+      Field("betaCIUpper", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCIUpper),
+      Field("direction", OptionType(StringType),
+        Some(""),
+        resolve = _.value.beta.direction)
     ))
+}
 
+trait GQLManhattanAssociation {
   val manhattanAssociation = ObjectType("ManhattanAssociation",
-  "This element represents an association between a trait and a variant through a study",
+    "This element represents an association between a trait and a variant through a study",
     fields[Backend, ManhattanAssociation](
       Field("variant", variant,
         Some("Index variant"),
@@ -267,11 +358,38 @@ object GQLSchema {
       Field("pval", FloatType,
         Some("Computed p-Value"),
         resolve = _.value.pval),
+      Field("pvalMantissa", FloatType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.pvalMantissa),
+      Field("pvalExponent", LongType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.pvalExponent),
+      Field("oddsRatio", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.v2dOdds.oddsCI),
+      Field("oddsRatioCILower", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.v2dOdds.oddsCILower),
+      Field("oddsRatioCIUpper", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.v2dOdds.oddsCIUpper),
+      Field("beta", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.v2dBeta.betaCI),
+      Field("betaCILower", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.v2dBeta.betaCILower),
+      Field("betaCIUpper", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.v2dBeta.betaCIUpper),
+      Field("direction", OptionType(StringType),
+        Some(""),
+        resolve = _.value.v2dBeta.direction),
       Field("bestGenes", ListType(scoredGene),
         Some("A list of best genes associated"),
         resolve = _.value.bestGenes),
       Field("credibleSetSize", OptionType(LongType),
-      Some("The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
+        Some("The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
         resolve = _.value.crediblbeSetSize),
       Field("ldSetSize", OptionType(LongType),
         Some("The cardinal of the set defined as tag variants for an index variant coming from ld expansion"),
@@ -280,7 +398,24 @@ object GQLSchema {
         Some("The cardinal of the set defined as tag variants for an index variant coming from any expansion"),
         resolve = _.value.totalSetSize)
     ))
+}
 
+object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVariantAssociation
+  with GQLTagVariantAssociation with GQLManhattanAssociation {
+
+  val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
+  val geneId = Argument("geneId", StringType, description = "Gene ID using Ensembl identifier")
+  val studyIds = Argument("studyIds", ListInputType(StringType), description = "List of study IDs")
+  val variantId = Argument("variantId", StringType, description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
+  val variantIds = Argument("variantIds", ListInputType(StringType), description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
+  val chromosome = Argument("chromosome", StringType, description = "Chromosome as String between 1..22 or X, Y, MT")
+  val pageIndex = Argument("pageIndex", OptionInputType(IntType), description = "pagination index >= 0")
+  val pageSize = Argument("pageSize", OptionInputType(IntType), description = "pagination size > 0")
+  val dnaPosStart = Argument("start", LongType, description = "Start position in a specified chromosome")
+  val dnaPosEnd = Argument("end", LongType, description = "End position in a specified chromosome")
+  val queryString = Argument("queryString", StringType, description = "Query text to search for")
+
+  val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
 
   val pheWASAssociation = ObjectType("PheWASAssociation",
     "This element represents an association between a variant and a reported trait through a study",
@@ -345,13 +480,40 @@ object GQLSchema {
         resolve = _.value.studyId),
       Field("r2", OptionType(FloatType),
         Some(""),
-        resolve = _.value.r2),
+        resolve = _.value.v2DAssociation.r2),
       Field("posteriorProbability", OptionType(FloatType),
         Some(""),
-        resolve = _.value.posteriorProb),
+        resolve = _.value.v2DAssociation.posteriorProbability),
       Field("pval", FloatType,
         Some(""),
-        resolve = _.value.pval)
+        resolve = _.value.v2DAssociation.pval),
+      Field("pvalMantissa", FloatType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.v2DAssociation.pvalMantissa),
+      Field("pvalExponent", LongType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.v2DAssociation.pvalExponent),
+      Field("oddsRatio", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCI),
+      Field("oddsRatioCILower", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCILower),
+      Field("oddsRatioCIUpper", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCIUpper),
+      Field("beta", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCI),
+      Field("betaCILower", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCILower),
+      Field("betaCIUpper", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCIUpper),
+      Field("direction", OptionType(StringType),
+        Some(""),
+        resolve = _.value.beta.direction)
     ))
 
   val gecko = ObjectType("Gecko",
@@ -362,10 +524,10 @@ object GQLSchema {
         resolve = rsl => genesFetcher.deferSeq(rsl.value.geneIds)),
       Field("tagVariants", ListType(variant),
         Some(""),
-        resolve = _.value.tagVariants),
+        resolve = rsl => variantsFetcher.deferSeq(rsl.value.tagVariants)),
       Field("indexVariants", ListType(variant),
         Some(""),
-        resolve = _.value.indexVariants),
+        resolve = rsl => variantsFetcher.deferSeq(rsl.value.indexVariants)),
       Field("studies", ListType(study),
         Some(""),
         resolve = rsl => studiesFetcher.deferSeq(rsl.value.studies)),
@@ -382,9 +544,9 @@ object GQLSchema {
     fields[Backend, OverlappedVariant](
       Field("variantIdA", StringType, None, resolve = _.value.variantIdA),
       Field("variantIdB", StringType, None, resolve = _.value.variantIdB),
-      Field("overlapAB", IntType, None, resolve = _.value.overlapAB),
-      Field("distinctA", IntType, None, resolve = _.value.distinctA),
-      Field("distinctB", IntType, None, resolve = _.value.distinctB),
+      Field("overlapAB", LongType, None, resolve = _.value.overlapAB),
+      Field("distinctA", LongType, None, resolve = _.value.distinctA),
+      Field("distinctB", LongType, None, resolve = _.value.distinctB),
     ))
 
   val overlappedStudy = ObjectType("OverlappedStudy",
@@ -464,7 +626,7 @@ object GQLSchema {
 
   val tagVariantsAndStudiesForIndexVariant = ObjectType("TagVariantsAndStudiesForIndexVariant",
     "A list of rows with each link",
-    fields[Backend, IndexVariantTable](
+    fields[Backend, VariantToDiseaseTable](
       Field("associations", ListType(indexVariantAssociation),
         Some("A list of associations connected to a Index variant and a Study through some expansion methods"),
         resolve = _.value.associations)
@@ -472,7 +634,7 @@ object GQLSchema {
 
   val indexVariantsAndStudiesForTagVariant = ObjectType("IndexVariantsAndStudiesForTagVariant",
     "A list of rows with each link",
-    fields[Backend, TagVariantTable](
+    fields[Backend, VariantToDiseaseTable](
       Field("associations", ListType(tagVariantAssociation),
         Some("A list of associations connected to a Index variant and a Study through some expansion methods"),
         resolve = _.value.associations)
@@ -498,6 +660,18 @@ object GQLSchema {
       Field("sourceId", StringType,
         Some(""),
         resolve = _.value.sourceId),
+      Field("sourceLabel", OptionType(StringType),
+        Some(""),
+        resolve = _.value.displayLabel),
+      Field("sourceDescriptionOverview", OptionType(StringType),
+        Some(""),
+        resolve = _.value.overviewTooltip),
+      Field("sourceDescriptionBreakdown", OptionType(StringType),
+        Some(""),
+        resolve = _.value.tagSubtitle),
+      Field("pmid", OptionType(StringType),
+        Some("PubmedID"),
+        resolve = _.value.pmid),
       Field("tissues", ListType(tissue),
         Some(""),
         resolve = _.value.tissues)
@@ -514,7 +688,10 @@ object GQLSchema {
         resolve = _.value.intervals),
       Field("functionalPredictions", ListType(g2vSchemaElement),
         Some("qtl structure definition"),
-        resolve = _.value.functionalPredictions)
+        resolve = _.value.functionalPredictions),
+      Field("distances", ListType(g2vSchemaElement),
+        Some("Distance structure definition"),
+        resolve = _.value.distances)
     ))
 
   val qtlTissue = ObjectType("QTLTissue",
@@ -560,6 +737,23 @@ object GQLSchema {
       Field("maxEffectScore", OptionType(FloatType),
         Some(""),
         resolve = _.value.maxEffectScore)
+    ))
+
+  val distanceTisse = ObjectType("DistanceTissue",
+    "",
+    fields[Backend, DistancelTissue](
+      Field("tissue", tissue,
+        Some(""),
+        resolve = _.value.tissue),
+      Field("distance", OptionType(LongType),
+        Some("Distance to the canonical TSS"),
+        resolve = _.value.distance),
+      Field("score", OptionType(FloatType),
+        Some("Score 1 / Distance"),
+        resolve = _.value.score),
+      Field("quantile", OptionType(FloatType),
+        Some("Quantile of the score"),
+        resolve = _.value.quantile)
     ))
 
   val qtlElement = ObjectType("QTLElement",
@@ -613,6 +807,23 @@ object GQLSchema {
         resolve = _.value.tissues)
     ))
 
+  val distElement = ObjectType("DistanceElement",
+    "A list of rows with each link",
+    fields[Backend, G2VElement[DistancelTissue]](
+      Field("typeId", StringType,
+        Some(""),
+        resolve = _.value.id),
+      Field("sourceId", StringType,
+        Some(""),
+        resolve = _.value.sourceId),
+      Field("aggregatedScore", FloatType,
+        Some(""),
+        resolve = _.value.aggregatedScore),
+      Field("tissues", ListType(distanceTisse),
+        Some(""),
+        resolve = _.value.tissues)
+    ))
+
   val geneForVariant = ObjectType("GeneForVariant",
     "A list of rows with each link",
     fields[Backend, G2VAssociation](
@@ -633,7 +844,10 @@ object GQLSchema {
         resolve = _.value.intervals),
       Field("functionalPredictions", ListType(fPredElement),
         Some(""),
-        resolve = _.value.fpreds)
+        resolve = _.value.fpreds),
+      Field("distances", ListType(distElement),
+        Some(""),
+        resolve = _.value.distances)
     ))
 
   val variantSearchResult = ObjectType("VariantSearchResult",
@@ -659,7 +873,7 @@ object GQLSchema {
       Field("genes", ListType(gene),
         Some("Gene search result list"),
         resolve = _.value.genes),
-      Field("variants", ListType(variantSearchResult),
+      Field("variants", ListType(variant),
         Some("Variant search result list"),
         resolve = _.value.variants),
       Field("studies", ListType(study),
@@ -673,6 +887,9 @@ object GQLSchema {
         arguments = queryString :: pageIndex :: pageSize :: Nil,
         resolve = ctx =>
           ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("geneInfo", OptionType(gene),
+        arguments = geneId :: Nil,
+        resolve = ctx => genesFetcher.deferOpt(ctx.arg(geneId))),
       Field("studyInfo", OptionType(study),
         arguments = studyId :: Nil,
         resolve = ctx => studiesFetcher.deferOpt(ctx.arg(studyId))),

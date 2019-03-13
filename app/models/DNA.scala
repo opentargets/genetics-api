@@ -2,11 +2,9 @@ package models
 
 import java.io.FileNotFoundException
 
-import models.Violations.{GeneViolation, RegionViolation, VariantViolation}
-import sangria.execution.deferred.HasId
+import models.Violations.{GeneViolation, VariantViolation}
 
 import scala.io.Source
-import slick.jdbc.GetResult
 import kantan.csv._
 import kantan.csv.ops._
 import play.api.Logger
@@ -68,30 +66,57 @@ object DNA {
 
   }
 
-  case class Variant(chromosome: String, position: Long, refAllele: String, altAllele: String,
-                     rsId: Option[String], nearestGeneId: Option[String] = None,
-                     nearestCodingGeneId: Option[String] = None) {
+  case class Annotation(nearestGeneId: Option[String] = None,
+                        nearestGeneDistance: Option[Long] = None,
+                        nearestCodingGeneId: Option[String] = None,
+                        nearestCodingGeneDistance: Option[Long] = None,
+                        mostSevereConsequence: Option[String] = None)
+  case class CaddAnnotation(raw: Option[Double] = None, phred: Option[Double] = None)
+  case class GnomadAnnotation(afr: Option[Double] = None, seu: Option[Double] = None,
+                              amr: Option[Double] = None, asj: Option[Double] = None,
+                              eas: Option[Double] = None, fin: Option[Double] = None,
+                              nfe: Option[Double] = None, nfeEST: Option[Double] = None,
+                              nfeSEU: Option[Double] = None, nfeONF: Option[Double] = None,
+                              nfeNWE: Option[Double] = None, oth: Option[Double] = None)
+
+  sealed trait SkelVariant {
+    val chromosome: String
+    val position: Long
+    val refAllele: String
+    val altAllele: String
+
     lazy val id: String = List(chromosome, position.toString, refAllele, altAllele)
       .map(_.toUpperCase)
       .mkString("_")
   }
 
-  // id, chromosome, position, refAllele, altAllele, rsId, nearestGeneId, nearestCodingGeneId
+  case class SimpleVariant(override val chromosome: String, override val position: Long,
+                           override val refAllele: String, override val altAllele: String) extends SkelVariant
 
-  object Variant extends ((String, String, Long, String, String, Option[String], Option[String],
-    Option[String]) => Variant) {
+  case class Variant(override val chromosome: String, override val position: Long,
+                     override val refAllele: String, override val altAllele: String,
+                     rsId: Option[String], annotation: Annotation,
+                     caddAnnotation: CaddAnnotation,
+                     gnomadAnnotation: GnomadAnnotation) extends SkelVariant
+
+  object Variant extends ((String, Long, String, String, Option[String],
+    Annotation, CaddAnnotation, GnomadAnnotation) => Variant) {
     private[this] def parseVariant(variantId: String, rsId: Option[String]): Option[Variant] = {
       variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
         case List(chr: String, pos: String, ref: String, alt: String) =>
-          Some(Variant(chr, pos.toLong, ref, alt, rsId, None, None))
+          Some(Variant(chr, pos.toLong, ref, alt))
         case _ => None
       }
     }
 
-    def apply(variantId: String, chromosome: String, position: Long, refAllele: String, altAllele: String,
-              rsId: Option[String], nearestGeneId: Option[String],
-              nearestCodingGeneId: Option[String]): Variant =
-      Variant(chromosome, position, refAllele, altAllele, rsId, nearestGeneId, nearestCodingGeneId)
+    def apply(chromosome: String, position: Long, refAllele: String, altAllele: String): Variant =
+      Variant(chromosome, position, refAllele, altAllele, None, Annotation(),
+        CaddAnnotation(), GnomadAnnotation())
+
+    def apply(chromosome: String, position: Long,
+              refAllele: String, altAllele: String, rsId: Option[String]): Variant =
+      Variant(chromosome, position, refAllele, altAllele, rsId, Annotation(),
+        CaddAnnotation(), GnomadAnnotation())
 
     def apply(variantId: String): Either[VariantViolation, Variant] = apply(variantId, None)
 
@@ -100,14 +125,15 @@ object DNA {
       Either.cond(pv.isDefined, pv.get, VariantViolation(variantId))
     }
 
-    def unapply(v: Variant): Option[(String, String, Long, String, String,
-      Option[String], Option[String], Option[String])] = Some(v.id, v.chromosome, v.position, v.refAllele,
-        v.altAllele, v.rsId, v.nearestGeneId, v.nearestCodingGeneId)
+    def unapply(v: Variant): Option[(String, Long, String, String, Option[String],
+      Annotation, CaddAnnotation, GnomadAnnotation)] =
+      Some(v.chromosome, v.position, v.refAllele, v.altAllele,
+        v.rsId, v.annotation, v.caddAnnotation, v.gnomadAnnotation)
   }
 
-  case class Gene(id: String, symbol: Option[String], bioType: Option[String] = None, chromosome: Option[String] = None,
-                  tss: Option[Long] = None, start: Option[Long] = None, end: Option[Long] = None,
-                  fwd: Option[Boolean] = None, exons: Seq[Long] = Seq.empty)
+  case class Gene(id: String, symbol: Option[String], bioType: Option[String], chromosome: Option[String],
+                  tss: Option[Long], start: Option[Long], end: Option[Long],
+                  fwd: Option[Boolean], exons: Seq[Long])
 
   object Gene extends ((String, Option[String], Option[String], Option[String], Option[Long],
     Option[Long], Option[Long], Option[Boolean], Seq[Long]) => Gene) {
@@ -128,6 +154,9 @@ object DNA {
       val pg = parseGene(geneId, None)
       Either.cond(pg.isDefined, pg.get, GeneViolation(geneId))
     }
+
+    def apply(geneId: String, symbol: Option[String]): Gene =
+      Gene(geneId, symbol, None, None, None, None, None, None, Seq.empty)
 
     def unapply(gene: Gene): Option[(String, Option[String], Option[String], Option[String], Option[Long],
       Option[Long], Option[Long], Option[Boolean], Seq[Long])] = Some(gene.id, gene.symbol, gene.bioType,
