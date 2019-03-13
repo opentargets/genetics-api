@@ -149,7 +149,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
               matchQuery("mixed_field", stoken)
                 .fuzziness("10")
                 .maxExpansions(10)
-                .prefixLength(2)
+                .prefixLength(1)
                 .operator("AND")
             ).scorers(fieldFactorScore("num_assoc_loci").
               factor(1.2)
