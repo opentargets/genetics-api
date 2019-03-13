@@ -170,16 +170,16 @@ object FRM {
     def leadVariant =
       (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
 
-    def direction = column[String]("direction")
-    def betaCI = column[Double]("beta")
-    def betaCILower = column[Double]("beta_ci_lower")
-    def betaCIUpper = column[Double]("beta_ci_upper")
+    def direction = column[Option[String]]("direction")
+    def betaCI = column[Option[Double]]("beta")
+    def betaCILower = column[Option[Double]]("beta_ci_lower")
+    def betaCIUpper = column[Option[Double]]("beta_ci_upper")
     def beta =
       (direction, betaCI, betaCILower, betaCIUpper).mapTo[V2DBeta]
 
-    def oddsCI = column[Double]("odds_ratio")
-    def oddsCILower = column[Double]("oddsr_ci_lower")
-    def oddsCIUpper = column[Double]("oddsr_ci_upper")
+    def oddsCI = column[Option[Double]]("odds_ratio")
+    def oddsCILower = column[Option[Double]]("oddsr_ci_lower")
+    def oddsCIUpper = column[Option[Double]]("oddsr_ci_upper")
     def odds =
       (oddsCI, oddsCILower, oddsCIUpper).mapTo[V2DOdds]
 
@@ -238,16 +238,16 @@ object FRM {
     def leadVariant =
       (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
 
-    def direction = column[String]("direction")
-    def betaCI = column[Double]("beta")
-    def betaCILower = column[Double]("beta_ci_lower")
-    def betaCIUpper = column[Double]("beta_ci_upper")
+    def direction = column[Option[String]]("direction")
+    def betaCI = column[Option[Double]]("beta")
+    def betaCILower = column[Option[Double]]("beta_ci_lower")
+    def betaCIUpper = column[Option[Double]]("beta_ci_upper")
     def beta =
       (direction, betaCI, betaCILower, betaCIUpper).mapTo[V2DBeta]
 
-    def oddsCI = column[Double]("odds_ratio")
-    def oddsCILower = column[Double]("oddsr_ci_lower")
-    def oddsCIUpper = column[Double]("oddsr_ci_upper")
+    def oddsCI = column[Option[Double]]("odds_ratio")
+    def oddsCILower = column[Option[Double]]("oddsr_ci_lower")
+    def oddsCIUpper = column[Option[Double]]("oddsr_ci_upper")
     def odds =
       (oddsCI, oddsCILower, oddsCIUpper).mapTo[V2DOdds]
 
@@ -410,16 +410,16 @@ object FRM {
     def leadVariant =
       (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
 
-    def direction = column[String]("direction")
-    def betaCI = column[Double]("beta")
-    def betaCILower = column[Double]("beta_ci_lower")
-    def betaCIUpper = column[Double]("beta_ci_upper")
+    def direction = column[Option[String]]("direction")
+    def betaCI = column[Option[Double]]("beta")
+    def betaCILower = column[Option[Double]]("beta_ci_lower")
+    def betaCIUpper = column[Option[Double]]("beta_ci_upper")
     def beta =
       (direction, betaCI, betaCILower, betaCIUpper).mapTo[V2DBeta]
 
-    def oddsCI = column[Double]("odds_ratio")
-    def oddsCILower = column[Double]("oddsr_ci_lower")
-    def oddsCIUpper = column[Double]("oddsr_ci_upper")
+    def oddsCI = column[Option[Double]]("odds_ratio")
+    def oddsCILower = column[Option[Double]]("oddsr_ci_lower")
+    def oddsCIUpper = column[Option[Double]]("oddsr_ci_upper")
     def odds =
       (oddsCI, oddsCILower, oddsCIUpper).mapTo[V2DOdds]
 
@@ -516,16 +516,16 @@ object FRM {
     def leadVariant =
       (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
 
-    def direction = column[String]("direction")
-    def betaCI = column[Double]("beta")
-    def betaCILower = column[Double]("beta_ci_lower")
-    def betaCIUpper = column[Double]("beta_ci_upper")
+    def direction = column[Option[String]]("direction")
+    def betaCI = column[Option[Double]]("beta")
+    def betaCILower = column[Option[Double]]("beta_ci_lower")
+    def betaCIUpper = column[Option[Double]]("beta_ci_upper")
     def beta =
       (direction, betaCI, betaCILower, betaCIUpper).mapTo[V2DBeta]
 
-    def oddsCI = column[Double]("odds_ratio")
-    def oddsCILower = column[Double]("oddsr_ci_lower")
-    def oddsCIUpper = column[Double]("oddsr_ci_upper")
+    def oddsCI = column[Option[Double]]("odds_ratio")
+    def oddsCILower = column[Option[Double]]("oddsr_ci_lower")
+    def oddsCIUpper = column[Option[Double]]("oddsr_ci_upper")
     def odds =
       (oddsCI, oddsCILower, oddsCIUpper).mapTo[V2DOdds]
 
@@ -555,7 +555,8 @@ object FRM {
     def v2dRow = (tagVariant, leadVariant, study, association, odds, beta).mapTo[V2DRow]
 
     def geckoRow =
-      (geneId, tagVariant, leadVariant, studyId, association, overallScore).mapTo[GeckoRow]
+      (geneId, tagVariant, leadVariant, studyId, association,
+        overallScore, odds, beta).mapTo[GeckoRow]
 
     def geneId = column[String]("gene_id")
     def typeId = column[String]("type_id")

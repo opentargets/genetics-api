@@ -11,25 +11,20 @@ import models.DNA._
 import models.Entities.DBImplicits._
 import models.Entities.ESImplicits._
 import models.Violations._
-import com.sksamuel.elastic4s.analyzers._
 import sangria.validation.Violation
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 import scala.concurrent._
 import com.sksamuel.elastic4s.http._
-import org.elasticsearch.index.query.MultiMatchQueryBuilder
 import play.db.NamedDatabase
 import play.api.Logger
 import play.api.Environment
-import play.api.libs.json._
 import play.api.libs.json.Reads._
-import play.api.libs.functional.syntax._
 import java.nio.file.{Path, Paths}
 
 import models.FRM.{D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
 import org.elasticsearch.common.lucene.search.function.FieldValueFactorFunction
-import org.elasticsearch.search.suggest.term.TermSuggestionBuilder
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
@@ -143,10 +138,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getSearchResultSet(qString: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.SearchResultSet] = {
-    import com.sksamuel.elastic4s.playjson._
     val limitClause = parsePaginationTokensForES(pageIndex, pageSize)
     val stoken = qString.toLowerCase
-    val cleanedTokens = stoken.replaceAll("-", " ")
 
     if (stoken.length > 0) {
       esQ.execute {
@@ -218,7 +211,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def getOverlapVariantsIntersectionForStudies(stid: String, stids: Seq[String]): Future[Vector[String]] = {
     if (stids.nonEmpty) {
       val numStudies = stids.length.toLong
-      val stidListString = stids.map("'" + _ + "'").mkString(",")
 
       val q = overlaps
         .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
@@ -226,8 +218,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         .map { case(vA, g) => vA -> g.map(_.studyIdB).uniq }
         .filter(_._2 === numStudies)
         .map(_._1)
-
-      // q.result.statements.foreach(println)
 
       db.run(q.result.asTry).map {
         case Success(v) =>
@@ -247,9 +237,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
           .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
           .groupBy(r => (r.studyIdB, r.variantA, r.variantB))
           .map { case (l, g) =>
-            (l._1, l._2, l._3) -> (g.map(_.overlapsAB).any, g.map(_.distinctA).any, g.map(_.distinctB).any)}
-
-//    q.result.statements.foreach(println)
+            (l._1, l._2, l._3) -> (g.map(_.overlapsAB).any, g.map(_.distinctA).any, g.map(_.distinctB).any)
+          }
 
     db.run(q.result.asTry).map {
       case Success(v) =>
@@ -300,10 +289,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   /** query variants table with a list of variant ids and get all related information
     *
-    * NOTE! WARNING! THERE IS A DIFF AT THE MOMENT BETWEEN THE VARIANTS COMING FROM VCF FILE
-    * AND THE ONES COMING FROM UKB AND WE NEED TO FILL THAT GAP WHILE THIS ISSUE IS NOT
-    * ADDRESSED. AT THE MOMENT, THE WAY TO DO IS USING THE VARIANT APPLY CONSTRUCTOR FROM A
-    * STRING TO GET A WHITE-LABEL VARIANT WITH ANY OTHER REFERENCES FROM RSID OR NEAREST GENES
+    * NOTE! WARNING! AT THE MOMENT, THE WAY TO DO IS USING THE VARIANT APPLY CONSTRUCTOR FROM A
+    * STRING TO GET A WHITE-LABEL VARIANT WITH NO OTHER REFERENCES FROM RSID OR NEAREST GENES
     * (NONCODING AND PROTCODING)
     */
   def getVariants(variantIds: Seq[String]): Future[Seq[DNA.Variant]] = {
@@ -342,7 +329,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def buildManhattanTable(studyId: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.ManhattanTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
-
     val idxVariants = sql"""
       |SELECT DISTINCT
       |    lead_chrom,
@@ -352,6 +338,13 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       |    pval,
       |    pval_mantissa,
       |    pval_exponent,
+      |    odds,
+      |    oddsL,
+      |    oddsU,
+      |    direction,
+      |    beta,
+      |    betaL,
+      |    betaU,
       |    credibleSetSize,
       |    ldSetSize,
       |    uniq_variants,
@@ -367,6 +360,13 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       |    any(pval) AS pval,
       |    any(pval_mantissa) AS pval_mantissa,
       |    any(pval_exponent) AS pval_exponent,
+      |    any(odds_ratio) as odds,
+      |    any(oddsr_ci_lower) as oddsL,
+      |    any(oddsr_ci_upper) as oddsU,
+      |    any(direction) as direction,
+      |    any(beta) as beta,
+      |    any(beta_ci_lower) as betaL,
+      |    any(beta_ci_upper) as betaU,
       |    uniqIf((tag_chrom, tag_pos, tag_ref, tag_alt), posterior_prob > 0.) AS credibleSetSize,
       |    uniqIf((tag_chrom, tag_pos, tag_ref, tag_alt), overall_r2 > 0.) AS ldSetSize,
       |    uniq(tag_chrom, tag_pos, tag_ref, tag_alt) AS uniq_variants
@@ -401,8 +401,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     db.run(idxVariants.asTry).map {
       case Success(v) => ManhattanTable(studyId,
         v.map(el => {
-          ManhattanAssociation(SimpleVariant(el.lead_chrom, el.lead_pos, el.lead_ref, el.lead_alt).id, el.pval,
+          ManhattanAssociation(el.variantId, el.pval,
             el.pval_mantissa, el.pval_exponent,
+            el.v2dOdds, el.v2dBeta,
             el.topGenes, el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
@@ -494,7 +495,15 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                 q.map(_.pval).any,
                 q.map(_.pvalExponent).any,
                 q.map(_.pvalMantissa).any,
-                q.map(_.overallScore).any)}
+                q.map(_.overallScore).any,
+                q.map(_.oddsCI).any,
+                q.map(_.oddsCILower).any,
+                q.map(_.oddsCIUpper).any,
+                q.map(_.direction).any,
+                q.map(_.betaCI).any,
+                q.map(_.betaCILower).any,
+                q.map(_.betaCIUpper).any
+              )}
 
           db.run(geneIdsInLoci.result.asTry zip assocsQ.result.asTry).map {
             case (Success(geneIds), Success(assocs)) =>
@@ -502,7 +511,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
                 .map(r => GeckoRow(r._1._4, r._1._3, r._1._2, r._1._1,
                   V2DAssociation(r._2._4.get, r._2._5.get, r._2._6.get, r._2._1, r._2._2, r._2._3,
                     None, None, None, None, None),
-                  r._2._7.getOrElse(0D)))
+                  r._2._7.getOrElse(0D),
+                  V2DOdds(r._2._8, r._2._9, r._2._10),
+                  V2DBeta(r._2._11, r._2._12, r._2._13, r._2._14)))
               Entities.Gecko(geckoRows, geneIds.toSet)
 
             case (Success(geneIds), Failure(asscsEx)) =>

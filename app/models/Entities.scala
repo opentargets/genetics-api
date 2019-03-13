@@ -11,8 +11,9 @@ import scala.collection.SeqView
 
 object Entities {
 
-  case class V2DOdds(oddsCI: Double, oddsCILower: Double, oddsCIUpper: Double)
-  case class V2DBeta(direction: String, betaCI: Double, betaCILower: Double, betaCIUpper: Double)
+  case class V2DOdds(oddsCI: Option[Double], oddsCILower: Option[Double], oddsCIUpper: Option[Double])
+  case class V2DBeta(direction: Option[String], betaCI: Option[Double], betaCILower: Option[Double],
+                     betaCIUpper: Option[Double])
   case class V2DAssociation(pval: Double, pvalExponent: Long, pvalMantissa: Double,
                             r2: Option[Double], log10Abf: Option[Double],
                             posteriorProbability: Option[Double], afr1000GProp: Option[Double],
@@ -46,6 +47,7 @@ object Entities {
   case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
 
   case class ManhattanAssociation(variantId: String, pval: Double, pvalMantissa: Double, pvalExponent: Long,
+                                  v2dOdds: V2DOdds, v2dBeta: V2DBeta,
                                   bestGenes: Seq[(String, Double)], crediblbeSetSize: Option[Long],
                                   ldSetSize: Option[Long], totalSetSize: Long)
 
@@ -53,8 +55,8 @@ object Entities {
                            sourceId: String,
                           bioFeatureSet: Seq[String])
 
-  case class V2DByStudy(lead_chrom: String, lead_pos: Long, lead_ref: String, lead_alt: String, pval: Double,
-                        pval_mantissa: Double, pval_exponent: Long,
+  case class V2DByStudy(variantId: String, pval: Double,
+                        pval_mantissa: Double, pval_exponent: Long, v2dOdds: V2DOdds, v2dBeta: V2DBeta,
                         credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long, topGenes: Seq[(String, Double)])
 
   case class StudyInfo(study: Option[Study])
@@ -71,12 +73,13 @@ object Entities {
                            nCasesVariant: Option[Long], oddRatio: Option[Double], chip: String, info: Option[Double])
   case class GeneTagVariant(geneId: String, tagVariantId: String, overallScore: Double)
   case class TagVariantIndexVariantStudy(tagVariantId: String, indexVariantId: String, studyId: String,
-                                         v2DAssociation: V2DAssociation)
+                                         v2DAssociation: V2DAssociation, odds: V2DOdds, beta: V2DBeta)
   case class Gecko(geneIds: Seq[String], tagVariants: Seq[String], indexVariants: Seq[String],
                    studies: Seq[String], geneTagVariants: Seq[GeneTagVariant],
                    tagVariantIndexVariantStudies: Seq[TagVariantIndexVariantStudy])
   case class GeckoRow(geneId: String, tagVariant: SimpleVariant, indexVariant: SimpleVariant, studyId: String,
-                      v2dAssociation: V2DAssociation, overallScore: Double)
+                      v2dAssociation: V2DAssociation, overallScore: Double,
+                      odds: V2DOdds, beta: V2DBeta)
 
   object Gecko {
     def apply(geckoLines: SeqView[GeckoRow, Seq[_]], geneIdsInLoci: Set[String] = Set.empty): Option[Gecko] = {
@@ -99,7 +102,7 @@ object Entities {
           studies += line.studyId
           geneTagVariants += GeneTagVariant(line.geneId, tVID, line.overallScore)
           tagVariantIndexVariantStudies += TagVariantIndexVariantStudy(tVID, lVID,
-            line.studyId, line.v2dAssociation)
+            line.studyId, line.v2dAssociation, line.odds, line.beta)
         })
 
         // breakOut could be a good way to map virtually to a other collection of a different type
@@ -315,14 +318,24 @@ object Entities {
         val ordScored = (geneIds zip geneScores)
           .sortBy(_._2)(Ordering[Double].reverse)
 
-        if (ordScored.isEmpty) ordScored
-        else {
+        if (ordScored.isEmpty)
+          ordScored
+        else
           ordScored.takeWhile(_._2 == ordScored.head._2)
-        }
       }
 
-      GetResult(r => V2DByStudy(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<?, r.<<?, r.<<,
-        toGeneScoreTuple(StrSeqRep(r.<<), DSeqRep(r.<<))))
+      GetResult(r => {
+        val svID: String = SimpleVariant(r.<<, r.<<, r.<<, r.<<).id
+        val pval: Double = r.<<
+        val pvalMantissa: Double = r.<<
+        val pvalExponent: Long = r.<<
+        val odds = V2DOdds(r.<<?, r.<<?, r.<<?)
+        val beta = V2DBeta(r.<<?, r.<<?, r.<<?, r.<<?)
+
+        V2DByStudy(svID, pval, pvalMantissa, pvalExponent, odds, beta,
+          r.<<?, r.<<?, r.<<,
+          toGeneScoreTuple(StrSeqRep(r.<<), DSeqRep(r.<<)))
+      })
     }
 
     implicit val getSumStatsByVariantPheWAS: GetResult[VariantPheWAS] =
