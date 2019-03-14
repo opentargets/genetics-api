@@ -143,19 +143,24 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     if (stoken.length > 0) {
       esQ.execute {
-          search("studies") query boolQuery.should(matchQuery("study_id", stoken),
+          val studiesQ = search("studies") query boolQuery.should(matchQuery("study_id", stoken),
             matchQuery("pmid", stoken),
             functionScoreQuery(
               matchQuery("mixed_field", qString)
-                .fuzziness("5")
+                .fuzziness("AUTO")
                 .maxExpansions(20)
                 .prefixLength(2)
                 .operator("AND")
+                .analyzer("autocomplete_search")
             ).scorers(fieldFactorScore("num_assoc_loci")
               .factor(1.1)
               .missing(1D)
               .modifier(FieldValueFactorFunction.Modifier.LOG2P))
           ) start limitClause._1 limit limitClause._2
+
+        // println(esQ.show(studiesQ))
+
+        studiesQ
       }.zip {
         esQ.execute {
           search("variant_*") query boolQuery.should(matchQuery("variant_id", stoken),
