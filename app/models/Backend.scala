@@ -146,15 +146,15 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
           search("studies") query boolQuery.should(matchQuery("study_id", stoken),
             matchQuery("pmid", stoken),
             functionScoreQuery(
-              matchQuery("mixed_field", stoken)
+              matchQuery("mixed_field", qString)
                 .fuzziness("5")
                 .maxExpansions(20)
                 .prefixLength(2)
                 .operator("AND")
             ).scorers(fieldFactorScore("num_assoc_loci")
-              .factor(0D)
+              .factor(1.1)
               .missing(1D)
-              .modifier(FieldValueFactorFunction.Modifier.SQRT))
+              .modifier(FieldValueFactorFunction.Modifier.LOG2P))
           ) start limitClause._1 limit limitClause._2
       }.zip {
         esQ.execute {
