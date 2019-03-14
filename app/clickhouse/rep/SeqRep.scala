@@ -2,19 +2,19 @@ package clickhouse.rep
 
 /** Clickhouse supports Array of elements from different types and this is an approximation
   * to it.
+  *
   * @param from
   * @tparam T
   */
 sealed abstract class SeqRep[T](val from: String) {
+  protected val minLenTokensForStr = 4
+  protected val minLenTokensForNum = 2
   lazy val rep: SeqT = parse(from)
   type SeqT = Seq[T]
   protected def parse(from: String): SeqT
 }
 
 object SeqRep {
-  private val minLenTokensForStr = 4
-  private val minLenTokensForNum = 2
-
   sealed abstract class NumSeqRep[T](override val from: String, val f: String => T) extends SeqRep[T](from) {
     override protected def parse(from: String): SeqT = {
       if (from.nonEmpty) {

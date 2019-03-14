@@ -86,27 +86,8 @@ trait ClickHouseProfile extends JdbcProfile {
     override def expr(c: Node, skipParens: Boolean = false): Unit = c match {
       case Library.UCase(ch) => b"upper($ch)"
       case Library.LCase(ch) => b"lower($ch)"
-//      case Library.Substring(n, start, end) =>
-//        b"substr($n, ${QueryParameter.constOp[Int]("+")(_ + _)(start, LiteralNode(1).infer())}, ${QueryParameter.constOp[Int]("-")(_ - _)(end, start)})"
-//      case Library.Substring(n, start) =>
-//        b"substr($n, ${QueryParameter.constOp[Int]("+")(_ + _)(start, LiteralNode(1).infer())})\)"
-//      case Library.IndexOf(n, str) => b"\(charindex($str, $n) - 1\)"
       case Library.User() => b"''"
       case Library.Database() => b"currentDatabase()"
-//      case RowNumber(_) => throw new SlickException("SQLite does not support row numbers")
-//      // https://github.com/jOOQ/jOOQ/issues/1595
-//      case Library.Repeat(n, times) => b"replace(substr(quote(zeroblob(($times + 1) / 2)), 3, $times), '0', $n)"
-//      case Union(left, right, all) =>
-//        b"\{ select * from "
-//        b"\["
-//        buildFrom(left, None, true)
-//        b"\]"
-//        if(all) b"\nunion all " else b"\nunion "
-//        b"select * from "
-//        b"\["
-//        buildFrom(right, None, true)
-//        b"\]"
-//        b"\}"
       case _ => super.expr(c, skipParens)
     }
   }
