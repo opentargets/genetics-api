@@ -169,7 +169,12 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       }.zip {
         esQ.execute {
           search("genes") query boolQuery.should(matchQuery("gene_id", stoken),
-            matchPhrasePrefixQuery("gene_name", stoken),
+            matchQuery("gene_name", qString)
+              .fuzziness("0")
+              .maxExpansions(20)
+              .prefixLength(2)
+              .operator("OR")
+              .analyzer("autocomplete_search")
           ) start limitClause._1 limit limitClause._2
         }
       }.map{
