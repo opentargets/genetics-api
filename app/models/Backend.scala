@@ -173,7 +173,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
               .fuzziness("0")
               .maxExpansions(20)
               .prefixLength(2)
-              .operator("OR")
+              .operator("AND")
               .analyzer("autocomplete_search")
           ) start limitClause._1 limit limitClause._2
         }
