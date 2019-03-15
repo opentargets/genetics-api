@@ -63,7 +63,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     config.get[Int]("ot.elasticsearch.port"))
   val esQ = HttpClient(esUri)
 
-  val geneExclusionList = config.get[Seq[String]]("ot.genes.exclude")
+  val geneBiotypeExclusionList = config.get[Seq[String]]("ot.genes.biotype_exclude")
+  val geneChromExclusionList = config.get[Seq[String]]("ot.genes.chromosome_exclude")
 
   def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.PheWASTable] = {
@@ -490,7 +491,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
             (r.chromosome === chr) &&
               ((r.start >= start && r.start <= end) ||
               (r.end >= start && r.end <= end)) &&
-              !(r.bioType inSet geneExclusionList))
+              !(r.bioType inSet geneBiotypeExclusionList) &&
+              !(r.chromosome inSet geneChromExclusionList))
             .map(_.id)
 
           val assocsQ = d2v2gScored.filter(r => (r.leadChromosome === chr) && (
@@ -549,7 +551,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     variant match {
       case Right(v) =>
         val geneIdsInLoci = genes.filter(r => (r.chromosome === v.chromosome) &&
-          !(r.bioType inSet geneExclusionList))
+          !(r.bioType inSet geneBiotypeExclusionList) &&
+          !(r.chromosome inSet geneChromExclusionList))
           .map(_.id)
 
         val filteredV2Gs = v2gs.filter(r => (r.chromosome === v.chromosome) &&
