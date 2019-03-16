@@ -99,7 +99,7 @@ trait ClickHouseProfile extends JdbcProfile {
   class CountingInsertActionComposerImpl[U](compiled: CompiledInsert)
     extends super.CountingInsertActionComposerImpl[U](compiled)
 
-  trait ExtApi extends API {
+  trait ClickHouseAPI extends API {
     // nice page to read about extending profile apis
     // https://virtuslab.com/blog/smooth-operator-with-slick-3/
 
@@ -109,7 +109,7 @@ trait ClickHouseProfile extends JdbcProfile {
     implicit def chOptionColumnExtensionMethods[B1](c: Rep[Option[B1]])(implicit tm: BaseTypedType[B1]/* with NumericTypedType*/): OptionCHColumnExtensionMethods[B1] = new OptionCHColumnExtensionMethods[B1](c)
   }
 
-  override val api: ExtApi = new ExtApi {}
+  override val api: ClickHouseAPI = new ClickHouseAPI {}
 }
 
 object ClickHouseProfile extends ClickHouseProfile
