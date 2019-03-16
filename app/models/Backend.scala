@@ -164,7 +164,12 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         studiesQ
       }.zip {
         esQ.execute {
-          search("variant_*") query boolQuery.should(matchQuery("variant_id", stoken),
+          val vToken: String = Variant(stoken) match {
+            case Right(v) => v.id
+            case _ => stoken
+          }
+
+          search("variant_*") query boolQuery.should(matchQuery("variant_id", vToken),
             matchQuery("rs_id", stoken)) start limitClause._1 limit limitClause._2
         }
       }.zip {
@@ -285,7 +290,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getGenes(geneIds: Seq[String]): Future[Seq[Gene]] = {
     if (geneIds.nonEmpty) {
-      val q = genes.filter(_.id inSetBind geneIds)
+      val q = genes.filter(r => (r.id inSetBind geneIds) &&
+        !(r.bioType inSet geneBiotypeExclusionList) &&
+        !(r.chromosome inSet geneChromExclusionList))
 
       db.run(q.result.asTry).map {
         case Success(v) => v
