@@ -63,9 +63,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     config.get[Int]("ot.elasticsearch.port"))
   val esQ = HttpClient(esUri)
 
-  val geneBiotypeExclusionList = config.get[Seq[String]]("ot.genes.biotype_exclude")
-  val geneChromExclusionList = config.get[Seq[String]]("ot.genes.chromosome_exclude")
-
   def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.PheWASTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
@@ -290,9 +287,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getGenes(geneIds: Seq[String]): Future[Seq[Gene]] = {
     if (geneIds.nonEmpty) {
-      val q = genes.filter(r => (r.id inSetBind geneIds) &&
-        !(r.bioType inSet geneBiotypeExclusionList) &&
-        !(r.chromosome inSet geneChromExclusionList))
+      val q = genes.filter(r => (r.id inSetBind geneIds))
 
       db.run(q.result.asTry).map {
         case Success(v) => v
@@ -497,9 +492,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
           val geneIdsInLoci = genes.filter(r =>
             (r.chromosome === chr) &&
               ((r.start >= start && r.start <= end) ||
-              (r.end >= start && r.end <= end)) &&
-              !(r.bioType inSet geneBiotypeExclusionList) &&
-              !(r.chromosome inSet geneChromExclusionList))
+              (r.end >= start && r.end <= end)))
             .map(_.id)
 
           val assocsQ = d2v2gScored.filter(r => (r.leadChromosome === chr) && (
@@ -557,9 +550,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     variant match {
       case Right(v) =>
-        val geneIdsInLoci = genes.filter(r => (r.chromosome === v.chromosome) &&
-          !(r.bioType inSet geneBiotypeExclusionList) &&
-          !(r.chromosome inSet geneChromExclusionList))
+        val geneIdsInLoci = genes.filter(r => (r.chromosome === v.chromosome))
           .map(_.id)
 
         val filteredV2Gs = v2gs.filter(r => (r.chromosome === v.chromosome) &&
