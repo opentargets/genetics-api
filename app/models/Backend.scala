@@ -63,8 +63,6 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     config.get[Int]("ot.elasticsearch.port"))
   val esQ = HttpClient(esUri)
 
-  val geneExclusionList = config.get[Seq[String]]("ot.genes.exclude")
-
   def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.PheWASTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
@@ -143,28 +141,43 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     if (stoken.length > 0) {
       esQ.execute {
-          search("studies") query boolQuery.should(matchQuery("study_id", stoken),
+          val studiesQ = search("studies") query boolQuery.should(matchQuery("study_id", stoken),
             matchQuery("pmid", stoken),
             functionScoreQuery(
-              matchQuery("mixed_field", stoken)
-                .fuzziness("10")
-                .maxExpansions(10)
+              matchQuery("mixed_field", qString)
+                .fuzziness("AUTO")
+                .maxExpansions(20)
                 .prefixLength(2)
                 .operator("AND")
-            ).scorers(fieldFactorScore("num_assoc_loci").
-              factor(1.2)
+                .analyzer("autocomplete_search")
+            ).scorers(fieldFactorScore("num_assoc_loci")
+              .factor(1.1)
               .missing(1D)
-              .modifier(FieldValueFactorFunction.Modifier.SQRT))
+              .modifier(FieldValueFactorFunction.Modifier.LOG2P))
           ) start limitClause._1 limit limitClause._2
+
+        // println(esQ.show(studiesQ))
+
+        studiesQ
       }.zip {
         esQ.execute {
-          search("variant_*") query boolQuery.should(matchQuery("variant_id", stoken),
+          val vToken: String = Variant(stoken) match {
+            case Right(v) => v.id
+            case _ => stoken
+          }
+
+          search("variant_*") query boolQuery.should(matchQuery("variant_id", vToken),
             matchQuery("rs_id", stoken)) start limitClause._1 limit limitClause._2
         }
       }.zip {
         esQ.execute {
           search("genes") query boolQuery.should(matchQuery("gene_id", stoken),
-            matchPhrasePrefixQuery("gene_name", stoken),
+            matchQuery("gene_name", qString)
+              .fuzziness("0")
+              .maxExpansions(20)
+              .prefixLength(2)
+              .operator("AND")
+              .analyzer("autocomplete_search")
           ) start limitClause._1 limit limitClause._2
         }
       }.map{
@@ -274,7 +287,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getGenes(geneIds: Seq[String]): Future[Seq[Gene]] = {
     if (geneIds.nonEmpty) {
-      val q = genes.filter(_.id inSetBind geneIds)
+      val q = genes.filter(r => (r.id inSetBind geneIds))
 
       db.run(q.result.asTry).map {
         case Success(v) => v
@@ -479,8 +492,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
           val geneIdsInLoci = genes.filter(r =>
             (r.chromosome === chr) &&
               ((r.start >= start && r.start <= end) ||
-              (r.end >= start && r.end <= end)) &&
-              !(r.bioType inSet geneExclusionList))
+              (r.end >= start && r.end <= end)))
             .map(_.id)
 
           val assocsQ = d2v2gScored.filter(r => (r.leadChromosome === chr) && (
@@ -538,15 +550,20 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     variant match {
       case Right(v) =>
+        val geneIdsInLoci = genes.filter(r => (r.chromosome === v.chromosome))
+          .map(_.id)
 
         val filteredV2Gs = v2gs.filter(r => (r.chromosome === v.chromosome) &&
           (r.position === v.position) &&
           (r.refAllele === v.refAllele) &&
-          (r.altAllele === v.altAllele))
+          (r.altAllele === v.altAllele) &&
+          (r.geneId in geneIdsInLoci))
+
         val filteredV2GScores = v2gScores.filter(r => (r.chromosome === v.chromosome) &&
           (r.position === v.position) &&
           (r.refAllele === v.refAllele) &&
-          (r.altAllele === v.altAllele))
+          (r.altAllele === v.altAllele) &&
+          (r.geneId in geneIdsInLoci))
 
         val q = filteredV2Gs
           .joinFull(filteredV2GScores)

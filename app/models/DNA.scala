@@ -102,9 +102,16 @@ object DNA {
   object Variant extends ((String, Long, String, String, Option[String],
     Annotation, CaddAnnotation, GnomadAnnotation) => Variant) {
     private[this] def parseVariant(variantId: String, rsId: Option[String]): Option[Variant] = {
-      variantId.toUpperCase.split("_").toList.filter(_.nonEmpty) match {
-        case List(chr: String, pos: String, ref: String, alt: String) =>
-          Some(Variant(chr, pos.toLong, ref, alt))
+      def _parseVariant(variantId: String, rsId: Option[String], sep: String): Option[Variant] =
+        variantId.toUpperCase.split(sep).toList.filter(_.nonEmpty) match {
+          case List(chr: String, pos: String, ref: String, alt: String) =>
+            Some(Variant(chr, pos.toLong, ref, alt))
+          case _ => None
+        }
+
+      List("_", "-", ":").view.map(_parseVariant(variantId, rsId, _)).withFilter(_.isDefined)
+        .headOption match {
+        case Some(Some(variant)) => Some(variant)
         case _ => None
       }
     }

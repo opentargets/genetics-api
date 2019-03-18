@@ -74,7 +74,7 @@ trait ClickHouseProfile extends JdbcProfile {
       override protected val supportsLiteralGroupBy = true
       override protected val quotedJdbcFns = Some(Nil)
 
-      override protected def buildFetchOffsetClause(fetch: Option[Node], offset: Option[Node]) = {
+      override protected def buildFetchOffsetClause(fetch: Option[Node], offset: Option[Node]): Unit = {
         (fetch, offset) match {
           case (Some(t), Some(d)) => b"\nlimit $d , $t"
           case (Some(t), None) => b"\nlimit $t"
@@ -86,27 +86,8 @@ trait ClickHouseProfile extends JdbcProfile {
     override def expr(c: Node, skipParens: Boolean = false): Unit = c match {
       case Library.UCase(ch) => b"upper($ch)"
       case Library.LCase(ch) => b"lower($ch)"
-//      case Library.Substring(n, start, end) =>
-//        b"substr($n, ${QueryParameter.constOp[Int]("+")(_ + _)(start, LiteralNode(1).infer())}, ${QueryParameter.constOp[Int]("-")(_ - _)(end, start)})"
-//      case Library.Substring(n, start) =>
-//        b"substr($n, ${QueryParameter.constOp[Int]("+")(_ + _)(start, LiteralNode(1).infer())})\)"
-//      case Library.IndexOf(n, str) => b"\(charindex($str, $n) - 1\)"
       case Library.User() => b"''"
       case Library.Database() => b"currentDatabase()"
-//      case RowNumber(_) => throw new SlickException("SQLite does not support row numbers")
-//      // https://github.com/jOOQ/jOOQ/issues/1595
-//      case Library.Repeat(n, times) => b"replace(substr(quote(zeroblob(($times + 1) / 2)), 3, $times), '0', $n)"
-//      case Union(left, right, all) =>
-//        b"\{ select * from "
-//        b"\["
-//        buildFrom(left, None, true)
-//        b"\]"
-//        if(all) b"\nunion all " else b"\nunion "
-//        b"select * from "
-//        b"\["
-//        buildFrom(right, None, true)
-//        b"\]"
-//        b"\}"
       case _ => super.expr(c, skipParens)
     }
   }
@@ -118,7 +99,7 @@ trait ClickHouseProfile extends JdbcProfile {
   class CountingInsertActionComposerImpl[U](compiled: CompiledInsert)
     extends super.CountingInsertActionComposerImpl[U](compiled)
 
-  trait ExtApi extends API {
+  trait ClickHouseAPI extends API {
     // nice page to read about extending profile apis
     // https://virtuslab.com/blog/smooth-operator-with-slick-3/
 
@@ -128,7 +109,7 @@ trait ClickHouseProfile extends JdbcProfile {
     implicit def chOptionColumnExtensionMethods[B1](c: Rep[Option[B1]])(implicit tm: BaseTypedType[B1]/* with NumericTypedType*/): OptionCHColumnExtensionMethods[B1] = new OptionCHColumnExtensionMethods[B1](c)
   }
 
-  override val api: ExtApi = new ExtApi {}
+  override val api: ClickHouseAPI = new ClickHouseAPI {}
 }
 
 object ClickHouseProfile extends ClickHouseProfile
