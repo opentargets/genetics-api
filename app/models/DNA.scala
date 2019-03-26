@@ -166,8 +166,9 @@ object DNA {
     def apply(geneId: String, symbol: Option[String]): Gene =
       Gene(geneId, symbol, None, None, None, None, None, None, None, Seq.empty)
 
-    def unapply(gene: Gene): Option[(String, Option[String], Option[String], Option[String], Option[Long],
-      Option[Long], Option[Long], Option[Boolean], Seq[Long])] = Some(gene.id, gene.symbol, gene.bioType,
+    def unapply(gene: Gene): Option[(String, Option[String], Option[String], Option[String],
+      Option[String], Option[Long], Option[Long], Option[Long],
+      Option[Boolean], Seq[Long])] = Some(gene.id, gene.symbol, gene.bioType, gene.description,
         gene.chromosome, gene.tss, gene.start, gene.end, gene.fwd, gene.exons)
   }
 }
