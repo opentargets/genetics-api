@@ -48,17 +48,20 @@ object FRM {
       overlapsAB, distinctA, distinctB).mapTo[VariantStudyOverlapsRow]
   }
 
-  class Genes(tag: Tag) extends Table[Gene](tag, "gene") {
+  class Genes(tag: Tag) extends Table[Gene](tag, "genes") {
     def id = column[String]("gene_id")
     def symbol = column[String]("gene_name")
     def bioType = column[String]("biotype")
+    def description = column[String]("description")
     def chromosome = column[String]("chr")
     def tss = column[Long]("tss")
     def start = column[Long]("start")
     def end = column[Long]("end")
     def fwd = column[Boolean]("fwdstrand")
     def exons = column[Seq[Long]]("exons")
-    def * = (id, symbol.?, bioType.?, chromosome.?, tss.?, start.?, end.?, fwd.?, exons).mapTo[Gene]
+    def * =
+      (id, symbol.?, bioType.?, description.?, chromosome.?, tss.?, start.?, end.?, fwd.?, exons)
+        .mapTo[Gene]
   }
 
   class Variants(tag: Tag) extends Table[Variant](tag, "variants") {
