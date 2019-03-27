@@ -121,7 +121,7 @@ object Entities {
                              totalStudies: Long, studies: Seq[Study])
 
   case class Tissue(id: String) {
-    lazy val name: Option[String] = Option(id.replace("_", " ").toLowerCase.capitalize)
+    lazy val name: String = id.replace("_", " ").toLowerCase.capitalize
   }
 
   case class G2VSchemaElement(id: String, sourceId: String, displayLabel: Option[String],

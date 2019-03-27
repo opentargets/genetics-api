@@ -24,9 +24,17 @@ object Functions {
     * @param filename fully filename of a resource file
     * @return A wrapped Json object from the given filename with an Option
     */
-  def loadJSONFromFilename(filename: String): Option[JsValue] =
-    Option(Source.fromFile(filename).mkString)
-      .map(Json.parse)
+  def loadJSONFromFilename(filename: String): JsValue =
+    Json.parse(Source.fromFile(filename).mkString)
+
+  def loadJSONLinesFromFilename(filename: String): Map[String, String] = {
+    val parsedLines = Source.fromFile(filename).getLines.map(Json.parse)
+
+    val pairs = for (l <- parsedLines)
+      yield (l \ "biofeature_code").as[String] -> (l \ "label").as[String]
+
+    pairs.toMap
+  }
 
   def toSumStatsSegment(from: Long, factor: Double = defaultSegmentDivFactor): Long =
     (from / factor).toLong
@@ -105,4 +113,15 @@ object Functions {
       case Some(chr) => Right(chr)
       case None => Left(ChromosomeViolation(chromosome))
     }
+
+  def toSafeDouble(mantissa: Double, exponent: Double): Double = {
+    val result = mantissa * Math.pow(10, exponent)
+    result match {
+      case Double.PositiveInfinity => Double.MaxValue
+      case Double.NegativeInfinity => Double.MinValue
+      case 0.0 => Double.MinPositiveValue
+      case -0.0 => -Double.MinPositiveValue
+      case _ => result
+    }
+  }
 }

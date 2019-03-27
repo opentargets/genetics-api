@@ -3,6 +3,7 @@ package models
 import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
+import Functions._
 import models.DNA.{Gene, Variant}
 import models.GQLSchema.{gene, genesFetcher, scoredGene, studiesFetcher, study, variant, variantsFetcher}
 
@@ -216,7 +217,9 @@ trait GQLIndexVariantAssociation {
         resolve = rsl => studiesFetcher.defer(rsl.value.study.studyId)),
       Field("pval", FloatType,
         Some("p-val between a study and an the provided index variant"),
-        resolve = _.value.association.pval),
+        resolve =
+          r => toSafeDouble(r.value.association.pvalMantissa,
+            r.value.association.pvalExponent)), // TODO TEMPORAL HACK
       Field("pvalMantissa", FloatType,
         Some("p-val between a study and an the provided index variant"),
         resolve = _.value.association.pvalMantissa),
@@ -290,7 +293,9 @@ trait GQLTagVariantAssociation {
         resolve = rsl => studiesFetcher.defer(rsl.value.study.studyId)),
       Field("pval", FloatType,
         Some("p-val between a study and an the provided index variant"),
-        resolve = _.value.association.pval),
+        resolve =
+          r => toSafeDouble(r.value.association.pvalMantissa,
+            r.value.association.pvalExponent)), // TODO TEMPORAL HACK
       Field("pvalMantissa", FloatType,
         Some("p-val between a study and an the provided index variant"),
         resolve = _.value.association.pvalMantissa),
@@ -360,7 +365,8 @@ trait GQLManhattanAssociation {
         resolve = r => variantsFetcher.defer(r.value.variantId)),
       Field("pval", FloatType,
         Some("Computed p-Value"),
-        resolve = _.value.pval),
+        resolve = r => toSafeDouble(r.value.pvalMantissa,
+          r.value.pvalExponent)), // TODO TEMPORAL HACK
       Field("pvalMantissa", FloatType,
         Some("p-val between a study and an the provided index variant"),
         resolve = _.value.pvalMantissa),
@@ -489,7 +495,8 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = _.value.v2DAssociation.posteriorProbability),
       Field("pval", FloatType,
         Some(""),
-        resolve = _.value.v2DAssociation.pval),
+        resolve = r => toSafeDouble(r.value.v2DAssociation.pvalMantissa,
+          r.value.v2DAssociation.pvalExponent)), // TODO TEMPORAL HACK
       Field("pvalMantissa", FloatType,
         Some("p-val between a study and an the provided index variant"),
         resolve = _.value.v2DAssociation.pvalMantissa),
@@ -649,9 +656,10 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
       Field("id", StringType,
         Some(""),
         resolve = _.value.id),
-      Field("name", OptionType(StringType),
+      Field("name", StringType,
         Some(""),
-        resolve = _.value.name)
+        resolve =
+          r => r.ctx.v2gBiofeatureLabels.getOrElse(r.value.id, r.value.name))
     ))
 
   val g2vSchemaElement = ObjectType("G2VSchemaElement",

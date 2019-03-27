@@ -42,6 +42,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   val v2gLabelsPath: Path = Paths.get(env.rootPath.getAbsolutePath, "resources", "v2g_display_labels.json")
   val v2gLabels = loadJSONFromFilename(v2gLabelsPath.toString)
 
+  val v2gBiofeatureLabelsPath: Path = Paths.get(env.rootPath.getAbsolutePath, "resources", "v2g_biofeature_labels.json")
+  val v2gBiofeatureLabels = loadJSONLinesFromFilename(v2gBiofeatureLabelsPath.toString)
+
   import dbConfig.profile.api._
 
   lazy val genes = TableQuery[Genes]
@@ -112,10 +115,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       (for {
         entry <- elems
       } yield Entities.G2VSchemaElement(entry._1._1, entry._1._2,
-        v2gLabels.flatMap(s => (s \ entry._1._2 \ "display_label").asOpt[String]),
-        v2gLabels.flatMap(s => (s \ entry._1._2 \ "overview_tooltip").asOpt[String]),
-        v2gLabels.flatMap(s => (s \ entry._1._2 \ "tab_subtitle").asOpt[String]),
-        v2gLabels.flatMap(s => (s \ entry._1._2 \ "pmid").asOpt[String]),
+        (v2gLabels \ entry._1._2 \ "display_label").asOpt[String],
+        (v2gLabels \ entry._1._2 \ "overview_tooltip").asOpt[String],
+        (v2gLabels \ entry._1._2 \ "tab_subtitle").asOpt[String],
+        (v2gLabels \ entry._1._2 \ "pmid").asOpt[String],
         entry._2.map(Tissue).toVector)).toSeq
     }
 

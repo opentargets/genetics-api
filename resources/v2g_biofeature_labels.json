@@ -1,0 +1,100 @@
+{"original_source": "GTEXv7", "biofeature_string": "Adipose_Subcutaneous", "label": "Adipose subcutaneous", "biofeature_code": "UBERON_0002190"}
+{"original_source": "GTEXv7", "biofeature_string": "Adipose_Visceral_Omentum", "label": "Adipose visceral omentum", "biofeature_code": "UBERON_0014454"}
+{"original_source": "GTEXv7", "biofeature_string": "Adrenal_Gland", "label": "Adrenal gland", "biofeature_code": "UBERON_0002369"}
+{"original_source": "GTEXv7", "biofeature_string": "Artery_Aorta", "label": "Artery aorta", "biofeature_code": "UBERON_0000947"}
+{"original_source": "GTEXv7", "biofeature_string": "Artery_Coronary", "label": "Artery coronary", "biofeature_code": "UBERON_0001621"}
+{"original_source": "GTEXv7", "biofeature_string": "Artery_Tibial", "label": "Artery tibial", "biofeature_code": "UBERON_0007610"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Amygdala", "label": "Brain amygdala", "biofeature_code": "UBERON_0001876"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Anterior_cingulate_cortex_BA24", "label": "Brain anterior cingulate cortex ba24", "biofeature_code": "UBERON_0009835"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Caudate_basal_ganglia", "label": "Brain caudate basal ganglia", "biofeature_code": "UBERON_0001873"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Cerebellar_Hemisphere", "label": "Brain cerebellar hemisphere", "biofeature_code": "UBERON_0002245"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Cerebellum", "label": "Brain cerebellum", "biofeature_code": "UBERON_0002037"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Cortex", "label": "Brain cortex", "biofeature_code": "UBERON_0000956"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Frontal_Cortex_BA9", "label": "Brain frontal cortex ba9", "biofeature_code": "UBERON_0001870"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Hippocampus", "label": "Brain hippocampus", "biofeature_code": "UBERON_0002421"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Hypothalamus", "label": "Brain hypothalamus", "biofeature_code": "UBERON_0001898"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Nucleus_accumbens_basal_ganglia", "label": "Brain nucleus accumbens basal ganglia", "biofeature_code": "UBERON_0001882"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Putamen_basal_ganglia", "label": "Brain putamen basal ganglia", "biofeature_code": "UBERON_0001874"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Spinal_cord_cervical_c-1", "label": "Brain spinal cord cervical c-1", "biofeature_code": "UBERON_0002726"}
+{"original_source": "GTEXv7", "biofeature_string": "Brain_Substantia_nigra", "label": "Brain substantia nigra", "biofeature_code": "UBERON_0002038"}
+{"original_source": "GTEXv7", "biofeature_string": "Breast_Mammary_Tissue", "label": "Breast mammary tissue", "biofeature_code": "UBERON_0003584"}
+{"original_source": "GTEXv7", "biofeature_string": "Cells_EBV-transformed_lymphocytes", "label": "Cells ebv-transformed lymphocytes", "biofeature_code": "CLO_0000468"}
+{"original_source": "GTEXv7", "biofeature_string": "Cells_Transformed_fibroblasts", "label": "Cells transformed fibroblasts", "biofeature_code": "CLO_0000161"}
+{"original_source": "GTEXv7", "biofeature_string": "Colon_Sigmoid", "label": "Colon sigmoid", "biofeature_code": "UBERON_0001159"}
+{"original_source": "GTEXv7", "biofeature_string": "Colon_Transverse", "label": "Colon transverse", "biofeature_code": "UBERON_0001157"}
+{"original_source": "GTEXv7", "biofeature_string": "Esophagus_Gastroesophageal_Junction", "label": "Esophagus gastroesophageal junction", "biofeature_code": "UBERON_0007650"}
+{"original_source": "GTEXv7", "biofeature_string": "Esophagus_Mucosa", "label": "Esophagus mucosa", "biofeature_code": "UBERON_0002469"}
+{"original_source": "GTEXv7", "biofeature_string": "Esophagus_Muscularis", "label": "Esophagus muscularis", "biofeature_code": "UBERON_0011878"}
+{"original_source": "GTEXv7", "biofeature_string": "Heart_Atrial_Appendage", "label": "Heart atrial appendage", "biofeature_code": "UBERON_0006618"}
+{"original_source": "GTEXv7", "biofeature_string": "Heart_Left_Ventricle", "label": "Heart left ventricle", "biofeature_code": "UBERON_0002084"}
+{"original_source": "GTEXv7", "biofeature_string": "Liver", "label": "Liver", "biofeature_code": "UBERON_0002107"}
+{"original_source": "GTEXv7", "biofeature_string": "Lung", "label": "Lung", "biofeature_code": "UBERON_0002048"}
+{"original_source": "GTEXv7", "biofeature_string": "Minor_Salivary_Gland", "label": "Minor salivary gland", "biofeature_code": "UBERON_0001830"}
+{"original_source": "GTEXv7", "biofeature_string": "Muscle_Skeletal", "label": "Muscle skeletal", "biofeature_code": "UBERON_0001134"}
+{"original_source": "GTEXv7", "biofeature_string": "Nerve_Tibial", "label": "Nerve tibial", "biofeature_code": "UBERON_0001323"}
+{"original_source": "GTEXv7", "biofeature_string": "Ovary", "label": "Ovary", "biofeature_code": "UBERON_0000992"}
+{"original_source": "GTEXv7", "biofeature_string": "Pancreas", "label": "Pancreas", "biofeature_code": "UBERON_0001264"}
+{"original_source": "GTEXv7", "biofeature_string": "Pituitary", "label": "Pituitary", "biofeature_code": "UBERON_0000007"}
+{"original_source": "GTEXv7", "biofeature_string": "Prostate", "label": "Prostate", "biofeature_code": "UBERON_0002367"}
+{"original_source": "GTEXv7", "biofeature_string": "Skin_Not_Sun_Exposed_Suprapubic", "label": "Skin not sun exposed suprapubic", "biofeature_code": "UBERON_0036149"}
+{"original_source": "GTEXv7", "biofeature_string": "Skin_Sun_Exposed_Lower_leg", "label": "Skin sun exposed lower leg", "biofeature_code": "UBERON_0004264"}
+{"original_source": "GTEXv7", "biofeature_string": "Small_Intestine_Terminal_Ileum", "label": "Small intestine terminal ileum", "biofeature_code": "UBERON_0002116"}
+{"original_source": "GTEXv7", "biofeature_string": "Spleen", "label": "Spleen", "biofeature_code": "UBERON_0002106"}
+{"original_source": "GTEXv7", "biofeature_string": "Stomach", "label": "Stomach", "biofeature_code": "UBERON_0000945"}
+{"original_source": "GTEXv7", "biofeature_string": "Testis", "label": "Testis", "biofeature_code": "UBERON_0000473"}
+{"original_source": "GTEXv7", "biofeature_string": "Thyroid", "label": "Thyroid", "biofeature_code": "UBERON_0002046"}
+{"original_source": "GTEXv7", "biofeature_string": "Uterus", "label": "Uterus", "biofeature_code": "UBERON_0000995"}
+{"original_source": "GTEXv7", "biofeature_string": "Vagina", "label": "Vagina", "biofeature_code": "UBERON_0000996"}
+{"original_source": "GTEXv7", "biofeature_string": "Whole_Blood", "label": "Whole blood", "biofeature_code": "UBERON_0000178"}
+{"original_source": "GTEXv7", "biofeature_string": "blood_plasma", "label": "Blood plasma", "biofeature_code": "UBERON_0001969"}
+{"original_source": "javierre2016", "biofeature_string": "Endothelial_precursors", "label": "Endothelial precursors", "biofeature_code": "ENDOTHELIAL_PRECURSORS"}
+{"original_source": "javierre2016", "biofeature_string": "Erythroblasts", "label": "Erythroblasts", "biofeature_code": "ERYTHROBLASTS"}
+{"original_source": "javierre2016", "biofeature_string": "Foetal_thymus", "label": "Foetal thymus", "biofeature_code": "FOETAL_THYMUS"}
+{"original_source": "javierre2016", "biofeature_string": "Macrophages_M0", "label": "Macrophages M0", "biofeature_code": "MACROPHAGES_M0"}
+{"original_source": "javierre2016", "biofeature_string": "Macrophages_M1", "label": "Macrophages M1", "biofeature_code": "MACROPHAGES_M1"}
+{"original_source": "javierre2016", "biofeature_string": "Macrophages_M2", "label": "Macrophages M2", "biofeature_code": "MACROPHAGES_M2"}
+{"original_source": "javierre2016", "biofeature_string": "Megakaryocytes", "label": "Megakaryocytes", "biofeature_code": "MEGAKARYOCYTES"}
+{"original_source": "javierre2016", "biofeature_string": "Monocytes", "label": "Monocytes", "biofeature_code": "MONOCYTES"}
+{"original_source": "javierre2016", "biofeature_string": "Naive_B", "label": "Naive B", "biofeature_code": "NAIVE_B"}
+{"original_source": "javierre2016", "biofeature_string": "Naive_CD4", "label": "Naive CD4", "biofeature_code": "NAIVE_CD4"}
+{"original_source": "javierre2016", "biofeature_string": "Naive_CD8", "label": "Naive CD8", "biofeature_code": "NAIVE_CD8"}
+{"original_source": "javierre2016", "biofeature_string": "Neutrophils", "label": "Neutrophils", "biofeature_code": "NEUTROPHILS"}
+{"original_source": "javierre2016", "biofeature_string": "Total_B", "label": "Total B", "biofeature_code": "TOTAL_B"}
+{"original_source": "javierre2016", "biofeature_string": "Total_CD4_Activated", "label": "Total CD4 Activated", "biofeature_code": "TOTAL_CD4_ACTIVATED"}
+{"original_source": "javierre2016", "biofeature_string": "Total_CD4_MF", "label": "Total CD4 MF", "biofeature_code": "TOTAL_CD4_MF"}
+{"original_source": "javierre2016", "biofeature_string": "Total_CD4_NonActivated", "label": "Total CD4 NonActivated", "biofeature_code": "TOTAL_CD4_NONACTIVATED"}
+{"original_source": "javierre2016", "biofeature_string": "Total_CD8", "label": "Total CD8", "biofeature_code": "TOTAL_CD8"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "B-cell_CD19", "label": "B-cell cd19", "biofeature_code": "B_CELL_CD19"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "LCL", "label": "Lcl", "biofeature_code": "LCL"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "T-cell", "label": "T-cell", "biofeature_code": "T_CELL"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "T-cell_CD4", "label": "T-cell cd4", "biofeature_code": "T_CELL_CD4"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "T-cell_CD8", "label": "T-cell cd8", "biofeature_code": "T_CELL_CD8"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "blood", "label": "Blood", "biofeature_code": "BLOOD"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "fat", "label": "Fat", "biofeature_code": "FAT"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "fibroblast", "label": "Fibroblast", "biofeature_code": "FIBROBLAST"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "iPSC", "label": "Ipsc", "biofeature_code": "IPSC"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "ileum", "label": "Ileum", "biofeature_code": "ILEUM"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "macrophage_IFNg", "label": "Macrophage ifng", "biofeature_code": "MACROPHAGE_IFNG"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "macrophage_IFNg+Salmonella", "label": "Macrophage ifng+salmonella", "biofeature_code": "MACROPHAGE_IFNG_SALMONELLA"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "macrophage_Listeria", "label": "Macrophage listeria", "biofeature_code": "MACROPHAGE_LISTERIA"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "macrophage_Salmonella", "label": "Macrophage salmonella", "biofeature_code": "MACROPHAGE_SALMONELLA"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "macrophage_naive", "label": "Macrophage naive", "biofeature_code": "MACROPHAGE_NAIVE"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "monocyte", "label": "Monocyte", "biofeature_code": "MONOCYTE"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "monocyte_CD14", "label": "Monocyte cd14", "biofeature_code": "MONOCYTE_CD14"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "monocyte_IAV", "label": "Monocyte iav", "biofeature_code": "MONOCYTE_IAV"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "monocyte_IFN24", "label": "Monocyte ifn24", "biofeature_code": "MONOCYTE_IFN24"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "monocyte_LPS", "label": "Monocyte lps", "biofeature_code": "MONOCYTE_LPS"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "monocyte_LPS2", "label": "Monocyte lps2", "biofeature_code": "MONOCYTE_LPS2"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "monocyte_LPS24", "label": "Monocyte lps24", "biofeature_code": "MONOCYTE_LPS24"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "monocyte_Pam3CSK4", "label": "Monocyte pam3csk4", "biofeature_code": "MONOCYTE_PAM3CSK4"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "monocyte_R848", "label": "Monocyte r848", "biofeature_code": "MONOCYTE_R848"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "monocyte_naive", "label": "Monocyte naive", "biofeature_code": "MONOCYTE_NAIVE"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "neutrophil", "label": "Neutrophil", "biofeature_code": "NEUTROPHIL"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "neutrophil_CD15", "label": "Neutrophil cd15", "biofeature_code": "NEUTROPHIL_CD15"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "neutrophil_CD16", "label": "Neutrophil cd16", "biofeature_code": "NEUTROPHIL_CD16"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "pancreatic_islet", "label": "Pancreatic islet", "biofeature_code": "PANCREATIC_ISLET"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "platelet", "label": "Platelet", "biofeature_code": "PLATELET"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "rectum", "label": "Rectum", "biofeature_code": "RECTUM"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "sensory_neuron", "label": "Sensory neuron", "biofeature_code": "SENSORY_NEURON"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "skin", "label": "Skin", "biofeature_code": "SKIN"}
+{"original_source": "ebi_eqtl_db_v1", "biofeature_string": "transverse_colon", "label": "Transverse colon", "biofeature_code": "TRANSVERSE_COLON"}
