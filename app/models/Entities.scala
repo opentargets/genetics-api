@@ -237,6 +237,7 @@ object Entities {
           Right(Gene(mv("gene_id").toString,
             mv.get("gene_name").map(_.toString),
             mv.get("biotype").map(_.toString),
+            mv.get("description").map(_.toString),
             mv.get("chr").map(_.toString),
             mv.get("tss").map(_.toString.toLong),
             mv.get("start").map(_.toString.toLong),
