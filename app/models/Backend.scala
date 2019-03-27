@@ -287,7 +287,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def getGenes(geneIds: Seq[String]): Future[Seq[Gene]] = {
     if (geneIds.nonEmpty) {
-      val q = genes.filter(r => (r.id inSetBind geneIds))
+      val q = genes.filter(r => r.id inSetBind geneIds)
 
       db.run(q.result.asTry).map {
         case Success(v) => v
@@ -547,7 +547,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
     variant match {
       case Right(v) =>
-        val geneIdsInLoci = genes.filter(r => (r.chromosome === v.chromosome))
+        val geneIdsInLoci = genes.filter(r => r.chromosome === v.chromosome)
           .map(_.id)
 
         val filteredV2Gs = v2gs.filter(r => (r.chromosome === v.chromosome) &&
