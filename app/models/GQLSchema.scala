@@ -195,6 +195,9 @@ trait GQLStudy {
       Field("nCases", OptionType(LongType),
         Some("N cases"),
         resolve = _.value.nCases),
+      Field("nTotal", LongType,
+        Some("n total cases (n initial + n replication)"),
+        resolve = r => r.value.nInitial.getOrElse(0L) + r.value.nReplication.getOrElse(0L)),
       Field("traitCategory", OptionType(StringType),
         Some("Trait category"),
         resolve = _.value.traitCategory),
@@ -256,6 +259,51 @@ trait GQLIndexVariantAssociation {
       Field("posteriorProbability", OptionType(FloatType),
         Some(""),
         resolve = _.value.association.posteriorProbability),
+      Field("oddsRatio", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCI),
+      Field("oddsRatioCILower", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCILower),
+      Field("oddsRatioCIUpper", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCIUpper),
+      Field("beta", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCI),
+      Field("betaCILower", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCILower),
+      Field("betaCIUpper", OptionType(FloatType),
+        Some(""),
+        resolve = _.value.beta.betaCIUpper),
+      Field("direction", OptionType(StringType),
+        Some(""),
+        resolve = _.value.beta.direction)
+    ))
+}
+
+trait GQLStudyLeadVariantAssociation {
+  val studiesAndLeadVariantsForGene = ObjectType("StudiesAndLeadVariantsForGene",
+    "A list of Studies and Lead Variants for a Gene",
+    fields[Backend, LeadRow](
+      Field("indexVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = rsl => variantsFetcher.defer(rsl.value.leadVariant.id)),
+      Field("study", study,
+        Some("study ID"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.studyId)),
+      Field("pval", FloatType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve =
+          r => toSafeDouble(r.value.pvalMantissa,
+            r.value.pvalExponent)), // TODO TEMPORAL HACK
+      Field("pvalMantissa", FloatType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.pvalMantissa),
+      Field("pvalExponent", LongType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.pvalExponent),
       Field("oddsRatio", OptionType(FloatType),
         Some(""),
         resolve = _.value.odds.oddsCI),
@@ -410,7 +458,7 @@ trait GQLManhattanAssociation {
 }
 
 object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVariantAssociation
-  with GQLTagVariantAssociation with GQLManhattanAssociation {
+  with GQLTagVariantAssociation with GQLManhattanAssociation with GQLStudyLeadVariantAssociation {
 
   val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
   val geneId = Argument("geneId", StringType, description = "Gene ID using Ensembl identifier")
@@ -939,9 +987,11 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
       Field("genesForVariant", ListType(geneForVariant),
         arguments = variantId :: Nil,
         resolve = ctx => ctx.ctx.buildG2VByVariant(ctx.arg(variantId))),
-//      Field("variantsForGene", ListType(geneForVariant),
-//        arguments = geneId :: Nil,
-//        resolve = ctx => ctx.ctx.buildG2VByGene(ctx.arg(geneId)))
+
+      // TODO complete the function from the backend
+      Field("studiesAndLeadVariantsForGene", ListType(studiesAndLeadVariantsForGene),
+        arguments = geneId :: Nil,
+        resolve = ctx => ctx.ctx.getStudiesAndLeadVariantsForGene(ctx.arg(geneId)))
     ))
 
   val schema = Schema(query)

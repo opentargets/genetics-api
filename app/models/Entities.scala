@@ -11,6 +11,7 @@ import scala.collection.SeqView
 
 object Entities {
 
+  // TODO refactor these entities about v2d and d2v2g
   case class V2DOdds(oddsCI: Option[Double], oddsCILower: Option[Double], oddsCIUpper: Option[Double])
   case class V2DBeta(direction: Option[String], betaCI: Option[Double], betaCILower: Option[Double],
                      betaCIUpper: Option[Double])
@@ -19,6 +20,10 @@ object Entities {
                             posteriorProbability: Option[Double], afr1000GProp: Option[Double],
                             amr1000GProp: Option[Double], eas1000GProp: Option[Double],
                             eur1000GProp: Option[Double], sas1000GProp: Option[Double])
+
+  case class LeadRow(studyId: String, leadVariant: SimpleVariant,
+                    odds: V2DOdds, beta: V2DBeta, pval: Double,
+                     pvalExponent: Long, pvalMantissa: Double)
 
   case class V2DRow(tag: SimpleVariant, lead: SimpleVariant, study: Study, association: V2DAssociation,
                     odds: V2DOdds, beta: V2DBeta)

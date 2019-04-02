@@ -555,6 +555,9 @@ object FRM {
     def pureOverallScoreRow =
       (sources, sourceScores, overallScore).mapTo[PureOverallScoreRow]
 
+    def leadRow =
+      (studyId, leadVariant, odds, beta, pval, pvalExponent, pvalMantissa).mapTo[LeadRow]
+
     def v2dRow = (tagVariant, leadVariant, study, association, odds, beta).mapTo[V2DRow]
 
     def geckoRow =

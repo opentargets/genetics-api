@@ -25,6 +25,7 @@ import java.nio.file.{Path, Paths}
 
 import models.FRM.{D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
 import org.elasticsearch.common.lucene.search.function.FieldValueFactorFunction
+import slick.dbio.DBIOAction
 
 class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
@@ -591,6 +592,33 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         }
 
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+    }
+  }
+
+  def getStudiesAndLeadVariantsForGene(geneId: String): Future[Seq[LeadRow]] = {
+    val lociRange: Long = 5000000
+
+    val q1 = genes
+      .filter(_.id === geneId).take(1)
+      .result
+      .headOption.flatMap {
+      case Some(g) =>
+        d2v2gScored.filter(l => (l.tagChromosome === g.chromosome) &&
+          (l.tagPosition <= (g.tss.get + lociRange)) &&
+          (l.tagPosition >= (g.tss.get - lociRange)) &&
+          (l.geneId === g.id))
+          .map(r => r.leadRow)
+          .distinct.result
+
+      case None =>
+        DBIOAction.successful(Seq.empty)
+    }
+
+    db.run(q1.asTry).map {
+      case Success(v) => v
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Seq.empty
     }
   }
 
