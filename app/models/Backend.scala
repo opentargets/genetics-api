@@ -141,12 +141,11 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def getSearchResultSet(qString: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.SearchResultSet] = {
     val limitClause = parsePaginationTokensForES(pageIndex, pageSize)
-    val stoken = qString.toLowerCase
 
-    if (stoken.length > 0) {
+    if (qString.length > 0) {
       esQ.execute {
-          val studiesQ = search("studies") query boolQuery.should(matchQuery("study_id", stoken),
-            matchQuery("pmid", stoken),
+          val studiesQ = search("studies") query boolQuery.should(prefixQuery("study_id.keyword", qString.toUpperCase),
+            termQuery("pmid", qString),
             functionScoreQuery(
               matchQuery("mixed_field", qString)
                 .fuzziness("AUTO")
@@ -165,17 +164,17 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         studiesQ
       }.zip {
         esQ.execute {
-          val vToken: String = Variant(stoken) match {
+          val vToken: String = Variant(qString) match {
             case Right(v) => v.id
-            case _ => stoken
+            case _ => qString
           }
 
-          search("variant_*") query boolQuery.should(matchQuery("variant_id", vToken),
-            matchQuery("rs_id", stoken)) start limitClause._1 limit limitClause._2
+          search("variant_*") query boolQuery.should(termQuery("variant_id.keyword", vToken),
+            termQuery("rs_id.keyword", qString.toLowerCase)) start limitClause._1 limit limitClause._2
         }
       }.zip {
         esQ.execute {
-          search("genes") query boolQuery.should(matchQuery("gene_id", stoken),
+          search("genes") query boolQuery.should(termQuery("gene_id.keyword", qString.toUpperCase),
             matchQuery("gene_name", qString)
               .fuzziness("0")
               .maxExpansions(20)
