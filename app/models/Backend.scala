@@ -44,7 +44,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   val v2gLabels = loadJSONFromFilename(v2gLabelsPath.toString)
 
   val v2gBiofeatureLabelsPath: Path = Paths.get(env.rootPath.getAbsolutePath, "resources", "v2g_biofeature_labels.json")
-  val v2gBiofeatureLabels = loadJSONLinesFromFilename(v2gBiofeatureLabelsPath.toString)
+  val v2gBiofeatureLabels = loadJSONLinesIntoMap(v2gBiofeatureLabelsPath.toString)(l =>
+    (l \ "biofeature_code").as[String] -> (l \ "label").as[String])
 
   import dbConfig.profile.api._
 

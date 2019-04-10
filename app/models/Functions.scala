@@ -27,11 +27,12 @@ object Functions {
   def loadJSONFromFilename(filename: String): JsValue =
     Json.parse(Source.fromFile(filename).mkString)
 
-  def loadJSONLinesFromFilename(filename: String): Map[String, String] = {
+  // TODO INCLUDE BETTER-FILES
+  def loadJSONLinesIntoMap(filename: String)(f: JsValue => (String, String)): Map[String, String] = {
     val parsedLines = Source.fromFile(filename).getLines.map(Json.parse)
 
     val pairs = for (l <- parsedLines)
-      yield (l \ "biofeature_code").as[String] -> (l \ "label").as[String]
+      yield f(l)
 
     pairs.toMap
   }
