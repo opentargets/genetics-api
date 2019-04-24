@@ -204,15 +204,32 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def getTopOverlappedStudies(stid: String, pageIndex: Option[Int] = Some(0), pageSize: Option[Int] = Some(defaultTopOverlapStudiesSize)):
   Future[Entities.OverlappedLociStudy] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
-    val q = overlaps
-      .filter(_.studyIdA === stid)
-      .groupBy(_.studyIdB)
-      .map(r => (r._1, r._2.map(r => (r.chromA, r.posA, r.refA, r.altA)).length))
-      .sortBy(_._2.desc)
-      .drop(limitPair._1)
-      .take(limitPair._2)
+    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+    val tableName = "studies_overlap_exploded"
 
-    db.run(q.result.asTry).map {
+    val plainQ =
+      sql"""
+           |select
+           | B_study_id,
+           | uniq(A_chrom, A_pos, A_ref, A_alt) as num_overlaps
+           |from #$tableName
+           |prewhere A_study_id = $stid
+           |group by B_study_id
+           |order by num_overlaps desc
+           |#$limitClause
+         """.stripMargin.as[(String, Int)]
+
+//    val q = overlaps
+//      .filter(_.studyIdA === stid)
+//      .groupBy(_.studyIdB)
+//      .map(r => (r._1, r._2.map(l => l.variantA).distinct.length))
+//      .sortBy(_._2.desc)
+//      .drop(limitPair._1)
+//      .take(limitPair._2)
+//
+//    q.result.statements.foreach(println)
+
+    db.run(plainQ.asTry).map {
       case Success(v) =>
         if (v.nonEmpty) {
           OverlappedLociStudy(stid, v.map(t => OverlapRow(t._1, t._2)).toVector)
