@@ -622,4 +622,84 @@ object FRM {
     def * =
       (variant, geneId, sources, sourceScores, overallScore).mapTo[OverallScoreRow]
   }
+
+  class Coloc(tag: Tag) extends Table[ColocRow](tag, "v2d_coloc") {
+    def h0 = column[Double]("coloc_h0")
+    def h1 = column[Double]("coloc_h1")
+    def h2 = column[Double]("coloc_h2")
+    def h3 = column[Double]("coloc_h3")
+    def h4 = column[Double]("coloc_h4")
+    def h4h3 = column[Double]("coloc_h4_h3")
+    def log2h4h3 = column[Double]("coloc_log2_h4_h3")
+    def nVars = column[Long]("coloc_n_vars")
+
+    def hs = (h0, h1, h2, h3, h4, h4h3, log2h4h3, nVars).mapTo[ColocRowHs]
+
+    def isFlipped = column[Boolean]("is_flipped")
+
+    def lStudy = column[String]("left_study")
+    def lType = column[String]("left_type")
+    def lChrom = column[String]("left_chrom")
+    def lPos = column[Long]("left_pos")
+    def lRef = column[String]("left_ref")
+    def lAlt = column[String]("left_alt")
+
+    def lVariant = (lChrom, lPos, lRef, lAlt).mapTo[SimpleVariant]
+
+    def rStudy = column[String]("right_study")
+    def rType = column[String]("right_type")
+    def rChrom = column[String]("right_chrom")
+    def rPos = column[Long]("right_pos")
+    def rRef = column[String]("right_ref")
+    def rAlt = column[String]("right_alt")
+
+    def rVariant = (lChrom, lPos, lRef, lAlt).mapTo[SimpleVariant]
+
+    def rGeneId = column[String]("right_gene_id")
+    def rBioFeature = column[String]("right_bio_feature")
+    def rPhenotype = column[String]("right_phenotype")
+
+    def * = (lVariant, lStudy, lType, hs, isFlipped,
+      rVariant, rStudy, rType, rGeneId, rBioFeature, rPhenotype).mapTo[ColocRow]
+  }
+
+  class CredSet(tag: Tag) extends Table[CredSetRow](tag, "v2d_credset") {
+    def studyId = column[String]("study_id")
+    def bioFeature = column[String]("bio_feature")
+    def phenotypeId = column[String]("pehnotype_id")
+    def dataType = column[String]("data_type")
+
+    def tagChromosome = column[String]("tag_chrom")
+    def tagPosition = column[Long]("tag_pos")
+    def tagRefAllele = column[String]("tag_ref")
+    def tagAltAllele = column[String]("tag_alt")
+    def tagVariant =
+      (tagChromosome, tagPosition, tagRefAllele, tagAltAllele).mapTo[SimpleVariant]
+
+    def leadChromosome = column[String]("lead_chrom")
+    def leadPosition = column[Long]("lead_pos")
+    def leadRefAllele = column[String]("lead_ref")
+    def leadAltAllele = column[String]("lead_alt")
+    def leadVariant =
+      (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
+
+    def postProb = column[Double]("posterior_prob")
+    def postProbCumSum = column[Double]("posterior_prob_cumsum")
+    def beta = column[Double]("beta")
+    def betaCond = column[Double]("beta_cond")
+    def pval = column[Double]("pval")
+    def pvalCond = column[Double]("pval_condition")
+    def se = column[Double]("se")
+    def seCond = column[Double]("se_cond")
+    def is95 = column[Boolean]("is95")
+    def is99 = column[Boolean]("is99")
+    def logABF = column[Double]("log10_ABF")
+    def multiSignalMethod = column[String]("multisignalmethod")
+
+    def stats = (postProb, postProbCumSum, beta, betaCond, pval, pvalCond,
+      se, seCond, is95, is99, logABF, multiSignalMethod)
+
+    def * = (studyId, leadVariant, tagVariant, stats,
+      bioFeature, phenotypeId, dataType).mapTo[CredSetRow]
+  }
 }

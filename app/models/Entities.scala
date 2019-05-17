@@ -232,6 +232,22 @@ object Entities {
   case class OverallScoreRow(variant: SimpleVariant, geneId: String, sources: Seq[String], sourceScores: Seq[Double],
                              overallScore: Double)
 
+  case class ColocRowHs(h0: Double, h1: Double, h2: Double, h3: Double, h4: Double,
+                        h4h3: Double, log2h4h3: Double, nVars: Long)
+
+  case class ColocRow(lVariant: SimpleVariant,
+                      lStudy: String, lType: String,
+                      hs: ColocRowHs, isFlipped: Boolean,
+                      rVariant: SimpleVariant, rStudy: String, rType: String,
+                      rGeneId: String, rBioFeature: String, rPhenotype: String)
+
+  case class CredSetRowStats(postProb: Double, postProbCumSum: Double, beta: Double, betaCond: Double,
+                          pval: Double, pvalCond: Double, se: Double, seCond: Double,
+                          is95: Boolean, is99: Boolean, logABF: Double, multiSignalMethod: String)
+
+  case class CredSetRow(studyId: String, leadVariant: SimpleVariant, tagVariant: SimpleVariant,
+                        stats: CredSetRowStats, bioFeature: String, pehotypeId: String, dataType: String)
+
   object ESImplicits {
     implicit object GeneHitReader extends HitReader[Gene] {
       override def read(hit: Hit): Either[Throwable, Gene] = {
