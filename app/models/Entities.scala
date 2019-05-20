@@ -68,7 +68,7 @@ object Entities {
 
   case class Study(studyId: String, traitReported: String, traitEfos: Seq[String],
                    pubId: Option[String], pubDate: Option[String], pubJournal: Option[String], pubTitle: Option[String],
-                   pubAuthor: Option[String], ancestryInitial: Seq[String], ancestryReplication: Seq[String],
+                   pubAuthor: Option[String], hasSumstats: Option[Boolean], ancestryInitial: Seq[String], ancestryReplication: Seq[String],
                    nInitial: Option[Long], nReplication: Option[Long], nCases: Option[Long],
                    traitCategory: Option[String], numAssocLoci: Option[Long])
 
@@ -321,6 +321,7 @@ object Entities {
             mv.get("pub_journal").map(_.asInstanceOf[String]),
             mv.get("pub_title").map(_.asInstanceOf[String]),
             mv.get("pub_author").map(_.asInstanceOf[String]),
+            mv.get("has_sumstats").map(_.asInstanceOf[Boolean]),
             mv.get("ancestry_initial").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
             mv.get("ancestry_replication").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
             mv.get("n_initial").map(_.asInstanceOf[Int].toLong),

@@ -117,6 +117,7 @@ object FRM {
     def pubJournal = column[Option[String]]("pub_journal")
     def pubTitle = column[Option[String]]("pub_title")
     def pubAuthor = column[Option[String]]("pub_author")
+    def hasSumstats = column[Option[Boolean]]("has_sumstats")
     def ancestryInitial = column[Seq[String]]("ancestry_initial")
     def ancestryReplication = column[Seq[String]]("ancestry_replication")
     def nInitial = column[Option[Long]]("n_initial")
@@ -126,7 +127,7 @@ object FRM {
     def numAssocLoci = column[Option[Long]]("num_assoc_loci")
     def * = (
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
+      pubAuthor, hasSumstats, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
       traitCategory, numAssocLoci).mapTo[Study]
   }
 
@@ -147,6 +148,7 @@ object FRM {
     def pubJournal = column[Option[String]]("pub_journal")
     def pubTitle = column[Option[String]]("pub_title")
     def pubAuthor = column[Option[String]]("pub_author")
+    def hasSumstats = column[Option[Boolean]]("has_sumstats")
     def ancestryInitial = column[Seq[String]]("ancestry_initial")
     def ancestryReplication = column[Seq[String]]("ancestry_replication")
     def nInitial = column[Option[Long]]("n_initial")
@@ -156,7 +158,7 @@ object FRM {
     def numAssocLoci = column[Option[Long]]("num_assoc_loci")
     def study = (
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
+      pubAuthor, hasSumstats, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
       traitCategory, numAssocLoci).mapTo[Study]
 
     def tagChromosome = column[String]("tag_chrom")
@@ -215,6 +217,7 @@ object FRM {
     def pubJournal = column[Option[String]]("pub_journal")
     def pubTitle = column[Option[String]]("pub_title")
     def pubAuthor = column[Option[String]]("pub_author")
+    def hasSumstats = column[Option[Boolean]]("has_sumstats")
     def ancestryInitial = column[Seq[String]]("ancestry_initial")
     def ancestryReplication = column[Seq[String]]("ancestry_replication")
     def nInitial = column[Option[Long]]("n_initial")
@@ -224,7 +227,7 @@ object FRM {
     def numAssocLoci = column[Option[Long]]("num_assoc_loci")
     def study = (
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
+      pubAuthor, hasSumstats, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
       traitCategory, numAssocLoci).mapTo[Study]
 
     def tagChromosome = column[String]("tag_chrom")
@@ -387,6 +390,7 @@ object FRM {
     def pubJournal = column[Option[String]]("pub_journal")
     def pubTitle = column[Option[String]]("pub_title")
     def pubAuthor = column[Option[String]]("pub_author")
+    def hasSumstats = column[Option[Boolean]]("has_sumstats")
     def ancestryInitial = column[Seq[String]]("ancestry_initial")
     def ancestryReplication = column[Seq[String]]("ancestry_replication")
     def nInitial = column[Option[Long]]("n_initial")
@@ -396,7 +400,7 @@ object FRM {
     def numAssocLoci = column[Option[Long]]("num_assoc_loci")
     def study = (
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
+      pubAuthor, hasSumstats, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
       traitCategory, numAssocLoci).mapTo[Study]
 
     def tagChromosome = column[String]("tag_chrom")
@@ -493,6 +497,7 @@ object FRM {
     def pubJournal = column[Option[String]]("pub_journal")
     def pubTitle = column[Option[String]]("pub_title")
     def pubAuthor = column[Option[String]]("pub_author")
+    def hasSumstats = column[Option[Boolean]]("has_sumstats")
     def ancestryInitial = column[Seq[String]]("ancestry_initial")
     def ancestryReplication = column[Seq[String]]("ancestry_replication")
     def nInitial = column[Option[Long]]("n_initial")
@@ -502,7 +507,7 @@ object FRM {
     def numAssocLoci = column[Option[Long]]("num_assoc_loci")
     def study = (
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
+      pubAuthor, hasSumstats, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
       traitCategory, numAssocLoci).mapTo[Study]
 
     def tagChromosome = column[String]("tag_chrom")
@@ -697,7 +702,7 @@ object FRM {
     def multiSignalMethod = column[String]("multisignalmethod")
 
     def stats = (postProb, postProbCumSum, beta, betaCond, pval, pvalCond,
-      se, seCond, is95, is99, logABF, multiSignalMethod)
+      se, seCond, is95, is99, logABF, multiSignalMethod).mapTo[CredSetRowStats]
 
     def * = (studyId, leadVariant, tagVariant, stats,
       bioFeature, phenotypeId, dataType).mapTo[CredSetRow]
