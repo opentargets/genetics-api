@@ -10,6 +10,16 @@ import clickhouse.rep.SeqRep.Implicits._
 import scala.collection.SeqView
 
 object Entities {
+  case class SumStatsGWASRow(typeId: String, studyId: String, variant: SimpleVariant,
+                             eaf: Option[Double], mac: Option[Double], macCases: Option[Double], info: Option[Double], beta: Option[Double],
+                             se: Option[Double], pval: Double, nTotal: Option[Long], nCases: Option[Long], isCC: Boolean) {
+    val oddsRatio: Option[Double] = isCC match {
+      case true => Some(math.exp(beta.get))
+      case false => None
+    }
+  }
+
+  case class PhewFromSumstatsTable(associations: Seq[SumStatsGWASRow])
 
   // TODO refactor these entities about v2d and d2v2g
   case class V2DOdds(oddsCI: Option[Double], oddsCILower: Option[Double], oddsCIUpper: Option[Double])
@@ -72,10 +82,6 @@ object Entities {
                    nInitial: Option[Long], nReplication: Option[Long], nCases: Option[Long],
                    traitCategory: Option[String], numAssocLoci: Option[Long])
 
-  case class PheWASTable(associations: Vector[VariantPheWAS])
-  case class VariantPheWAS(stid: String, pval: Double, beta: Double, se: Double, eaf: Double, maf: Double,
-                           nSamplesVariant: Option[Long], nSamplesStudy: Option[Long], nCasesStudy: Option[Long],
-                           nCasesVariant: Option[Long], oddRatio: Option[Double], chip: String, info: Option[Double])
   case class GeneTagVariant(geneId: String, tagVariantId: String, overallScore: Double)
   case class TagVariantIndexVariantStudy(tagVariantId: String, indexVariantId: String, studyId: String,
                                          v2DAssociation: V2DAssociation, odds: V2DOdds, beta: V2DBeta)
@@ -360,11 +366,6 @@ object Entities {
           toGeneScoreTuple(StrSeqRep(r.<<), DSeqRep(r.<<)))
       })
     }
-
-    implicit val getSumStatsByVariantPheWAS: GetResult[VariantPheWAS] =
-      GetResult(r => VariantPheWAS(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<,
-        r.<<?, r.<<?, r.<<?, r.<<?, r.<<?, r.<<, r.<<?))
-
   }
 }
 

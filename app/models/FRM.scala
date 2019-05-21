@@ -707,4 +707,28 @@ object FRM {
     def * = (studyId, leadVariant, tagVariant, stats,
       bioFeature, phenotypeId, dataType).mapTo[CredSetRow]
   }
+
+  class SumStatsGWAS(tag: Tag) extends Table[SumStatsGWASRow](tag, "v2d_sa_gwas") {
+    def typeId = column[String]("type_id")
+    def studyId = column[String]("study_id")
+    def chrom = column[String]("chrom")
+    def pos = column[Long]("pos")
+    def ref = column[String]("ref")
+    def alt = column[String]("alt")
+    def eaf = column[Option[Double]]("eaf")
+    def mac = column[Option[Double]]("mac")
+    def macCases = column[Option[Double]]("mac_cases")
+    def info = column[Option[Double]]("info")
+    def beta = column[Option[Double]]("beta")
+    def se = column[Option[Double]]("se")
+    def pval = column[Double]("pval")
+    def nTotal = column[Option[Long]]("n_total")
+    def nCases = column[Option[Long]]("n_cases")
+    def isCC = column[Boolean]("is_cc")
+
+    def variant = (chrom, pos, ref, alt).mapTo[SimpleVariant]
+
+    def * = (typeId, studyId, variant, eaf, mac, macCases, info, beta, se,
+      pval, nTotal, nCases, isCC).mapTo[SumStatsGWASRow]
+  }
 }

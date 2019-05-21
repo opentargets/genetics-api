@@ -23,7 +23,7 @@ import play.api.Environment
 import play.api.libs.json.Reads._
 import java.nio.file.{Path, Paths}
 
-import models.FRM.{D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
+import models.FRM.{D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, SumStatsGWAS, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
 import org.elasticsearch.common.lucene.search.function.FieldValueFactorFunction
 import slick.dbio.DBIOAction
 
@@ -61,6 +61,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   lazy val d2v2g = TableQuery[D2V2G]
   lazy val d2v2gScored = TableQuery[D2V2GScored]
   lazy val d2v2gScores = TableQuery[D2V2GOverallScore]
+  lazy val sumstatsGWAS = TableQuery[SumStatsGWAS]
 
   // you must import the DSL to use the syntax helpers
   import com.sksamuel.elastic4s.http.ElasticDsl._
@@ -68,44 +69,25 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     config.get[Int]("ot.elasticsearch.port"))
   val esQ = HttpClient(esUri)
 
-  def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
-  Future[Entities.PheWASTable] = {
-    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+  def buildPhewFromSumstats(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]) = {
+    val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
     val variant = Variant(variantID)
 
     variant match {
       case Right(v) =>
-        val segment = toSumStatsSegment(v.position)
-        val tableName = gwasSumStatsTName format v.chromosome
-        val query =
-          sql"""
-               |select
-               | study_id,
-               | pval,
-               | beta,
-               | se,
-               | eaf,
-               | maf,
-               | n_samples_variant_level,
-               | n_samples_study_level,
-               | n_cases_study_level,
-               | n_cases_variant_level,
-               | if(is_cc,exp(beta),NULL) as odds_ratio,
-               | chip,
-               | info
-               |from #$tableName
-               |prewhere chrom = ${v.chromosome} and
-               |  pos_b37 = ${v.position} and
-               |  segment = $segment and
-               |  variant_id_b37 = ${v.id}
-               |#$limitClause
-         """.stripMargin.as[VariantPheWAS]
+        val q = sumstatsGWAS
+          .filter(r => (r.chrom === v.chromosome) &&
+            (r.pos === v.position) &&
+            (r.ref === v.refAllele) &&
+            (r.alt === v.altAllele))
+          .drop(limitPair._1)
+          .take(limitPair._2)
 
-        dbSS.run(query.asTry).map {
-          case Success(traitVector) => PheWASTable(traitVector)
+        dbSS.run(q.result.asTry).map {
+          case Success(vec) => PhewFromSumstatsTable(vec)
           case Failure(ex) =>
             logger.error(ex.getMessage)
-            PheWASTable(associations = Vector.empty)
+            PhewFromSumstatsTable(associations = Seq.empty)
         }
 
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
@@ -638,6 +620,4 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         Seq.empty
     }
   }
-
-  private val gwasSumStatsTName: String = "gwas_chr_%s"
 }

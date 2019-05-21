@@ -180,6 +180,9 @@ trait GQLStudy {
       Field("pubAuthor", OptionType(StringType),
         Some("Publication author"),
         resolve = _.value.pubAuthor),
+      Field("hasSumsStats", OptionType(BooleanType),
+        Some("Contains summary stats info"),
+        resolve = _.value.hasSumstats),
       Field("ancestryInitial", ListType(StringType),
         Some("Ancestry initial"),
         resolve = _.value.ancestryInitial),
@@ -476,37 +479,31 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
 
   val pheWASAssociation = ObjectType("PheWASAssociation",
     "This element represents an association between a variant and a reported trait through a study",
-    fields[Backend, VariantPheWAS](
+    fields[Backend, SumStatsGWASRow](
       Field("study", OptionType(study),
         Some("Study Object"),
-        resolve = rsl => studiesFetcher.deferOpt(rsl.value.stid)),
+        resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
       Field("pval", FloatType,
         Some("Computed p-Value"),
         resolve = _.value.pval),
-      Field("beta", FloatType,
+      Field("beta", OptionType(FloatType),
         Some("beta"),
         resolve = _.value.beta),
       Field("nTotal", OptionType(LongType),
         Some("total sample size (variant level)"),
-        resolve = _.value.nSamplesVariant),
+        resolve = _.value.nTotal),
       Field("nCases", OptionType(LongType),
-        Some("number of cases (variant level)"),
-        resolve = _.value.nCasesVariant),
-      Field("nTotalStudy", OptionType(LongType),
-        Some("total sample size (study level, available when variant level is not provided)"),
-        resolve = _.value.nSamplesStudy),
-      Field("nCasesStudy", OptionType(LongType),
-        Some("number of cases (study level, available when variant level is not provided)"),
-        resolve = _.value.nCasesStudy),
+        Some("number of cases"),
+        resolve = _.value.nCases),
       Field("oddsRatio", OptionType(FloatType),
         Some("Odds ratio (if case control)"),
-        resolve = _.value.oddRatio),
-      Field("chip", StringType,
-        Some("Chip type: 'metabochip' 'inmunochip', 'genome wide'"),
-        resolve = _.value.chip),
-      Field("info", OptionType(FloatType),
-        Some("Info"),
-        resolve = _.value.info)
+        resolve = _.value.oddsRatio),
+      Field("eaf", OptionType(FloatType),
+        Some("Effect Allele Frequency"),
+        resolve = _.value.eaf),
+      Field("se", OptionType(FloatType),
+        Some("Standard Error"),
+        resolve = _.value.se)
     ))
 
   val geneTagVariant = ObjectType("GeneTagVariant",
@@ -676,7 +673,7 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
 
   val pheWAS = ObjectType("PheWAS",
     "This element represents a PheWAS like plot",
-    fields[Backend, PheWASTable](
+    fields[Backend, PhewFromSumstatsTable](
       Field("associations", ListType(pheWASAssociation),
         Some("A list of associations"),
         resolve = _.value.associations)
@@ -977,7 +974,7 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
           ctx.ctx.buildTagVariantAssocTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("pheWAS", pheWAS,
         arguments = variantId :: pageIndex :: pageSize :: Nil,
-        resolve = ctx => ctx.ctx.buildPheWASTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+        resolve = ctx => ctx.ctx.buildPhewFromSumstats(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("gecko", OptionType(gecko),
         arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
         resolve = ctx => ctx.ctx.buildGecko(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
