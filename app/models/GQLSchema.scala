@@ -4,7 +4,7 @@ import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
 import Functions._
-import models.DNA.{Gene, Variant}
+import models.DNA.{Gene, SimpleVariant, Variant}
 import models.GQLSchema.{gene, genesFetcher, scoredGene, studiesFetcher, study, variant, variantsFetcher}
 
 trait GQLGene {
@@ -63,6 +63,7 @@ trait GQLGene {
 
 trait GQLVariant {
   implicit val variantHasId = HasId[Variant, String](_.id)
+
 
   val variantsFetcher = Fetcher(
     config = FetcherConfig.maxBatchSize(1000),
@@ -144,6 +145,26 @@ trait GQLVariant {
         Some("gnomAD Allele frequency (Other (population not assigned) population)"),
         resolve = _.value.gnomadAnnotation.oth)
     ))
+
+  val svariant = ObjectType("Variant",
+    "This element represents a variant object",
+    fields[Backend, DNA.SimpleVariant](
+      Field("id", StringType,
+        Some("Ensembl Gene ID of a gene"),
+        resolve = _.value.id),
+      Field("chromosome", StringType,
+        Some("Ensembl Gene ID of a gene"),
+        resolve = _.value.chromosome),
+      Field("position", LongType,
+        Some("Approved symbol name of a gene"),
+        resolve = _.value.position),
+      Field("refAllele", StringType,
+        Some("Ref allele"),
+        resolve = _.value.refAllele),
+      Field("altAllele", StringType,
+        Some("Alt allele"),
+        resolve = _.value.altAllele))
+  )
 }
 
 trait GQLStudy {
@@ -465,6 +486,7 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
 
   val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
   val geneId = Argument("geneId", StringType, description = "Gene ID using Ensembl identifier")
+  val phenotypeId = Argument("phenotypeId", StringType, description = "Phenotype ID using Ensembl identifier for the molecular traits")
   val studyIds = Argument("studyIds", ListInputType(StringType), description = "List of study IDs")
   val variantId = Argument("variantId", StringType, description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
   val variantIds = Argument("variantIds", ListInputType(StringType), description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
@@ -474,8 +496,52 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
   val dnaPosStart = Argument("start", LongType, description = "Start position in a specified chromosome")
   val dnaPosEnd = Argument("end", LongType, description = "End position in a specified chromosome")
   val queryString = Argument("queryString", StringType, description = "Query text to search for")
+  val bioFeature = Argument("bioFeature", StringType, description = "BioFeature represents either a tissue, cell type, aggregation type, ...")
 
   val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
+
+  val regionalAssociation = ObjectType("RegionalAssociation",
+    "Variant with a p-val",
+    fields[Backend,(SimpleVariant, Double)](
+      Field("variant", svariant,
+        Some("Summary Stats simple variant information"),
+        resolve = _.value._1),
+      Field("pval", FloatType,
+        Some("p-val"),
+        resolve = _.value._2)
+    ))
+
+  val credSetTagElement = ObjectType("CredSetTagElement",
+  "Thsi element represents the tag variant with its associated statistics",
+    fields[Backend, (SimpleVariant, CredSetRowStats)](
+      Field("tagVariant", svariant,
+        Some("Tag Variant in the credibleset table"),
+        resolve = _.value._1),
+      Field("pval", FloatType,
+        Some("p-val"),
+        resolve = _.value._2.tagPval),
+      Field("se", FloatType,
+        Some("SE"),
+        resolve = _.value._2.tagSE),
+      Field("beta", FloatType,
+        Some("beta"),
+        resolve = _.value._2.tagBeta),
+      Field("postProb", FloatType,
+        Some("Posterior Probability"),
+        resolve = _.value._2.postProb),
+      Field("MultisignalMethod", StringType,
+        Some("Multisignal Method"),
+        resolve = _.value._2.multiSignalMethod),
+      Field("logABF", FloatType,
+        Some("Log ABF"),
+        resolve = _.value._2.logABF),
+      Field("is95", BooleanType,
+        Some("Is over 95 percentile"),
+        resolve = _.value._2.is95),
+      Field("is99", BooleanType,
+        Some("Is over 99 percentile"),
+        resolve = _.value._2.is99)
+    ))
 
   val pheWASAssociation = ObjectType("PheWASAssociation",
     "This element represents an association between a variant and a reported trait through a study",
@@ -673,10 +739,10 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
 
   val pheWAS = ObjectType("PheWAS",
     "This element represents a PheWAS like plot",
-    fields[Backend, PhewFromSumstatsTable](
+    fields[Backend, Seq[SumStatsGWASRow]](
       Field("associations", ListType(pheWASAssociation),
         Some("A list of associations"),
-        resolve = _.value.associations)
+        resolve = _.value)
     ))
 
   val tagVariantsAndStudiesForIndexVariant = ObjectType("TagVariantsAndStudiesForIndexVariant",
@@ -937,12 +1003,80 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = _.value.studies)
     ))
 
+  //   case class ColocRowHs(h0: Double, h1: Double, h2: Double, h3: Double, h4: Double,
+  //                        h4h3: Double, log2h4h3: Double, nVars: Long)
+  //
+  //  case class RightGWASColocRow(hs: ColocRowHs, isFlipped: Boolean,
+  //                               rVariant: SimpleVariant, rStudy: String)
+  //
+  //  case class RightQTLColocRow(hs: ColocRowHs, isFlipped: Boolean,
+  //                              rVariant: SimpleVariant, rStudy: String, rType: String,
+  //                              rGeneId: String, rBioFeature: String, rPhenotype: String)
+  //
+  //type QTLColocalisation {
+  // molecularTraitType: String! # eQTL or pQTL
+  // gene: Gene!
+  // phenotypeId: String! # the probe id
+  // indexVariant: Variant!
+  // tissue: String! # could be named bioFeature if preferred? may need id/name expansion
+  // qtlStudyName: String! # cedar/blueprint
+  // beta: Float! # for indexVariantId passed in query
+  // h3: Float!
+  // h4: Float!
+  // log2H4H3: Float! # specify in schema description base of logarithm (doesn't matter what, can transform on front-end if needed)
+  //}
+  //
+  //type GWASColocalisation {
+  // study: Study!
+  // indexVariant: Variant!
+  // beta: Float! # for indexVariantId passed in query
+  // h3: Float!
+  // h4: Float!
+  // log2H4H3: Float!
+  //}
+  //  case class RightQTLColocRow(hs: ColocRowHs, isFlipped: Boolean,
+  //                              rVariant: SimpleVariant, rStudy: String, rType: String,
+  //                              rGeneId: String, rBioFeature: String, rPhenotype: String)
+
+  //   case class ColocRowHs(h0: Double, h1: Double, h2: Double, h3: Double, h4: Double,
+  //                        h4h3: Double, log2h4h3: Double, nVars: Long,
+  //                        lVariantRStudyBeta: Option[Double],
+  //                        lVariantRStudySE: Option[Double],
+  //                        lVariantRStudyPVal: Option[Double],
+  //                        lVariantRStudyIsCC: Option[Boolean])
+  val colocStatsElement = ObjectType(
+    "ColocStatsElement", fields[Backend, ColocRowHs](
+      Field("h3", FloatType,
+        Some("H3"),
+        resolve = _.value.h3),
+      Field("h4", FloatType,
+        Some("H4"),
+        resolve = _.value.h4),
+      Field("log2h4h3", FloatType,
+        Some("Log2 H4/H3"),
+        resolve = _.value.log2h4h3),
+      Field("nVars", LongType,
+        Some("N Vars"),
+        resolve = _.value.nVars)
+    ))
+
+  val qtlColocElement = ObjectType(
+    "QTLColocElement", fields[Backend, ColocRow](
+    ))
+
+  val gwasColocElement = ObjectType(
+    "GWASColocElement", fields[Backend, ColocRow](
+    ))
+
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("search", searchResult,
         arguments = queryString :: pageIndex :: pageSize :: Nil,
         resolve = ctx =>
           ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("genes", ListType(gene),
+        arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+        resolve = ctx => ctx.ctx.getGenesByRegion(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
       Field("geneInfo", OptionType(gene),
         arguments = geneId :: Nil,
         resolve = ctx => genesFetcher.deferOpt(ctx.arg(geneId))),
@@ -984,6 +1118,28 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
       Field("genesForVariant", ListType(geneForVariant),
         arguments = variantId :: Nil,
         resolve = ctx => ctx.ctx.buildG2VByVariant(ctx.arg(variantId))),
+      Field("gwasRegional", ListType(regionalAssociation),
+        arguments = studyId :: chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+        resolve = ctx => ctx.ctx.gwasRegionalFromSumstats(ctx.arg(studyId), ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
+      Field("qtlRegional", ListType(regionalAssociation),
+        arguments = studyId :: bioFeature :: phenotypeId :: chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+        resolve = ctx => ctx.ctx.qtlRegionalFromSumstats(ctx.arg(studyId), ctx.arg(bioFeature),
+          ctx.arg(phenotypeId), ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
+      Field("gwasCredibleSet", ListType(credSetTagElement),
+        arguments = studyId :: variantId :: Nil,
+        resolve = ctx => ctx.ctx.gwasCredibleSet(ctx.arg(studyId), ctx.arg(variantId))),
+      Field("qtlCredibleSet", ListType(credSetTagElement),
+        arguments = studyId :: variantId :: phenotypeId :: bioFeature :: Nil,
+        resolve = ctx =>
+          ctx.ctx.qtlCredibleSet(ctx.arg(studyId), ctx.arg(variantId),
+            ctx.arg(phenotypeId), ctx.arg(bioFeature))),
+      Field("gwasColocalisation", ListType(gwasColocElement),
+        arguments = studyId :: variantId :: Nil,
+        resolve = ctx => ctx.ctx.gwasColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
+      Field("qtlColocalisation", ListType(qtlColocElement),
+        arguments = studyId :: variantId :: Nil,
+        resolve = ctx =>
+          ctx.ctx.qtlColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
 
       // TODO complete the function from the backend
       Field("studiesAndLeadVariantsForGene", ListType(studiesAndLeadVariantsForGene),

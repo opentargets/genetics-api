@@ -2,8 +2,7 @@ package models
 
 import models.Violations.{ChromosomeViolation, InChromosomeRegionViolation}
 import play.api.libs.json._
-
-import scala.io.Source
+import better.files._
 
 object Functions {
   val defaultPaginationSize: Option[Int] = Some(500000)
@@ -18,6 +17,7 @@ object Functions {
   val defaultSegmentDivFactor: Double = 1e6
   val defaultTopOverlapStudiesSize: Int = 10
   val defaultStudiesForGeneSize: Int = 10
+  val GWASLiteral: String = "gwas"
 
   /** Given a `filename`, the function fully loads the content into an option and
     * maps it with `Json.parse`
@@ -25,16 +25,15 @@ object Functions {
     * @return A wrapped Json object from the given filename with an Option
     */
   def loadJSONFromFilename(filename: String): JsValue =
-    Json.parse(Source.fromFile(filename).mkString)
+    Json.parse(filename.toFile.contentAsString)
 
-  // TODO INCLUDE BETTER-FILES
-  def loadJSONLinesIntoMap(filename: String)(f: JsValue => (String, String)): Map[String, String] = {
-    val parsedLines = Source.fromFile(filename).getLines.map(Json.parse)
+  def loadJSONLinesIntoMap[A, B](filename: String)(defaultValue: B)(f: JsValue => (A, B)): Map[A, B] = {
+    val parsedLines = filename.toFile.lines.map(Json.parse)
 
     val pairs = for (l <- parsedLines)
       yield f(l)
 
-    pairs.toMap
+    pairs.toMap withDefaultValue defaultValue
   }
 
   def toSumStatsSegment(from: Long, factor: Double = defaultSegmentDivFactor): Long =

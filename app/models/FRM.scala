@@ -637,8 +637,15 @@ object FRM {
     def h4h3 = column[Double]("coloc_h4_h3")
     def log2h4h3 = column[Double]("coloc_log2_h4_h3")
     def nVars = column[Long]("coloc_n_vars")
+    def lVariantRStudyBeta = column[Option[Double]]("left_var_right_study_beta")
+    def lVariantRStudySE = column[Option[Double]]("left_var_right_study_se")
+    def lVariantRStudyPVal = column[Option[Double]]("left_var_right_study_pval")
+    def lVariantRStudyIsCC = column[Option[Boolean]]("left_var_right_study_isCC")
 
-    def hs = (h0, h1, h2, h3, h4, h4h3, log2h4h3, nVars).mapTo[ColocRowHs]
+    def hs = (h0, h1, h2, h3, h4, h4h3, log2h4h3, nVars,
+      lVariantRStudyBeta, lVariantRStudySE, lVariantRStudyPVal,
+      lVariantRStudyIsCC)
+        .mapTo[ColocRowHs]
 
     def isFlipped = column[Boolean]("is_flipped")
 
@@ -660,9 +667,15 @@ object FRM {
 
     def rVariant = (lChrom, lPos, lRef, lAlt).mapTo[SimpleVariant]
 
-    def rGeneId = column[String]("right_gene_id")
-    def rBioFeature = column[String]("right_bio_feature")
-    def rPhenotype = column[String]("right_phenotype")
+    def rGeneId = column[Option[String]]("right_gene_id")
+    def rBioFeature = column[Option[String]]("right_bio_feature")
+    def rPhenotype = column[Option[String]]("right_phenotype")
+
+    def rightGWAS = (hs, isFlipped, rVariant, rStudy)
+      .mapTo[RightGWASColocRow]
+
+    def rightQTL = (hs, isFlipped, rVariant, rStudy, rType,
+      rGeneId, rBioFeature, rPhenotype).mapTo[RightQTLColocRow]
 
     def * = (lVariant, lStudy, lType, hs, isFlipped,
       rVariant, rStudy, rType, rGeneId, rBioFeature, rPhenotype).mapTo[ColocRow]
@@ -670,8 +683,8 @@ object FRM {
 
   class CredSet(tag: Tag) extends Table[CredSetRow](tag, "v2d_credset") {
     def studyId = column[String]("study_id")
-    def bioFeature = column[String]("bio_feature")
-    def phenotypeId = column[String]("pehnotype_id")
+    def bioFeature = column[Option[String]]("bio_feature")
+    def phenotypeId = column[Option[String]]("pehnotype_id")
     def dataType = column[String]("data_type")
 
     def tagChromosome = column[String]("tag_chrom")
@@ -688,21 +701,19 @@ object FRM {
     def leadVariant =
       (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
 
-    def postProb = column[Double]("posterior_prob")
-    def postProbCumSum = column[Double]("posterior_prob_cumsum")
-    def beta = column[Double]("beta")
-    def betaCond = column[Double]("beta_cond")
-    def pval = column[Double]("pval")
-    def pvalCond = column[Double]("pval_condition")
-    def se = column[Double]("se")
-    def seCond = column[Double]("se_cond")
-    def is95 = column[Boolean]("is95")
-    def is99 = column[Boolean]("is99")
-    def logABF = column[Double]("log10_ABF")
-    def multiSignalMethod = column[String]("multisignalmethod")
+    def postProb = column[Double]("postprob")
+    def tagBeta = column[Double]("tag_beta")
+    def tagPval = column[Double]("tag_pval")
+    def tagSE = column[Double]("tag_se")
+    def is95 = column[Boolean]("is95_credset")
+    def is99 = column[Boolean]("is99_credset")
+    def logABF = column[Double]("logABF")
+    def multiSignalMethod = column[String]("multisignal_method")
 
-    def stats = (postProb, postProbCumSum, beta, betaCond, pval, pvalCond,
-      se, seCond, is95, is99, logABF, multiSignalMethod).mapTo[CredSetRowStats]
+    def stats = (postProb, tagBeta, tagPval, tagSE, is95, is99, logABF, multiSignalMethod)
+      .mapTo[CredSetRowStats]
+
+    def tagVariantWithStats = (tagVariant, stats).mapTo[(SimpleVariant, CredSetRowStats)]
 
     def * = (studyId, leadVariant, tagVariant, stats,
       bioFeature, phenotypeId, dataType).mapTo[CredSetRow]
@@ -728,7 +739,37 @@ object FRM {
 
     def variant = (chrom, pos, ref, alt).mapTo[SimpleVariant]
 
+    def variantAndPVal = (variant, pval).mapTo[(SimpleVariant, Double)]
+
     def * = (typeId, studyId, variant, eaf, mac, macCases, info, beta, se,
       pval, nTotal, nCases, isCC).mapTo[SumStatsGWASRow]
+  }
+
+  class SumStatsMolTraits(tag: Tag) extends Table[SumStatsMolTraitsRow](tag, "v2d_sa_molecular_trait") {
+    def typeId = column[String]("type_id")
+    def studyId = column[String]("study_id")
+    def chrom = column[String]("chrom")
+    def pos = column[Long]("pos")
+    def ref = column[String]("ref")
+    def alt = column[String]("alt")
+    def eaf = column[Option[Double]]("eaf")
+    def mac = column[Option[Double]]("mac")
+    def numTests = column[Option[Double]]("num_tests")
+    def info = column[Option[Double]]("info")
+    def beta = column[Option[Double]]("beta")
+    def se = column[Option[Double]]("se")
+    def pval = column[Double]("pval")
+    def nTotal = column[Option[Long]]("n_total")
+    def isCC = column[Boolean]("is_cc")
+    def phenotypeId = column[String]("phenotype_id")
+    def geneId = column[String]("gene_id")
+    def bioFeature = column[String]("bio_feature")
+
+    def variant = (chrom, pos, ref, alt).mapTo[SimpleVariant]
+
+    def variantAndPVal = (variant, pval).mapTo[(SimpleVariant, Double)]
+
+    def * = (typeId, studyId, variant, eaf, mac, numTests, info, beta, se,
+      pval, nTotal, isCC, phenotypeId, geneId).mapTo[SumStatsMolTraitsRow]
   }
 }

@@ -13,10 +13,14 @@ object Entities {
   case class SumStatsGWASRow(typeId: String, studyId: String, variant: SimpleVariant,
                              eaf: Option[Double], mac: Option[Double], macCases: Option[Double], info: Option[Double], beta: Option[Double],
                              se: Option[Double], pval: Double, nTotal: Option[Long], nCases: Option[Long], isCC: Boolean) {
-    val oddsRatio: Option[Double] = isCC match {
-      case true => Some(math.exp(beta.get))
-      case false => None
-    }
+    lazy val oddsRatio: Option[Double] = if (isCC) Some(math.exp(beta.get)) else None
+  }
+
+  case class SumStatsMolTraitsRow(typeId: String, studyId: String, variant: SimpleVariant,
+                             eaf: Option[Double], mac: Option[Double], numTests: Option[Double], info: Option[Double], beta: Option[Double],
+                             se: Option[Double], pval: Double, nTotal: Option[Long], isCC: Boolean, phenotypeId: String, geneId: String,
+                                  bioFeature: String) {
+    lazy val oddsRatio: Option[Double] = if (isCC) Some(math.exp(beta.get)) else None
   }
 
   case class PhewFromSumstatsTable(associations: Seq[SumStatsGWASRow])
@@ -239,20 +243,32 @@ object Entities {
                              overallScore: Double)
 
   case class ColocRowHs(h0: Double, h1: Double, h2: Double, h3: Double, h4: Double,
-                        h4h3: Double, log2h4h3: Double, nVars: Long)
+                        h4h3: Double, log2h4h3: Double, nVars: Long,
+                        lVariantRStudyBeta: Option[Double],
+                        lVariantRStudySE: Option[Double],
+                        lVariantRStudyPVal: Option[Double],
+                        lVariantRStudyIsCC: Option[Boolean])
+
+  case class RightGWASColocRow(hs: ColocRowHs, isFlipped: Boolean,
+                               rVariant: SimpleVariant, rStudy: String)
+
+  case class RightQTLColocRow(hs: ColocRowHs, isFlipped: Boolean,
+                              rVariant: SimpleVariant, rStudy: String, rType: String,
+                              rGeneId: Option[String], rBioFeature: Option[String],
+                              rPhenotype: Option[String])
 
   case class ColocRow(lVariant: SimpleVariant,
                       lStudy: String, lType: String,
                       hs: ColocRowHs, isFlipped: Boolean,
                       rVariant: SimpleVariant, rStudy: String, rType: String,
-                      rGeneId: String, rBioFeature: String, rPhenotype: String)
+                      rGeneId: Option[String], rBioFeature: Option[String], rPhenotype: Option[String])
 
-  case class CredSetRowStats(postProb: Double, postProbCumSum: Double, beta: Double, betaCond: Double,
-                          pval: Double, pvalCond: Double, se: Double, seCond: Double,
-                          is95: Boolean, is99: Boolean, logABF: Double, multiSignalMethod: String)
+  case class CredSetRowStats(postProb: Double, tagBeta: Double,
+                             tagPval: Double, tagSE: Double, is95: Boolean, is99: Boolean,
+                             logABF: Double, multiSignalMethod: String)
 
   case class CredSetRow(studyId: String, leadVariant: SimpleVariant, tagVariant: SimpleVariant,
-                        stats: CredSetRowStats, bioFeature: String, pehotypeId: String, dataType: String)
+                        stats: CredSetRowStats, bioFeature: Option[String], pehotypeId: Option[String], dataType: String)
 
   object ESImplicits {
     implicit object GeneHitReader extends HitReader[Gene] {
