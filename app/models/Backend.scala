@@ -206,7 +206,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         val q = sumstatsGWAS
           .filter(r => (r.chrom === chr) &&
             (r.pos >= startPos) &&
-            (r.pos <= endPos))
+            (r.pos <= endPos) &&
+            (r.studyId === studyId))
           .map(_.variantAndPVal)
 
         dbSS.run(q.result.asTry).map {
@@ -231,7 +232,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
             (r.pos >= startPos) &&
             (r.pos <= endPos) &&
             (r.bioFeature === bioFeature) &&
-            (r.phenotypeId === phenotypeId))
+            (r.phenotypeId === phenotypeId) &&
+            (r.studyId === studyId))
           .map(_.variantAndPVal)
 
         dbSS.run(q.result.asTry).map {

@@ -713,7 +713,7 @@ object FRM {
     def stats = (postProb, tagBeta, tagPval, tagSE, is95, is99, logABF, multiSignalMethod)
       .mapTo[CredSetRowStats]
 
-    def tagVariantWithStats = (tagVariant, stats).mapTo[(SimpleVariant, CredSetRowStats)]
+    def tagVariantWithStats = (tagVariant, stats)
 
     def * = (studyId, leadVariant, tagVariant, stats,
       bioFeature, phenotypeId, dataType).mapTo[CredSetRow]
@@ -739,7 +739,7 @@ object FRM {
 
     def variant = (chrom, pos, ref, alt).mapTo[SimpleVariant]
 
-    def variantAndPVal = (variant, pval).mapTo[(SimpleVariant, Double)]
+    def variantAndPVal = (variant, pval)
 
     def * = (typeId, studyId, variant, eaf, mac, macCases, info, beta, se,
       pval, nTotal, nCases, isCC).mapTo[SumStatsGWASRow]
@@ -767,9 +767,9 @@ object FRM {
 
     def variant = (chrom, pos, ref, alt).mapTo[SimpleVariant]
 
-    def variantAndPVal = (variant, pval).mapTo[(SimpleVariant, Double)]
+    def variantAndPVal = (variant, pval)
 
     def * = (typeId, studyId, variant, eaf, mac, numTests, info, beta, se,
-      pval, nTotal, isCC, phenotypeId, geneId).mapTo[SumStatsMolTraitsRow]
+      pval, nTotal, isCC, phenotypeId, geneId, bioFeature).mapTo[SumStatsMolTraitsRow]
   }
 }

@@ -145,26 +145,6 @@ trait GQLVariant {
         Some("gnomAD Allele frequency (Other (population not assigned) population)"),
         resolve = _.value.gnomadAnnotation.oth)
     ))
-
-  val svariant = ObjectType("Variant",
-    "This element represents a variant object",
-    fields[Backend, DNA.SimpleVariant](
-      Field("id", StringType,
-        Some("Ensembl Gene ID of a gene"),
-        resolve = _.value.id),
-      Field("chromosome", StringType,
-        Some("Ensembl Gene ID of a gene"),
-        resolve = _.value.chromosome),
-      Field("position", LongType,
-        Some("Approved symbol name of a gene"),
-        resolve = _.value.position),
-      Field("refAllele", StringType,
-        Some("Ref allele"),
-        resolve = _.value.refAllele),
-      Field("altAllele", StringType,
-        Some("Alt allele"),
-        resolve = _.value.altAllele))
-  )
 }
 
 trait GQLStudy {
@@ -503,9 +483,9 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
   val regionalAssociation = ObjectType("RegionalAssociation",
     "Variant with a p-val",
     fields[Backend,(SimpleVariant, Double)](
-      Field("variant", svariant,
+      Field("variant", variant,
         Some("Summary Stats simple variant information"),
-        resolve = _.value._1),
+        resolve = r => DNA.Variant(r.value._1.id).right.get),
       Field("pval", FloatType,
         Some("p-val"),
         resolve = _.value._2)
@@ -514,9 +494,9 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
   val credSetTagElement = ObjectType("CredSetTagElement",
   "Thsi element represents the tag variant with its associated statistics",
     fields[Backend, (SimpleVariant, CredSetRowStats)](
-      Field("tagVariant", svariant,
+      Field("tagVariant", variant,
         Some("Tag Variant in the credibleset table"),
-        resolve = _.value._1),
+        resolve = r => DNA.Variant(r.value._1.id).right.get),
       Field("pval", FloatType,
         Some("p-val"),
         resolve = _.value._2.tagPval),
@@ -1060,13 +1040,13 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = _.value.nVars)
     ))
 
-  val qtlColocElement = ObjectType(
-    "QTLColocElement", fields[Backend, ColocRow](
-    ))
-
-  val gwasColocElement = ObjectType(
-    "GWASColocElement", fields[Backend, ColocRow](
-    ))
+//  val qtlColocalisation = ObjectType(
+//    "QTLColocalisation", fields[Backend, ColocRow](
+//    ))
+//
+//  val gwasColocalisation = ObjectType(
+//    "GWASColocalisation", fields[Backend, ColocRow](
+//    ))
 
   val query = ObjectType(
     "Query", fields[Backend, Unit](
@@ -1133,13 +1113,13 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = ctx =>
           ctx.ctx.qtlCredibleSet(ctx.arg(studyId), ctx.arg(variantId),
             ctx.arg(phenotypeId), ctx.arg(bioFeature))),
-      Field("gwasColocalisation", ListType(gwasColocElement),
-        arguments = studyId :: variantId :: Nil,
-        resolve = ctx => ctx.ctx.gwasColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
-      Field("qtlColocalisation", ListType(qtlColocElement),
-        arguments = studyId :: variantId :: Nil,
-        resolve = ctx =>
-          ctx.ctx.qtlColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
+//      Field("gwasColocalisation", ListType(gwasColocalisation),
+//        arguments = studyId :: variantId :: Nil,
+//        resolve = ctx => ctx.ctx.gwasColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
+//      Field("qtlColocalisation", ListType(qtlColocalisation),
+//        arguments = studyId :: variantId :: Nil,
+//        resolve = ctx =>
+//          ctx.ctx.qtlColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
 
       // TODO complete the function from the backend
       Field("studiesAndLeadVariantsForGene", ListType(studiesAndLeadVariantsForGene),

@@ -27,13 +27,13 @@ object Functions {
   def loadJSONFromFilename(filename: String): JsValue =
     Json.parse(filename.toFile.contentAsString)
 
-  def loadJSONLinesIntoMap[A, B](filename: String)(defaultValue: B)(f: JsValue => (A, B)): Map[A, B] = {
+  def loadJSONLinesIntoMap[A, B](filename: String)(f: JsValue => (A, B)): Map[A, B] = {
     val parsedLines = filename.toFile.lines.map(Json.parse)
 
     val pairs = for (l <- parsedLines)
       yield f(l)
 
-    pairs.toMap withDefaultValue defaultValue
+    pairs.toMap
   }
 
   def toSumStatsSegment(from: Long, factor: Double = defaultSegmentDivFactor): Long =
