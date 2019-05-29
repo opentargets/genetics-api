@@ -993,7 +993,7 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = rsl => studiesFetcher.defer(rsl.value.lStudy)),
       Field("rightVariant", variant,
         Some("Tag variant ID as ex. 1_12345_A_T"),
-        resolve = r => Variant(r.value.rVariant.id).right.get),
+        resolve = r => variantsFetcher.defer(r.value.rVariant.id)),
       Field("rightStudy", study,
         Some("study ID"),
         resolve = rsl => studiesFetcher.defer(rsl.value.rStudy)),
@@ -1060,12 +1060,12 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
 
   val qtlColocalisation = ObjectType(
     "QTLColocalisation", fields[Backend, ColocRow](
-      Field("indexVariant", OptionType(variant),
+      Field("indexVariant", variant,
         Some("Tag variant ID as ex. 1_12345_A_T"),
-        resolve = r => variantsFetcher.deferOpt(r.value.rVariant.id)),
-      Field("gene", OptionType(gene),
+        resolve = r => variantsFetcher.defer(r.value.rVariant.id)),
+      Field("gene", gene,
         Some("Gene"),
-        resolve = rsl => genesFetcher.deferOpt(rsl.value.rGeneId)),
+        resolve = rsl => genesFetcher.defer(rsl.value.rGeneId)),
       Field("phenotypeId", StringType,
         Some("QTL Phenotype ID"),
         resolve = r => r.value.rPhenotype.get),
