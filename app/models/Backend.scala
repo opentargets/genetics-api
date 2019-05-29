@@ -99,6 +99,30 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  def gwasColocalisationForRegion(chromosome: String, startPos: Long, endPos: Long): Future[Seq[ColocRow]] = {
+    (parseChromosome(chromosome), parseRegion(startPos, endPos, 500000L)) match {
+      case (Right(chr), Right((start, end))) =>
+        val q = colocs
+          .filter(r => (r.lChrom === chromosome) &&
+            (r.lPos >= startPos) &&
+            (r.lPos <= endPos) &&
+            (r.rPos >= startPos) &&
+            (r.rPos <= endPos) &&
+            (r.rType === GWASLiteral))
+
+        db.run(q.result.asTry).map {
+          case Success(vec) => vec
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Seq.empty
+        }
+
+      case (chrEither, rangeEither) =>
+        Future.failed(InputParameterCheckError(
+          Vector(chrEither, rangeEither).filter(_.isLeft).map(_.left.get).asInstanceOf[Vector[Violation]]))
+    }
+  }
+
   def gwasColocalisation(studyId: String, variantId: String): Future[Seq[ColocRow]] = {
     val variant = Variant(variantId)
 

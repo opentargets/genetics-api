@@ -1005,6 +1005,31 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
   //                        lVariantRStudyPVal: Option[Double],
   //                        lVariantRStudyIsCC: Option[Boolean])
 
+  val gwasSlimmedColocalisation = ObjectType(
+    "GWASLRColocalisation", fields[Backend, ColocRow](
+      Field("leftVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = r => Variant(r.value.lVariant.id).right.get),
+      Field("leftStudy", study,
+        Some("study ID"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.lStudy)),
+      Field("rightVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = r => Variant(r.value.rVariant.id).right.get),
+      Field("rightStudy", study,
+        Some("study ID"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.rStudy)),
+      Field("h3", FloatType,
+        Some("H3"),
+        resolve = _.value.hs.h3),
+      Field("h4", FloatType,
+        Some("H4"),
+        resolve = _.value.hs.h4),
+      Field("log2h4h3", FloatType,
+        Some("Log2 H4/H3"),
+        resolve = _.value.hs.log2h4h3)
+    ))
+
   val gwasColocalisation = ObjectType(
     "GWASColocalisation", fields[Backend, ColocRow](
       Field("indexVariant", variant,
@@ -1123,6 +1148,15 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = ctx =>
           ctx.ctx.qtlCredibleSet(ctx.arg(studyId), ctx.arg(variantId),
             ctx.arg(phenotypeId), ctx.arg(bioFeature))),
+      //   gwasColocalisationForRegion(
+      //   chromosome: String!
+      //   start: Int!
+      //   end: Int!
+      // ): RegionColocalisations!
+      Field("gwasColocalisationForRegion", ListType(gwasSlimmedColocalisation),
+        arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+        resolve = ctx => ctx.ctx.gwasColocalisationForRegion(ctx.arg(chromosome),
+          ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
       Field("gwasColocalisation", ListType(gwasColocalisation),
         arguments = studyId :: variantId :: Nil,
         resolve = ctx => ctx.ctx.gwasColocalisation(ctx.arg(studyId), ctx.arg(variantId))),

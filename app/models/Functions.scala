@@ -47,13 +47,14 @@ object Functions {
     * @param end end position of the range
     * @return Some(start, end) pair or None
     */
-  def parseRegion(start: Long, end: Long): Either[InChromosomeRegionViolation, (Long, Long)] = {
+  def parseRegion(start: Long, end: Long,
+                  maxDistance: Long = defaultMaxRegionSize): Either[InChromosomeRegionViolation, (Long, Long)] = {
     if ( (start >= 0 && end > 0) &&
       ((end - start) > 0) &&
-      ((end - start) <= defaultMaxRegionSize) ) {
+      ((end - start) <= maxDistance) ) {
       Right((start, end))
     } else
-      Left(InChromosomeRegionViolation())
+      Left(InChromosomeRegionViolation(maxDistance))
   }
   /** the indexation of the pagination starts at page number 0 set by pageIndex and takes pageSize chunks
     * each time. The default pageSize is defaultPaginationSize

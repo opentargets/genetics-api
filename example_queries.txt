@@ -1,4 +1,26 @@
 query exmaple {
+  gwasColocalisationForRegion(chromosome:"1", start:1000000, end: 1500000) {
+    leftVariant {
+      id
+      rsId
+    }
+    leftStudy {
+      studyId
+      traitReported
+    }
+    rightVariant {
+      id
+      rsId
+    }
+    rightStudy {
+      studyId
+      traitReported
+    }
+    h3
+    h4
+    log2h4h3
+  }
+
   pheWAS(variantId:"1_1205055_G_T") {
     associations {
       study {
