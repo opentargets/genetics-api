@@ -993,27 +993,7 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
   //                              rVariant: SimpleVariant, rStudy: String, rType: String,
   //                              rGeneId: String, rBioFeature: String, rPhenotype: String)
   //
-  //type QTLColocalisation {
-  // molecularTraitType: String! # eQTL or pQTL
-  // gene: Gene!
-  // phenotypeId: String! # the probe id
-  // indexVariant: Variant!
-  // tissue: String! # could be named bioFeature if preferred? may need id/name expansion
-  // qtlStudyName: String! # cedar/blueprint
-  // beta: Float! # for indexVariantId passed in query
-  // h3: Float!
-  // h4: Float!
-  // log2H4H3: Float! # specify in schema description base of logarithm (doesn't matter what, can transform on front-end if needed)
-  //}
-  //
-  //type GWASColocalisation {
-  // study: Study!
-  // indexVariant: Variant!
-  // beta: Float! # for indexVariantId passed in query
-  // h3: Float!
-  // h4: Float!
-  // log2H4H3: Float!
-  //}
+
   //  case class RightQTLColocRow(hs: ColocRowHs, isFlipped: Boolean,
   //                              rVariant: SimpleVariant, rStudy: String, rType: String,
   //                              rGeneId: String, rBioFeature: String, rPhenotype: String)
@@ -1024,29 +1004,59 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
   //                        lVariantRStudySE: Option[Double],
   //                        lVariantRStudyPVal: Option[Double],
   //                        lVariantRStudyIsCC: Option[Boolean])
-  val colocStatsElement = ObjectType(
-    "ColocStatsElement", fields[Backend, ColocRowHs](
+
+  val gwasColocalisation = ObjectType(
+    "GWASColocalisation", fields[Backend, ColocRow](
+      Field("indexVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = r => Variant(r.value.rVariant.id).right.get),
+      Field("study", study,
+        Some("study ID"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.rStudy)),
+      Field("beta", OptionType(FloatType),
+        Some("Beta"),
+        resolve = _.value.hs.lVariantRStudyBeta),
       Field("h3", FloatType,
         Some("H3"),
-        resolve = _.value.h3),
+        resolve = _.value.hs.h3),
       Field("h4", FloatType,
         Some("H4"),
-        resolve = _.value.h4),
+        resolve = _.value.hs.h4),
       Field("log2h4h3", FloatType,
         Some("Log2 H4/H3"),
-        resolve = _.value.log2h4h3),
-      Field("nVars", LongType,
-        Some("N Vars"),
-        resolve = _.value.nVars)
+        resolve = _.value.hs.log2h4h3)
     ))
 
-//  val qtlColocalisation = ObjectType(
-//    "QTLColocalisation", fields[Backend, ColocRow](
-//    ))
-//
-//  val gwasColocalisation = ObjectType(
-//    "GWASColocalisation", fields[Backend, ColocRow](
-//    ))
+  val qtlColocalisation = ObjectType(
+    "QTLColocalisation", fields[Backend, ColocRow](
+      Field("indexVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = r => Variant(r.value.rVariant.id).right.get),
+      Field("gene", OptionType(gene),
+        Some("Gene"),
+        resolve = rsl => genesFetcher.deferOpt(rsl.value.rGeneId)),
+      Field("phenotypeId", StringType,
+        Some("QTL Phenotype ID"),
+        resolve = r => r.value.rPhenotype.get),
+      Field("tissue", tissue,
+        Some("QTL bio-feature"),
+        resolve = r => Tissue(r.value.rBioFeature.get)),
+      Field("qtlStudyName", StringType,
+        Some("QTL study ID"),
+        resolve = r => r.value.rStudy),
+      Field("beta", OptionType(FloatType),
+        Some("Beta"),
+        resolve = _.value.hs.lVariantRStudyBeta),
+      Field("h3", FloatType,
+        Some("H3"),
+        resolve = _.value.hs.h3),
+      Field("h4", FloatType,
+        Some("H4"),
+        resolve = _.value.hs.h4),
+      Field("log2h4h3", FloatType,
+        Some("Log2 H4/H3"),
+        resolve = _.value.hs.log2h4h3)
+    ))
 
   val query = ObjectType(
     "Query", fields[Backend, Unit](
@@ -1113,15 +1123,13 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = ctx =>
           ctx.ctx.qtlCredibleSet(ctx.arg(studyId), ctx.arg(variantId),
             ctx.arg(phenotypeId), ctx.arg(bioFeature))),
-//      Field("gwasColocalisation", ListType(gwasColocalisation),
-//        arguments = studyId :: variantId :: Nil,
-//        resolve = ctx => ctx.ctx.gwasColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
-//      Field("qtlColocalisation", ListType(qtlColocalisation),
-//        arguments = studyId :: variantId :: Nil,
-//        resolve = ctx =>
-//          ctx.ctx.qtlColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
-
-      // TODO complete the function from the backend
+      Field("gwasColocalisation", ListType(gwasColocalisation),
+        arguments = studyId :: variantId :: Nil,
+        resolve = ctx => ctx.ctx.gwasColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
+      Field("qtlColocalisation", ListType(qtlColocalisation),
+        arguments = studyId :: variantId :: Nil,
+        resolve = ctx =>
+          ctx.ctx.qtlColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
       Field("studiesAndLeadVariantsForGene", ListType(studiesAndLeadVariantsForGene),
         arguments = geneId :: Nil,
         resolve = ctx => ctx.ctx.getStudiesAndLeadVariantsForGene(ctx.arg(geneId)))

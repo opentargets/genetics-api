@@ -640,11 +640,11 @@ object FRM {
     def lVariantRStudyBeta = column[Option[Double]]("left_var_right_study_beta")
     def lVariantRStudySE = column[Option[Double]]("left_var_right_study_se")
     def lVariantRStudyPVal = column[Option[Double]]("left_var_right_study_pval")
-    def lVariantRStudyIsCC = column[Option[Boolean]]("left_var_right_study_isCC")
+    def lVariantRIsCC = column[Option[Boolean]]("left_var_right_isCC")
 
     def hs = (h0, h1, h2, h3, h4, h4h3, log2h4h3, nVars,
       lVariantRStudyBeta, lVariantRStudySE, lVariantRStudyPVal,
-      lVariantRStudyIsCC)
+      lVariantRIsCC)
         .mapTo[ColocRowHs]
 
     def isFlipped = column[Boolean]("is_flipped")
@@ -684,7 +684,7 @@ object FRM {
   class CredSet(tag: Tag) extends Table[CredSetRow](tag, "v2d_credset") {
     def studyId = column[String]("study_id")
     def bioFeature = column[Option[String]]("bio_feature")
-    def phenotypeId = column[Option[String]]("pehnotype_id")
+    def phenotypeId = column[Option[String]]("phenotype_id")
     def dataType = column[String]("data_type")
 
     def tagChromosome = column[String]("tag_chrom")

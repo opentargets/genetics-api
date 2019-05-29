@@ -247,7 +247,7 @@ object Entities {
                         lVariantRStudyBeta: Option[Double],
                         lVariantRStudySE: Option[Double],
                         lVariantRStudyPVal: Option[Double],
-                        lVariantRStudyIsCC: Option[Boolean])
+                        lVariantRIsCC: Option[Boolean])
 
   case class RightGWASColocRow(hs: ColocRowHs, isFlipped: Boolean,
                                rVariant: SimpleVariant, rStudy: String)
