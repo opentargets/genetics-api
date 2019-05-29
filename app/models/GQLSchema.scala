@@ -983,33 +983,11 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = _.value.studies)
     ))
 
-  //   case class ColocRowHs(h0: Double, h1: Double, h2: Double, h3: Double, h4: Double,
-  //                        h4h3: Double, log2h4h3: Double, nVars: Long)
-  //
-  //  case class RightGWASColocRow(hs: ColocRowHs, isFlipped: Boolean,
-  //                               rVariant: SimpleVariant, rStudy: String)
-  //
-  //  case class RightQTLColocRow(hs: ColocRowHs, isFlipped: Boolean,
-  //                              rVariant: SimpleVariant, rStudy: String, rType: String,
-  //                              rGeneId: String, rBioFeature: String, rPhenotype: String)
-  //
-
-  //  case class RightQTLColocRow(hs: ColocRowHs, isFlipped: Boolean,
-  //                              rVariant: SimpleVariant, rStudy: String, rType: String,
-  //                              rGeneId: String, rBioFeature: String, rPhenotype: String)
-
-  //   case class ColocRowHs(h0: Double, h1: Double, h2: Double, h3: Double, h4: Double,
-  //                        h4h3: Double, log2h4h3: Double, nVars: Long,
-  //                        lVariantRStudyBeta: Option[Double],
-  //                        lVariantRStudySE: Option[Double],
-  //                        lVariantRStudyPVal: Option[Double],
-  //                        lVariantRStudyIsCC: Option[Boolean])
-
   val gwasSlimmedColocalisation = ObjectType(
     "GWASLRColocalisation", fields[Backend, ColocRow](
       Field("leftVariant", variant,
         Some("Tag variant ID as ex. 1_12345_A_T"),
-        resolve = r => Variant(r.value.lVariant.id).right.get),
+        resolve = r => variantsFetcher.defer(r.value.lVariant.id)),
       Field("leftStudy", study,
         Some("study ID"),
         resolve = rsl => studiesFetcher.defer(rsl.value.lStudy)),
@@ -1030,11 +1008,39 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = _.value.hs.log2h4h3)
     ))
 
+  val gwasColocalisationForQTLWithGene = ObjectType(
+    "GWASColocalisationForQTLWithGene", fields[Backend, ColocRow](
+      Field("leftVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = r => variantsFetcher.defer(r.value.lVariant.id)),
+      Field("study", study,
+        Some("GWAS Study"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.lStudy)),
+      Field("qtlStudyId", StringType,
+        Some("QTL study ID"),
+        resolve = _.value.rStudy),
+      Field("phenotypeId", StringType,
+        Some("Phenotype ID"),
+        resolve = _.value.rPhenotype.get),
+      Field("tissue", tissue,
+        Some("QTL bio-feature"),
+        resolve = r => Tissue(r.value.rBioFeature.get)),
+      Field("h3", FloatType,
+        Some("H3"),
+        resolve = _.value.hs.h3),
+      Field("h4", FloatType,
+        Some("H4"),
+        resolve = _.value.hs.h4),
+      Field("log2h4h3", FloatType,
+        Some("Log2 H4/H3"),
+        resolve = _.value.hs.log2h4h3)
+    ))
+
   val gwasColocalisation = ObjectType(
     "GWASColocalisation", fields[Backend, ColocRow](
       Field("indexVariant", variant,
         Some("Tag variant ID as ex. 1_12345_A_T"),
-        resolve = r => Variant(r.value.rVariant.id).right.get),
+        resolve = r => variantsFetcher.defer(r.value.rVariant.id)),
       Field("study", study,
         Some("study ID"),
         resolve = rsl => studiesFetcher.defer(rsl.value.rStudy)),
@@ -1054,9 +1060,9 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
 
   val qtlColocalisation = ObjectType(
     "QTLColocalisation", fields[Backend, ColocRow](
-      Field("indexVariant", variant,
+      Field("indexVariant", OptionType(variant),
         Some("Tag variant ID as ex. 1_12345_A_T"),
-        resolve = r => Variant(r.value.rVariant.id).right.get),
+        resolve = r => variantsFetcher.deferOpt(r.value.rVariant.id)),
       Field("gene", OptionType(gene),
         Some("Gene"),
         resolve = rsl => genesFetcher.deferOpt(rsl.value.rGeneId)),
@@ -1148,11 +1154,9 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = ctx =>
           ctx.ctx.qtlCredibleSet(ctx.arg(studyId), ctx.arg(variantId),
             ctx.arg(phenotypeId), ctx.arg(bioFeature))),
-      //   gwasColocalisationForRegion(
-      //   chromosome: String!
-      //   start: Int!
-      //   end: Int!
-      // ): RegionColocalisations!
+      Field("colocalisationsForGene", ListType(gwasColocalisationForQTLWithGene),
+        arguments = geneId :: Nil,
+        resolve = ctx => ctx.ctx.colocalisationsForGene(ctx.arg(geneId))),
       Field("gwasColocalisationForRegion", ListType(gwasSlimmedColocalisation),
         arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
         resolve = ctx => ctx.ctx.gwasColocalisationForRegion(ctx.arg(chromosome),
@@ -1164,6 +1168,7 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         arguments = studyId :: variantId :: Nil,
         resolve = ctx =>
           ctx.ctx.qtlColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
+
       Field("studiesAndLeadVariantsForGene", ListType(studiesAndLeadVariantsForGene),
         arguments = geneId :: Nil,
         resolve = ctx => ctx.ctx.getStudiesAndLeadVariantsForGene(ctx.arg(geneId)))

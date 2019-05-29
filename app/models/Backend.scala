@@ -99,6 +99,31 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  def colocalisationsForGene(geneId: String): Future[Seq[ColocRow]] = {
+    val q1 = genes
+      .filter(_.id === geneId).take(1)
+      .result
+      .headOption.flatMap {
+      case Some(g) =>
+        colocs
+          .filter(r => (r.lChrom === g.chromosome) &&
+            (r.rGeneId === g.id) &&
+            (r.lType === GWASLiteral) &&
+            (r.rType =!= GWASLiteral))
+          .result
+
+      case None =>
+        DBIOAction.successful(Seq.empty)
+    }
+
+    db.run(q1.asTry).map {
+      case Success(v) => v.seq
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Seq.empty
+    }
+  }
+
   def gwasColocalisationForRegion(chromosome: String, startPos: Long, endPos: Long): Future[Seq[ColocRow]] = {
     (parseChromosome(chromosome), parseRegion(startPos, endPos, 500000L)) match {
       case (Right(chr), Right((start, end))) =>
@@ -367,6 +392,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
     val tableName = "studies_overlap_exploded"
 
+    // TODO generate a vararg select expression for uniq instead a column expression
     val plainQ =
       sql"""
            |select
