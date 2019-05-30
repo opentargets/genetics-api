@@ -1,6 +1,8 @@
-runtime: custom
+runtime: java
 api_version: '1.0'
-env: flexible
+env: flex
+runtime_config:
+  jdk: openjdk11
 threadsafe: true
 resources:
   cpu: 2
