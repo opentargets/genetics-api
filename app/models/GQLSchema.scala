@@ -1065,7 +1065,7 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = r => variantsFetcher.defer(r.value.rVariant.id)),
       Field("gene", gene,
         Some("Gene"),
-        resolve = rsl => genesFetcher.defer(rsl.value.rGeneId)),
+        resolve = rsl => genesFetcher.defer(rsl.value.rGeneId.get)),
       Field("phenotypeId", StringType,
         Some("QTL Phenotype ID"),
         resolve = r => r.value.rPhenotype.get),
