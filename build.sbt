@@ -24,7 +24,7 @@ mappings in Universal ++= directory(baseDirectory.value / "resources")
 
 resolvers += Resolver.sonatypeRepo("releases")
 
-libraryDependencies += "commons-io" % "commons-io" % "2.7-SNAPSHOT"
+libraryDependencies += "commons-io" % "commons-io" % "2.6"
 libraryDependencies += guice
 libraryDependencies += "com.github.pathikrit" %% "better-files" % "3.8.0"
 libraryDependencies += "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0"
