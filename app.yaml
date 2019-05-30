@@ -1,4 +1,4 @@
-runtime: java
+runtime: custom
 api_version: '1.0'
 env: flex
 runtime_config:
