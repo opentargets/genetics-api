@@ -569,82 +569,105 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def buildManhattanTable(studyId: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.ManhattanTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
-    val idxVariants = sql"""
-      |SELECT DISTINCT
-      |    lead_chrom,
-      |    lead_pos,
-      |    lead_ref,
-      |    lead_alt,
-      |    pval,
-      |    pval_mantissa,
-      |    pval_exponent,
-      |    odds,
-      |    oddsL,
-      |    oddsU,
-      |    direction,
-      |    beta,
-      |    betaL,
-      |    betaU,
-      |    credibleSetSize,
-      |    ldSetSize,
-      |    uniq_variants,
-      |    top_pairs.1 as top_genes_ids,
-      |    top_pairs.2 as top_genes_scores
-      |FROM
-      |(
-      |   SELECT
-      |    lead_chrom,
-      |    lead_pos,
-      |    lead_ref,
-      |    lead_alt,
-      |    any(pval) AS pval,
-      |    any(pval_mantissa) AS pval_mantissa,
-      |    any(pval_exponent) AS pval_exponent,
-      |    any(odds_ratio) as odds,
-      |    any(oddsr_ci_lower) as oddsL,
-      |    any(oddsr_ci_upper) as oddsU,
-      |    any(direction) as direction,
-      |    any(beta) as beta,
-      |    any(beta_ci_lower) as betaL,
-      |    any(beta_ci_upper) as betaU,
-      |    uniqIf((tag_chrom, tag_pos, tag_ref, tag_alt), posterior_prob > 0.) AS credibleSetSize,
-      |    uniqIf((tag_chrom, tag_pos, tag_ref, tag_alt), overall_r2 > 0.) AS ldSetSize,
-      |    uniq(tag_chrom, tag_pos, tag_ref, tag_alt) AS uniq_variants
-      |FROM ot.v2d_by_stchr
-      |PREWHERE study_id = $studyId
-      |GROUP BY
-      |    lead_chrom,
-      |    lead_pos,
-      |    lead_ref,
-      |    lead_alt
-      |)
-      | ALL LEFT OUTER JOIN
-      |(
-      |    SELECT
-      |        lead_chrom,
-      |        lead_pos,
-      |        lead_ref,
-      |        lead_alt,
-      |        arrayReverseSort(arrayReduce('groupUniqArray', groupArray((gene_id, overall_score)))) AS top_pairs
-      |    FROM ot.d2v2g_scored
-      |    PREWHERE study_id = $studyId
-      |    GROUP BY
-      |     lead_chrom,
-      |     lead_pos,
-      |     lead_ref,
-      |     lead_alt
-      |) USING (lead_chrom, lead_pos, lead_ref, lead_alt)
-      |#$limitClause
-      """.stripMargin.as[V2DByStudy]
+
+    val topLociEnrich =
+      sql"""
+           |SELECT
+           |    chrom,
+           |    pos,
+           |    ref,
+           |    alt,
+           |    pval,
+           |    pval_mantissa,
+           |    pval_exponent,
+           |    odds,
+           |    oddsL,
+           |    oddsU,
+           |    direction,
+           |    beta,
+           |    betaL,
+           |    betaU,
+           |    credibleSetSize,
+           |    ldSetSize,
+           |    uniq_variants,
+           |    top10_genes_raw.2 as top10_genes_raw_ids,
+           |    top10_genes_raw.1 as top10_genes_raw_score,
+           |    top10_genes_coloc.2 as top10_genes_coloc_ids,
+           |    top10_genes_coloc.1 as top10_genes_coloc_score
+           |FROM
+           |    (
+           |        SELECT
+           |            lead_chrom as chrom,
+           |            lead_pos as pos,
+           |            lead_ref as ref,
+           |            lead_alt as alt,
+           |            any(pval) AS pval,
+           |            any(pval_mantissa) AS pval_mantissa,
+           |            any(pval_exponent) AS pval_exponent,
+           |            any(odds_ratio) as odds,
+           |            any(oddsr_ci_lower) as oddsL,
+           |            any(oddsr_ci_upper) as oddsU,
+           |            any(direction) as direction,
+           |            any(beta) as beta,
+           |            any(beta_ci_lower) as betaL,
+           |            any(beta_ci_upper) as betaU,
+           |            uniqIf((tag_chrom, tag_pos, tag_ref, tag_alt), posterior_prob > 0.) AS credibleSetSize,
+           |            uniqIf((tag_chrom, tag_pos, tag_ref, tag_alt), overall_r2 > 0.) AS ldSetSize,
+           |            uniq(tag_chrom, tag_pos, tag_ref, tag_alt) AS uniq_variants
+           |        FROM ot.v2d_by_stchr
+           |            PREWHERE study_id = $studyId
+           |        GROUP BY
+           |            lead_chrom,
+           |            lead_pos,
+           |            lead_ref,
+           |            lead_alt
+           |        )
+           |        ALL LEFT OUTER JOIN
+           |    (
+           |        select study,
+           |               chrom,
+           |               pos,
+           |               ref,
+           |               alt,
+           |               groupUniqArray(top10_genes) as top10_genes,
+           |               if(top10_genes[1].1 = 'coloc', top10_genes[1].2, []) as top10_genes_coloc,
+           |               if(top10_genes[1].1 = 'raw', top10_genes[1].2, top10_genes[2].2) as top10_genes_raw
+           |        from (
+           |              select study,
+           |                     chrom,
+           |                     pos,
+           |                     ref,
+           |                     alt,
+           |                     (agg_type, top10_genes) as top10_genes
+           |              from ot.v2d_coloc_agg
+           |              prewhere study = $studyId
+           |              union all
+           |              select study,
+           |                     chrom,
+           |                     pos,
+           |                     ref,
+           |                     alt,
+           |                     (agg_type, top10_genes) as top10_genes
+           |              from ot.d2v2g_scored_agg
+           |                prewhere study = $studyId)
+           |        group by study,
+           |                 chrom,
+           |                 pos,
+           |                 ref,
+           |                 alt
+           |        ) USING (chrom, pos, ref, alt)
+           |#$limitClause
+         """.stripMargin.as[V2DByStudy]
 
     // map to proper manhattan association with needed fields
-    db.run(idxVariants.asTry).map {
+    db.run(topLociEnrich.asTry).map {
       case Success(v) => ManhattanTable(studyId,
         v.map(el => {
           ManhattanAssociation(el.variantId, el.pval,
             el.pval_mantissa, el.pval_exponent,
             el.v2dOdds, el.v2dBeta,
-            el.topGenes, el.credibleSetSize, el.ldSetSize, el.totalSetSize)
+            el.topGenes, el.topColocGenes,
+            el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
       case Failure(ex) =>

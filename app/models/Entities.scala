@@ -67,7 +67,9 @@ object Entities {
 
   case class ManhattanAssociation(variantId: String, pval: Double, pvalMantissa: Double, pvalExponent: Long,
                                   v2dOdds: V2DOdds, v2dBeta: V2DBeta,
-                                  bestGenes: Seq[(String, Double)], crediblbeSetSize: Option[Long],
+                                  bestGenes: Seq[(String, Double)],
+                                  bestColocGenes: Seq[(String, Double)],
+                                  crediblbeSetSize: Option[Long],
                                   ldSetSize: Option[Long], totalSetSize: Long)
 
   case class V2DStructure(typeId: String,
@@ -76,7 +78,8 @@ object Entities {
 
   case class V2DByStudy(variantId: String, pval: Double,
                         pval_mantissa: Double, pval_exponent: Long, v2dOdds: V2DOdds, v2dBeta: V2DBeta,
-                        credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long, topGenes: Seq[(String, Double)])
+                        credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long,
+                        topGenes: Seq[(String, Double)], topColocGenes: Seq[(String, Double)])
 
   case class StudyInfo(study: Option[Study])
 
@@ -360,8 +363,7 @@ object Entities {
   object DBImplicits {
     implicit val getV2DByStudy: GetResult[V2DByStudy] = {
       def toGeneScoreTuple(geneIds: Seq[String], geneScores: Seq[Double]): Seq[(String, Double)] = {
-        val ordScored = (geneIds zip geneScores)
-          .sortBy(_._2)(Ordering[Double].reverse)
+        val ordScored = geneIds zip geneScores
 
         if (ordScored.isEmpty)
           ordScored
@@ -376,10 +378,18 @@ object Entities {
         val pvalExponent: Long = r.<<
         val odds = V2DOdds(r.<<?, r.<<?, r.<<?)
         val beta = V2DBeta(r.<<?, r.<<?, r.<<?, r.<<?)
+        val credSetSize: Option[Long] = r.<<?
+        val ldSetSize: Option[Long] = r.<<?
+        val totalSize: Long= r.<<
+        val aggTop10RawIds = StrSeqRep(r.<<)
+        val aggTop10RawScores = DSeqRep(r.<<)
+        val aggTop10ColocIds = StrSeqRep(r.<<)
+        val aggTop10ColocScores = DSeqRep(r.<<)
 
         V2DByStudy(svID, pval, pvalMantissa, pvalExponent, odds, beta,
-          r.<<?, r.<<?, r.<<,
-          toGeneScoreTuple(StrSeqRep(r.<<), DSeqRep(r.<<)))
+          credSetSize, ldSetSize, totalSize,
+          toGeneScoreTuple(aggTop10RawIds, aggTop10RawScores),
+          toGeneScoreTuple(aggTop10ColocIds, aggTop10ColocScores))
       })
     }
   }
