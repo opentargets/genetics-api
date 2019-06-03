@@ -390,7 +390,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   Future[Entities.OverlappedLociStudy] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
-    val tableName = "studies_overlap_exploded"
+    val tableName = "studies_overlap"
 
     // TODO generate a vararg select expression for uniq instead a column expression
     val plainQ =

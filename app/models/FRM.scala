@@ -23,7 +23,7 @@ object FRM {
   implicit val seqStringType: ClickHouseProfile.BaseColumnType[Seq[String]] =
     MappedColumnType.base[Seq[String], String](_.map("'" + _ + "'").mkString("[", ",", "]"), StrSeqRep(_))
 
-  class Overlaps(tag: Tag) extends Table[VariantStudyOverlapsRow](tag, "studies_overlap_exploded") {
+  class Overlaps(tag: Tag) extends Table[VariantStudyOverlapsRow](tag, "studies_overlap") {
     def chromA  = column[String]("A_chrom")
     def posA = column[Long]("A_pos")
     def refA = column[String]("A_ref")
