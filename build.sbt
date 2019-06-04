@@ -24,8 +24,8 @@ mappings in Universal ++= directory(baseDirectory.value / "resources")
 
 resolvers += Resolver.sonatypeRepo("releases")
 
-libraryDependencies += "commons-io" % "commons-io" % "2.6"
 libraryDependencies += guice
+// libraryDependencies += "commons-io" % "commons-io" % "2.6"
 libraryDependencies += "com.github.pathikrit" %% "better-files" % "3.8.0"
 libraryDependencies += "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0"
 libraryDependencies += "com.typesafe.slick" %% "slick" % "3.3.0"
@@ -40,12 +40,11 @@ libraryDependencies += "org.sangria-graphql" %% "sangria-play-json" % "1.0.5"
 libraryDependencies += "com.nrinaudo" %% "kantan.csv" % "0.4.0"
 libraryDependencies += "com.nrinaudo" %% "kantan.csv-generic" % "0.4.0"
 
-val elastic4sVersion = "5.6.9"
 libraryDependencies ++= Seq(
-  "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
-  // for the http client
-  "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
-  "com.sksamuel.elastic4s" %% "elastic4s-play-json" % elastic4sVersion
+  "com.sksamuel.elastic4s" %% "elastic4s-core" % "5.6.9",
+  "com.sksamuel.elastic4s" %% "elastic4s-jackson" % "5.6.9",
+  "com.sksamuel.elastic4s" %% "elastic4s-http" % "5.6.9",
+  "com.sksamuel.elastic4s" %% "elastic4s-play-json" % "5.6.9"
 )
 
 // Adds additional packages into Twirl

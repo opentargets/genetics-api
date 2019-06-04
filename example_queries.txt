@@ -455,7 +455,7 @@ query exmaple {
     }
   }
 
-studyInfo(studyId:"NEALEUKB_50") {
+studyInfo(studyId:"NEALE2_30010_raw") {
     studyId
     traitReported
     traitEfos
@@ -509,5 +509,29 @@ studyInfo(studyId:"NEALEUKB_50") {
     caddPhred
     gnomadEAS
   }
+    manhattan(studyId:"NEALE2_30010_raw") {
+      associations {
+        variant {
+          id
+          rsId
+        }
+        oddsRatio
+        beta
+        bestGenes {
+          gene {
+            id
+            symbol
+          }
+          score
+        }
+        bestColocGenes {
+          gene {
+            id
+            symbol
+          }
+          score
+        }
+      }
+    }
 }
 
