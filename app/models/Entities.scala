@@ -1,11 +1,13 @@
 package models
 
-import com.sksamuel.elastic4s.{Hit, HitReader}
 import slick.jdbc.GetResult
 import models.Functions._
 import models.DNA._
 import clickhouse.rep.SeqRep._
 import clickhouse.rep.SeqRep.Implicits._
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
+import com.sksamuel.elastic4s._
 
 import scala.collection.SeqView
 
@@ -52,8 +54,8 @@ object Entities {
                                      posB: Long, refB: String,
                                      altB: String, overlapAB: Long,
                                      distinctA: Long, distinctB: Long) {
-    val variantA: Variant = Variant(chromA, posA, refA, altA)
-    val variantB: Variant = Variant(chromB, posB, refB, altB)
+    val variantA: Variant = Variant.fromSimpleVariant(chromA, posA, refA, altA)
+    val variantB: Variant = Variant.fromSimpleVariant(chromB, posB, refB, altB)
   }
 
   case class OverlappedVariantsStudy(studyId: String, overlaps: Seq[OverlappedVariant])
@@ -274,90 +276,85 @@ object Entities {
                         stats: CredSetRowStats, bioFeature: Option[String], pehotypeId: Option[String], dataType: String)
 
   object ESImplicits {
-    implicit object GeneHitReader extends HitReader[Gene] {
-      override def read(hit: Hit): Either[Throwable, Gene] = {
-        if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
-        else {
-          val mv = hit.sourceAsMap
+    implicit val geneHitReader: Reads[Gene] = (
+      (JsPath \ "gene_id").read[String] and
+        (JsPath \ "gene_name").readNullable[String] and
+        (JsPath \ "biotype").readNullable[String] and
+        (JsPath \ "description").readNullable[String] and
+        (JsPath \ "chr").readNullable[String] and
+        (JsPath \ "tss").readNullable[Long] and
+        (JsPath \ "start").readNullable[Long] and
+        (JsPath \ "end").readNullable[Long] and
+        (JsPath \ "fwdstrand").readNullable[Int].map(_.map {
+          case 0 => false
+          case 1 => true
+          case _ => false
+        }) and
+        (JsPath \ "exons").readNullable[String].map(r => LSeqRep(r.getOrElse("")).rep)
+      )(Gene.apply _)
 
-          Right(Gene(mv("gene_id").toString,
-            mv.get("gene_name").map(_.toString),
-            mv.get("biotype").map(_.toString),
-            mv.get("description").map(_.toString),
-            mv.get("chr").map(_.toString),
-            mv.get("tss").map(_.toString.toLong),
-            mv.get("start").map(_.toString.toLong),
-            mv.get("end").map(_.toString.toLong),
-            mv.get("fwdstrand").map(_.toString.toInt match {
-              case 0 => false
-              case 1 => true
-              case _ => false
-            }),
-            LSeqRep(mv.get("exons").map(_.toString).getOrElse(""))
-          ))
-        }
-      }
-    }
+    implicit val annotation: Reads[Annotation] = (
+      (JsPath \ "gene_id").readNullable[String] and
+        (JsPath \ "gene_id_distance").readNullable[Long] and
+        (JsPath \ "gene_id_prot_coding").readNullable[String] and
+        (JsPath \ "gene_id_prot_coding_distance").readNullable[Long] and
+        (JsPath \ "most_severe_consequence").readNullable[String]
+      )(Annotation.apply _)
 
-    implicit object VariantHitReader extends HitReader[Variant] {
-      override def read(hit: Hit): Either[Throwable, Variant] = {
-        if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
-        else {
-          val mv = hit.sourceAsMap
-          Right(Variant(mv("chr_id").toString,
-            mv("position").toString.toLong,
-            mv("ref_allele").toString,
-            mv("alt_allele").toString,
-            mv.get("rs_id").map(_.toString),
-            Annotation(mv.get("gene_id").map(_.toString),
-              mv.get("gene_id_distance").map(_.toString.toLong),
-              mv.get("gene_id_prot_coding").map(_.toString),
-              mv.get("gene_id_prot_coding_distance").map(_.toString.toLong),
-              mv.get("most_severe_consequence").map(_.toString)),
-            CaddAnnotation(mv.get("raw").map(_.toString.toDouble),
-              mv.get("phred").map(_.toString.toDouble)),
-            GnomadAnnotation(mv.get("gnomad_afr").map(_.toString.toDouble),
-              mv.get("gnomad_seu").map(_.toString.toDouble),
-              mv.get("gnomad_amr").map(_.toString.toDouble),
-              mv.get("gnomad_asj").map(_.toString.toDouble),
-              mv.get("gnomad_eas").map(_.toString.toDouble),
-              mv.get("gnomad_fin").map(_.toString.toDouble),
-              mv.get("gnomad_nfe").map(_.toString.toDouble),
-              mv.get("gnomad_nfe_est").map(_.toString.toDouble),
-              mv.get("gnomad_nfe_seu").map(_.toString.toDouble),
-              mv.get("gnomad_nfe_onf").map(_.toString.toDouble),
-              mv.get("gnomad_nfe_nwe").map(_.toString.toDouble),
-              mv.get("gnomad_oth").map(_.toString.toDouble))))
-        }
-      }
-    }
+    implicit val caddAnnotation: Reads[CaddAnnotation] = (
+      (JsPath \ "raw").readNullable[Double] and
+        (JsPath \ "phred").readNullable[Double]
+      )(CaddAnnotation.apply _)
 
-    implicit object StudyHitReader extends HitReader[Study] {
-      override def read(hit: Hit): Either[Throwable, Study] = {
-        if (hit.isSourceEmpty) Left(new NoSuchFieldError("source object is empty"))
-        else {
-          val mv = hit.sourceAsMap
+    implicit val gnomadAnnotation: Reads[GnomadAnnotation] = (
+      (JsPath \ "gnomad_afr").readNullable[Double] and
+        (JsPath \ "gnomad_seu").readNullable[Double] and
+        (JsPath \ "gnomad_amr").readNullable[Double] and
+        (JsPath \ "gnomad_asj").readNullable[Double] and
+        (JsPath \ "gnomad_eas").readNullable[Double] and
+        (JsPath \ "gnomad_fin").readNullable[Double] and
+        (JsPath \ "gnomad_nfe").readNullable[Double] and
+        (JsPath \ "gnomad_nfe_est").readNullable[Double] and
+        (JsPath \ "gnomad_nfe_seu").readNullable[Double] and
+        (JsPath \ "gnomad_nfe_onf").readNullable[Double] and
+        (JsPath \ "gnomad_nfe_nwe").readNullable[Double] and
+        (JsPath \ "gnomad_oth").readNullable[Double]
+      )(GnomadAnnotation.apply _)
 
-          Right(Study(mv("study_id").toString,
-            mv.get("trait_reported").map(_.toString).get,
-            mv.get("trait_efos").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
-            mv.get("pmid").map(_.asInstanceOf[String]),
-            mv.get("pub_date").map(_.asInstanceOf[String]),
-            mv.get("pub_journal").map(_.asInstanceOf[String]),
-            mv.get("pub_title").map(_.asInstanceOf[String]),
-            mv.get("pub_author").map(_.asInstanceOf[String]),
-            mv.get("has_sumstats").map(_.asInstanceOf[Boolean]),
-            mv.get("ancestry_initial").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
-            mv.get("ancestry_replication").map(_.asInstanceOf[Seq[String]]).getOrElse(Seq.empty),
-            mv.get("n_initial").map(_.asInstanceOf[Int].toLong),
-            mv.get("n_replication").map(_.asInstanceOf[Int].toLong),
-            mv.get("n_cases").map(_.asInstanceOf[Int].toLong),
-            mv.get("trait_category").map(_.asInstanceOf[String]),
-            mv.get("num_assoc_loci").map(_.asInstanceOf[Int]))
-          )
-        }
-      }
-    }
+    // implicit val variantHitReader: Reads[Variant] = Json.reads[Variant]
+    implicit val variantHitReader: Reads[Variant] = (
+      (JsPath \ "chr_id").read[String] and
+        (JsPath \ "position").read[Long] and
+        (JsPath \ "ref_allele").read[String] and
+        (JsPath \ "alt_allele").read[String] and
+        (JsPath \ "rs_id").readNullable[String] and
+        annotation and
+        caddAnnotation and
+        gnomadAnnotation
+      )(Variant.apply _)
+
+    // implicit val studyHitReader: Reads[Study] = Json.reads[Study]
+    implicit val studyHitReader: Reads[Study] = (
+      (JsPath \ "study_id").read[String] and
+        (JsPath \ "trait_reported").read[String] and
+        (JsPath \ "trait_efos").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
+        (JsPath \ "pmid").readNullable[String] and
+        (JsPath \ "pub_date").readNullable[String] and
+        (JsPath \ "pub_journal").readNullable[String] and
+        (JsPath \ "pub_title").readNullable[String] and
+        (JsPath \ "pub_author").readNullable[String] and
+        (JsPath \ "has_sumstats").readNullable[Int].map(_.map{
+          case 1 => true
+          case _ => false
+        }) and
+        (JsPath \ "ancestry_initial").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
+        (JsPath \ "ancestry_replication").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
+        (JsPath \ "n_initial").readNullable[Long] and
+        (JsPath \ "n_replication").readNullable[Long] and
+        (JsPath \ "n_cases").readNullable[Long] and
+        (JsPath \ "trait_category").readNullable[String] and
+        (JsPath \ "num_assoc_loci").readNullable[Long]
+      )(Study.apply _)
   }
 
   object DBImplicits {

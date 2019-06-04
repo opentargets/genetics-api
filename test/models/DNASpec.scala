@@ -46,8 +46,8 @@ class DNASpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
   }
 
   "A Gene ENSG000012.13 must equal to a Right(Gene)" in {
-    val v1 = Gene("ENSG000012.13")
-    val rv1 = Right(Gene("ENSG000012", None))
+    val v1 = Gene.fromString("ENSG000012.13", None)
+    val rv1 = Right(Gene.fromString("ENSG000012", None))
 
     v1 mustEqual rv1
   }

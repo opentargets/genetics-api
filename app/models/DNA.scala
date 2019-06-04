@@ -105,7 +105,7 @@ object DNA {
       def _parseVariant(variantId: String, rsId: Option[String], sep: String): Option[Variant] =
         variantId.toUpperCase.split(sep).toList.filter(_.nonEmpty) match {
           case List(chr: String, pos: String, ref: String, alt: String) =>
-            Some(Variant(chr, pos.toLong, ref, alt))
+            Some(Variant.fromSimpleVariant(chr, pos.toLong, ref, alt))
           case _ => None
         }
 
@@ -116,18 +116,18 @@ object DNA {
       }
     }
 
-    def apply(chromosome: String, position: Long, refAllele: String, altAllele: String): Variant =
+    def fromSimpleVariant(chromosome: String, position: Long, refAllele: String, altAllele: String): Variant =
       Variant(chromosome, position, refAllele, altAllele, None, Annotation(),
         CaddAnnotation(), GnomadAnnotation())
 
-    def apply(chromosome: String, position: Long,
+    def fromSimpleVariant(chromosome: String, position: Long,
               refAllele: String, altAllele: String, rsId: Option[String]): Variant =
       Variant(chromosome, position, refAllele, altAllele, rsId, Annotation(),
         CaddAnnotation(), GnomadAnnotation())
 
-    def apply(variantId: String): Either[VariantViolation, Variant] = apply(variantId, None)
+    def fromString(variantId: String): Either[VariantViolation, Variant] = fromString(variantId, None)
 
-    def apply(variantId: String, rsId: Option[String]): Either[VariantViolation, Variant] = {
+    def fromString(variantId: String, rsId: Option[String]): Either[VariantViolation, Variant] = {
       val pv = parseVariant(variantId, rsId)
       Either.cond(pv.isDefined, pv.get, VariantViolation(variantId))
     }
@@ -148,7 +148,7 @@ object DNA {
     private[this] def parseGene(geneId: String, symbol : Option[String]): Option[Gene] = {
       geneId.toUpperCase.split("\\.").toList.filter(_.nonEmpty) match {
         case ensemblId :: _ =>
-          Some(Gene(ensemblId, symbol))
+          Some(Gene(geneId, symbol, None, None, None, None, None, None, None, Seq.empty))
         case Nil => None
       }
     }
@@ -158,13 +158,10 @@ object DNA {
       * @param geneId Ensembl Gene ID as "ENSG000000[.123]" and it will strip the version
       * @return Either a Gene or a GeneViolation as the gene was not properly specified
       */
-    def apply(geneId: String): Either[GeneViolation, Gene] = {
-      val pg = parseGene(geneId, None)
+    def fromString(geneId: String, symbol: Option[String]): Either[GeneViolation, Gene] = {
+      val pg = parseGene(geneId, symbol)
       Either.cond(pg.isDefined, pg.get, GeneViolation(geneId))
     }
-
-    def apply(geneId: String, symbol: Option[String]): Gene =
-      Gene(geneId, symbol, None, None, None, None, None, None, None, Seq.empty)
 
     def unapply(gene: Gene): Option[(String, Option[String], Option[String], Option[String],
       Option[String], Option[Long], Option[Long], Option[Long],

@@ -488,7 +488,7 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
     fields[Backend,(SimpleVariant, Double)](
       Field("variant", variant,
         Some("Summary Stats simple variant information"),
-        resolve = r => DNA.Variant(r.value._1.id).right.get),
+        resolve = r => DNA.Variant.fromString(r.value._1.id).right.get),
       Field("pval", FloatType,
         Some("p-val"),
         resolve = _.value._2)
@@ -499,7 +499,7 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
     fields[Backend, (SimpleVariant, CredSetRowStats)](
       Field("tagVariant", variant,
         Some("Tag Variant in the credibleset table"),
-        resolve = r => DNA.Variant(r.value._1.id).right.get),
+        resolve = r => DNA.Variant.fromString(r.value._1.id).right.get),
       Field("pval", FloatType,
         Some("p-val"),
         resolve = _.value._2.tagPval),

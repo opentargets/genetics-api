@@ -70,13 +70,15 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   // you must import the DSL to use the syntax helpers
   import com.sksamuel.elastic4s.http.ElasticDsl._
+  // import implicit hit readers
+  import com.sksamuel.elastic4s.playjson._
   val esUri = ElasticsearchClientUri(config.get[String]("ot.elasticsearch.host"),
     config.get[Int]("ot.elasticsearch.port"))
   val esQ = HttpClient(esUri)
 
   def buildPhewFromSumstats(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]): Future[Seq[SumStatsGWASRow]] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
-    val variant = Variant(variantID)
+    val variant = Variant.fromString(variantID)
 
     variant match {
       case Right(v) =>
@@ -149,7 +151,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def gwasColocalisation(studyId: String, variantId: String): Future[Seq[ColocRow]] = {
-    val variant = Variant(variantId)
+    val variant = Variant.fromString(variantId)
 
     variant match {
       case Right(v) =>
@@ -173,7 +175,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def qtlColocalisation(studyId: String, variantId: String): Future[Seq[ColocRow]] = {
-    val variant = Variant(variantId)
+    val variant = Variant.fromString(variantId)
 
     variant match {
       case Right(v) =>
@@ -197,7 +199,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def gwasCredibleSet(studyId: String, variantId: String): Future[Seq[(SimpleVariant, CredSetRowStats)]] = {
-    val variant = Variant(variantId)
+    val variant = Variant.fromString(variantId)
 
     variant match {
       case Right(v) =>
@@ -223,7 +225,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
 
   def qtlCredibleSet(studyId: String, variantId: String, phenotypeId: String, bioFeatureId: String):
     Future[Seq[(SimpleVariant, CredSetRowStats)]] = {
-    val variant = Variant(variantId)
+    val variant = Variant.fromString(variantId)
 
     variant match {
       case Right(v) =>
@@ -350,7 +352,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         studiesQ
       }.zip {
         esQ.execute {
-          val vToken: String = Variant(qString) match {
+          val vToken: String = Variant.fromString(qString) match {
             case Right(v) => v.id
             case _ => qString
           }
@@ -541,7 +543,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         case Success(v) =>
           val missingVIds = variantIds diff v.map(_.id)
 
-          v ++ missingVIds.map(DNA.Variant(_)).withFilter(_.isRight).map(_.right.get)
+          v ++ missingVIds.map(DNA.Variant.fromString(_)).withFilter(_.isRight).map(_.right.get)
         case Failure(ex) =>
           logger.error("BDIOAction failed with " + ex.getMessage)
           Seq.empty
@@ -679,7 +681,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[VariantToDiseaseTable] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
-    val variant = Variant(variantID)
+    val variant = Variant.fromString(variantID)
 
     variant match {
       case Right(v) =>
@@ -707,7 +709,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def buildTagVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[VariantToDiseaseTable] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
-    val variant = Variant(variantID)
+    val variant = Variant.fromString(variantID)
 
     variant match {
       case Right(v) =>
@@ -796,7 +798,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def buildG2VByVariant(variantId: String): Future[Seq[Entities.G2VAssociation]] = {
-    val variant = DNA.Variant(variantId)
+    val variant = DNA.Variant.fromString(variantId)
 
     variant match {
       case Right(v) =>
