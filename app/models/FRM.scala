@@ -67,7 +67,9 @@ object FRM {
   class Variants(tag: Tag) extends Table[Variant](tag, "variants") {
     def id = column[String]("variant_id")
     def chromosome = column[String]("chr_id")
+    def chromosomeB37 = column[Option[String]]("chr_id_b37")
     def position = column[Long]("position")
+    def positionB37 = column[Option[Long]]("position_b37")
     def refAllele = column[String]("ref_allele")
     def altAllele = column[String]("alt_allele")
     def rsId = column[Option[String]]("rs_id")
@@ -105,7 +107,7 @@ object FRM {
 
     def * =
       (chromosome, position, refAllele, altAllele, rsId,
-      annotations, caddAnnotations, gnomadAnnotations).mapTo[Variant]
+      annotations, caddAnnotations, gnomadAnnotations, chromosomeB37, positionB37).mapTo[Variant]
   }
 
   class Studies(tag: Tag) extends Table[Study](tag, "studies") {

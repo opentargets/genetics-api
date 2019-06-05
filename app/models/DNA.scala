@@ -97,10 +97,20 @@ object DNA {
                      override val refAllele: String, override val altAllele: String,
                      rsId: Option[String], annotation: Annotation,
                      caddAnnotation: CaddAnnotation,
-                     gnomadAnnotation: GnomadAnnotation) extends SkelVariant
+                     gnomadAnnotation: GnomadAnnotation,
+                     chromosomeB37: Option[String],
+                     positionB37: Option[Long]) extends SkelVariant {
+    lazy val idB37: Option[String] = (chromosomeB37, positionB37) match {
+      case (Some(c), Some(p)) =>
+        Some(List(c, p.toString, refAllele, altAllele)
+          .map(_.toUpperCase)
+          .mkString("_"))
+      case _ => None
+    }
+  }
 
   object Variant extends ((String, Long, String, String, Option[String],
-    Annotation, CaddAnnotation, GnomadAnnotation) => Variant) {
+    Annotation, CaddAnnotation, GnomadAnnotation, Option[String], Option[Long]) => Variant) {
     private[this] def parseVariant(variantId: String, rsId: Option[String]): Option[Variant] = {
       def _parseVariant(variantId: String, rsId: Option[String], sep: String): Option[Variant] =
         variantId.toUpperCase.split(sep).toList.filter(_.nonEmpty) match {
@@ -118,12 +128,12 @@ object DNA {
 
     def fromSimpleVariant(chromosome: String, position: Long, refAllele: String, altAllele: String): Variant =
       Variant(chromosome, position, refAllele, altAllele, None, Annotation(),
-        CaddAnnotation(), GnomadAnnotation())
+        CaddAnnotation(), GnomadAnnotation(), None, None)
 
     def fromSimpleVariant(chromosome: String, position: Long,
               refAllele: String, altAllele: String, rsId: Option[String]): Variant =
       Variant(chromosome, position, refAllele, altAllele, rsId, Annotation(),
-        CaddAnnotation(), GnomadAnnotation())
+        CaddAnnotation(), GnomadAnnotation(), None, None)
 
     def fromString(variantId: String): Either[VariantViolation, Variant] = fromString(variantId, None)
 
@@ -133,9 +143,9 @@ object DNA {
     }
 
     def unapply(v: Variant): Option[(String, Long, String, String, Option[String],
-      Annotation, CaddAnnotation, GnomadAnnotation)] =
+      Annotation, CaddAnnotation, GnomadAnnotation, Option[String], Option[Long])] =
       Some(v.chromosome, v.position, v.refAllele, v.altAllele,
-        v.rsId, v.annotation, v.caddAnnotation, v.gnomadAnnotation)
+        v.rsId, v.annotation, v.caddAnnotation, v.gnomadAnnotation, v.chromosomeB37, v.positionB37)
   }
 
   case class Gene(id: String, symbol: Option[String], bioType: Option[String],

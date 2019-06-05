@@ -543,7 +543,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         case Success(v) =>
           val missingVIds = variantIds diff v.map(_.id)
 
-          v ++ missingVIds.map(DNA.Variant.fromString(_)).withFilter(_.isRight).map(_.right.get)
+          if (missingVIds.nonEmpty) {
+            v ++ missingVIds.map(DNA.Variant.fromString).withFilter(_.isRight).map(_.right.get)
+          } else v
         case Failure(ex) =>
           logger.error("BDIOAction failed with " + ex.getMessage)
           Seq.empty

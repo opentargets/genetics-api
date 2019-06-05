@@ -330,7 +330,9 @@ object Entities {
         (JsPath \ "rs_id").readNullable[String] and
         annotation and
         caddAnnotation and
-        gnomadAnnotation
+        gnomadAnnotation and
+        (JsPath \ "chr_id_b37").readNullable[String] and
+        (JsPath \ "position_b37").readNullable[Long]
       )(Variant.apply _)
 
     // implicit val studyHitReader: Reads[Study] = Json.reads[Study]
