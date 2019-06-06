@@ -667,7 +667,7 @@ object FRM {
     def rRef = column[String]("right_ref")
     def rAlt = column[String]("right_alt")
 
-    def rVariant = (lChrom, lPos, lRef, lAlt).mapTo[SimpleVariant]
+    def rVariant = (rChrom, rPos, rRef, rAlt).mapTo[SimpleVariant]
 
     def rGeneId = column[Option[String]]("right_gene_id")
     def rBioFeature = column[Option[String]]("right_bio_feature")
