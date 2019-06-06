@@ -7,9 +7,8 @@ import clickhouse.rep.SeqRep._
 import clickhouse.rep.SeqRep.Implicits._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import com.sksamuel.elastic4s._
 
-import scala.collection.SeqView
+import scala.collection.{SeqView, breakOut}
 
 object Entities {
   case class SumStatsGWASRow(typeId: String, studyId: String, variant: SimpleVariant,
@@ -370,6 +369,15 @@ object Entities {
           ordScored.takeWhile(_._2 == ordScored.head._2)
       }
 
+      def toGeneScoreTupleColoc(geneIds: Seq[String], geneScores: Seq[Double]): Seq[(String, Double)] = {
+        val ordScored = geneIds zip geneScores
+
+        if (ordScored.isEmpty)
+          ordScored
+        else
+          ordScored.groupBy(_._1).map(_._2.head)(breakOut).sortBy(_._2)(Ordering[Double].reverse)
+      }
+
       GetResult(r => {
         val svID: String = SimpleVariant(r.<<, r.<<, r.<<, r.<<).id
         val pval: Double = r.<<
@@ -388,7 +396,7 @@ object Entities {
         V2DByStudy(svID, pval, pvalMantissa, pvalExponent, odds, beta,
           credSetSize, ldSetSize, totalSize,
           toGeneScoreTuple(aggTop10RawIds, aggTop10RawScores),
-          aggTop10ColocIds zip aggTop10ColocScores)
+          toGeneScoreTupleColoc(aggTop10ColocIds, aggTop10ColocScores)
       })
     }
   }
