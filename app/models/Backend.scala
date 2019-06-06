@@ -633,7 +633,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
            |               pos,
            |               ref,
            |               alt,
-           |               groupUniqArray(top10_genes) as top10_genes,
+           |               arraySort(groupUniqArray(top10_genes)) as top10_genes,
            |               if(top10_genes[1].1 = 'coloc', top10_genes[1].2, []) as top10_genes_coloc,
            |               if(top10_genes[1].1 = 'raw', top10_genes[1].2, top10_genes[2].2) as top10_genes_raw
            |        from (
