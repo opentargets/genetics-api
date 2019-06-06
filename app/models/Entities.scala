@@ -388,7 +388,7 @@ object Entities {
         V2DByStudy(svID, pval, pvalMantissa, pvalExponent, odds, beta,
           credSetSize, ldSetSize, totalSize,
           toGeneScoreTuple(aggTop10RawIds, aggTop10RawScores),
-          toGeneScoreTuple(aggTop10ColocIds, aggTop10ColocScores))
+          aggTop10ColocIds zip aggTop10ColocScores)
       })
     }
   }

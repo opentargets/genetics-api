@@ -626,7 +626,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
            |            lead_ref,
            |            lead_alt
            |        )
-           |        ALL LEFT OUTER JOIN
+           |        ANY FULL OUTER JOIN
            |    (
            |        select study,
            |               chrom,
