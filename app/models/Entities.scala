@@ -293,7 +293,7 @@ object Entities {
       )(Gene.apply _)
 
     implicit val annotation: Reads[Annotation] = (
-      (JsPath \ "gene_id").readNullable[String] and
+      (JsPath \ "gene_id_any").readNullable[String] and
         (JsPath \ "gene_id_distance").readNullable[Long] and
         (JsPath \ "gene_id_prot_coding").readNullable[String] and
         (JsPath \ "gene_id_prot_coding_distance").readNullable[Long] and
