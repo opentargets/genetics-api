@@ -158,7 +158,7 @@ object DNA {
     private[this] def parseGene(geneId: String, symbol : Option[String]): Option[Gene] = {
       geneId.toUpperCase.split("\\.").toList.filter(_.nonEmpty) match {
         case ensemblId :: _ =>
-          Some(Gene(geneId, symbol, None, None, None, None, None, None, None, Seq.empty))
+          Some(Gene(ensemblId, symbol, None, None, None, None, None, None, None, Seq.empty))
         case Nil => None
       }
     }
