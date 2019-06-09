@@ -33,14 +33,14 @@ class DNASpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
   }
 
   "A Variant 1_1234_C_. must equal to a Right(Variant)" in {
-    val v1 = Variant("1_1234_C_.")
-    val rv1 = Right(Variant("1", 1234, "C", ".", None))
+    val v1 = Variant.fromString("1_1234_C_.")
+    val rv1 = Right(Variant.fromSimpleVariant("1", 1234, "C", ".", None))
 
     v1 mustEqual rv1
   }
 
   "A Variant 1_1234_T must not equal to a Right(Variant)" in {
-    val v1 = Variant("1_1234_.")
+    val v1 = Variant.fromString("1_1234_.")
 
     v1.isLeft mustBe true
   }
