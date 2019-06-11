@@ -729,9 +729,13 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.value.studyId, ctx.arg(pageIndex), ctx.arg(pageSize)))
     ))
 
+  // TODO that number should be updated with sumstats changes. not sure what to do at the moment
   val pheWAS = ObjectType("PheWAS",
     "This element represents a PheWAS like plot",
     fields[Backend, Seq[SumStatsGWASRow]](
+      Field("totalGWASStudies", LongType,
+        Some("A total number of unique GWAS studies in the summary stats table"),
+        resolve = _ => 3618L),
       Field("associations", ListType(pheWASAssociation),
         Some("A list of associations"),
         resolve = _.value)
