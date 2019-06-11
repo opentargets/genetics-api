@@ -362,7 +362,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         }
       }.zip {
         esQ.execute {
-          search("genes") query boolQuery.should(termQuery("gene_id.keyword", qString.toUpperCase),
+          search("genes") query boolQuery.should(termQuery("gene_id.keyword", qString.toUpperCase)
+            .boost(100D),
+            termQuery("gene_name", qString.toUpperCase).boost(100D),
             matchQuery("gene_name", qString)
               .fuzziness("0")
               .maxExpansions(20)
@@ -652,7 +654,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
             |                         'coloc' as agg_type
             |                     from ot.v2d_coloc
             |                     where left_study = $studyId and
-            |                           coloc_h4 >= 0.95 and
+            |                           round(coloc_h4,2) >= 0.95 and
             |                             coloc_log2_h4_h3 >= log2(5) and
             |                             right_type <> 'gwas'
             |                     group by left_chrom, left_pos, left_ref, left_alt )
