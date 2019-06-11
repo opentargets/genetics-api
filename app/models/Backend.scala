@@ -667,20 +667,20 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
             |                   (agg_type, top10_genes) as top10_genes_with_type
             |                   from (
             |                         select
-            |                             lead_chrom as chrom,
-            |                             lead_pos as pos,
-            |                             lead_ref as ref,
-            |                             lead_alt as alt,
+            |                             tag_chrom as chrom,
+            |                             tag_pos as pos,
+            |                             tag_ref as ref,
+            |                             tag_alt as alt,
             |                             arrayReverseSort(
             |                                     arrayReduce('groupUniqArray',
             |                                                 groupArray((overall_score, gene_id)))) AS top10_genes,
             |                             'raw' as agg_type
             |                         from ot.d2v2g_scored
             |                         where study_id = $studyId
-            |                         group by lead_chrom,
-            |                                  lead_pos,
-            |                                  lead_ref,
-            |                                  lead_alt
+            |                         group by tag_chrom,
+            |                                  tag_pos,
+            |                                  tag_ref,
+            |                                  tag_alt
             |                            )
             |                   )
             |               group by chrom,
