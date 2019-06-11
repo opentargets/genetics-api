@@ -77,7 +77,7 @@ object Entities {
                            sourceId: String,
                           bioFeatureSet: Seq[String])
 
-  case class V2DByStudy(variantId: String, pval: Double,
+  case class V2DByStudy(studyId: String, variantId: String, pval: Double,
                         pval_mantissa: Double, pval_exponent: Long, v2dOdds: V2DOdds, v2dBeta: V2DBeta,
                         credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long,
                         topGenes: Seq[(String, Double)], topColocGenes: Seq[(String, Double)])
@@ -379,6 +379,7 @@ object Entities {
       }
 
       GetResult(r => {
+        val studyId: String = r.<<
         val svID: String = SimpleVariant(r.<<, r.<<, r.<<, r.<<).id
         val pval: Double = r.<<
         val pvalMantissa: Double = r.<<
@@ -393,7 +394,7 @@ object Entities {
         val aggTop10ColocIds = StrSeqRep(r.<<)
         val aggTop10ColocScores = DSeqRep(r.<<)
 
-        V2DByStudy(svID, pval, pvalMantissa, pvalExponent, odds, beta,
+        V2DByStudy(studyId, svID, pval, pvalMantissa, pvalExponent, odds, beta,
           credSetSize, ldSetSize, totalSize,
           toGeneScoreTuple(aggTop10RawIds, aggTop10RawScores),
           toGeneScoreTupleColoc(aggTop10ColocIds, aggTop10ColocScores))
