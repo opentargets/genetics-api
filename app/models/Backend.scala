@@ -656,8 +656,17 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
             |                     where left_study = $studyId and
             |                           round(coloc_h4,2) >= 0.95 and
             |                             coloc_log2_h4_h3 >= log2(5) and
-            |                             right_type <> 'gwas'
-            |                     group by left_chrom, left_pos, left_ref, left_alt )
+            |                             right_type <> 'gwas' and
+            |                           left_chrom = chrom and
+            |                           left_pos = pos and
+            |                           left_ref = ref and
+            |                           left_alt = alt
+            |                     group by
+            |                       left_chrom,
+            |                       left_pos,
+            |                       left_ref,
+            |                       left_alt
+            |                   )
             |               union all
             |               select
             |                   chrom,
@@ -667,20 +676,24 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
             |                   (agg_type, top10_genes) as top10_genes_with_type
             |                   from (
             |                         select
-            |                             tag_chrom as chrom,
-            |                             tag_pos as pos,
-            |                             tag_ref as ref,
-            |                             tag_alt as alt,
+            |                             lead_chrom as chrom,
+            |                             lead_pos as pos,
+            |                             lead_ref as ref,
+            |                             lead_alt as alt,
             |                             arrayReverseSort(
             |                                     arrayReduce('groupUniqArray',
             |                                                 groupArray((overall_score, gene_id)))) AS top10_genes,
             |                             'raw' as agg_type
             |                         from ot.d2v2g_scored
-            |                         where study_id = $studyId
-            |                         group by tag_chrom,
-            |                                  tag_pos,
-            |                                  tag_ref,
-            |                                  tag_alt
+            |                         where study_id = $studyId and
+            |                           tag_chrom = chrom and
+            |                           tag_pos = pos and
+            |                           tag_ref = ref and
+            |                           tag_alt = alt
+            |                         group by lead_chrom,
+            |                                  lead_pos,
+            |                                  lead_ref,
+            |                                  lead_alt
             |                            )
             |                   )
             |               group by chrom,
