@@ -1,5 +1,5 @@
 query exmaple {
-  gwasColocalisationForRegion(chromosome:"1", start:1000000, end: 1500000) {
+  gwasColocalisationForRegion(chromosome: "1", start: 1000000, end: 1500000) {
     leftVariant {
       id
       rsId
@@ -20,8 +20,7 @@ query exmaple {
     h4
     log2h4h3
   }
-
-  pheWAS(variantId:"1_1205055_G_T") {
+  pheWAS(variantId: "1_1205055_G_T") {
     associations {
       study {
         studyId
@@ -36,104 +35,99 @@ query exmaple {
       se
     }
   }
-
-    qtlCredibleSet(studyId:"TWINSUK", variantId:"1_1280044_T_C", phenotypeId:"ENSG00000127054", bioFeature:"LCL") {
-      tagVariant {
-        id
-        rsId
-      }
-      pval
-      se
-      beta
-      postProb
-      MultisignalMethod
-      logABF
-      is95
-      is99
+  qtlCredibleSet(studyId: "TWINSUK", variantId: "1_1280044_T_C", phenotypeId: "ENSG00000127054", bioFeature: "LCL") {
+    tagVariant {
+      id
+      rsId
     }
-    gwasCredibleSet(studyId: "GCST004131", variantId:"1_1280044_T_C") {
-      tagVariant {
-        id
-        rsId
-      }
-      pval
-      se
-      beta
-      postProb
-      MultisignalMethod
-      logABF
-      is95
-      is99
+    pval
+    se
+    beta
+    postProb
+    MultisignalMethod
+    logABF
+    is95
+    is99
+  }
+  gwasCredibleSet(studyId: "GCST004131", variantId: "1_1280044_T_C") {
+    tagVariant {
+      id
+      rsId
     }
-
-    qtlColocalisation(studyId: "GCST004131", variantId:"1_1280044_T_C") {
-      indexVariant {
-        id
-        rsId
-      }
-      gene {
-        id
-        symbol
-      }
-      phenotypeId
-      tissue {
-        id
-        name
-      }
-      qtlStudyName
-      beta
-      h3
-      h4
-      log2h4h3
+    pval
+    se
+    beta
+    postProb
+    MultisignalMethod
+    logABF
+    is95
+    is99
+  }
+  qtlColocalisation(studyId: "GCST004131", variantId: "1_1280044_T_C") {
+    indexVariant {
+      id
+      rsId
     }
-
-    gwasColocalisation(studyId:"GCST004131", variantId:"1_1280044_T_C") {
-      indexVariant {
-        id
-        rsId
-      }
-      study {
-        studyId
-        traitReported
-      }
-      beta
-      h3
-      h4
-      log2h4h3
+    gene {
+      id
+      symbol
     }
-
-    gwasRegional(studyId:"GCST005543", chromosome:"1", start: 1000000, end:1500000) {
-      variant {
-        id
-        rsId
-        chromosome
-        position
-        refAllele
-        altAllele
-        nearestGene {
-          id
-        }
-        gnomadOTH
-        nearestGeneDistance
-      }
+    phenotypeId
+    tissue {
+      id
+      name
     }
-    qtlRegional(studyId:"TWINSUK", bioFeature:"FAT", phenotypeId:"ENSG00000224969", chromosome:"1", start: 1000000, end:1500000) {
-      variant {
-        id
-        rsId
-        chromosome
-        position
-        refAllele
-        altAllele
-        nearestGene {
-          id
-        }
-        gnomadOTH
-        nearestGeneDistance
-      }
+    qtlStudyName
+    beta
+    h3
+    h4
+    log2h4h3
+  }
+  gwasColocalisation(studyId: "GCST004131", variantId: "1_1280044_T_C") {
+    indexVariant {
+      id
+      rsId
     }
-
-  topOverlappedStudies(studyId:"NEALEUKB_50", pageIndex: 0, pageSize:100) {
+    study {
+      studyId
+      traitReported
+    }
+    beta
+    h3
+    h4
+    log2h4h3
+  }
+  gwasRegional(studyId: "GCST005543", chromosome: "1", start: 1000000, end: 1500000) {
+    variant {
+      id
+      rsId
+      chromosome
+      position
+      refAllele
+      altAllele
+      nearestGene {
+        id
+      }
+      gnomadOTH
+      nearestGeneDistance
+    }
+  }
+  qtlRegional(studyId: "TWINSUK", bioFeature: "FAT", phenotypeId: "ENSG00000224969", chromosome: "1", start: 1000000, end: 1500000) {
+    variant {
+      id
+      rsId
+      chromosome
+      position
+      refAllele
+      altAllele
+      nearestGene {
+        id
+      }
+      gnomadOTH
+      nearestGeneDistance
+    }
+  }
+  topOverlappedStudies(studyId: "GCST003044", pageIndex: 0, pageSize: 100) {
     study {
       traitReported
       studyId
@@ -159,8 +153,7 @@ query exmaple {
       numOverlapLoci
     }
   }
-  
-  overlapInfoForStudy(studyId:"NEALEUKB_102", studyIds: ["NEALEUKB_50", "NEALEUKB_78"]) {
+  overlapInfoForStudy(studyId: "GCST003044", studyIds: ["GCST005537", "GCST000879"]) {
     study {
       studyId
       traitReported
@@ -180,7 +173,6 @@ query exmaple {
     }
     variantIntersectionSet
   }
-  
   genesForVariantSchema {
     qtls {
       id
@@ -215,8 +207,7 @@ query exmaple {
       }
     }
   }
-  
-  tagVariantsAndStudiesForIndexVariant(variantId:"17_17133121_G_A", pageSize:10) {
+  tagVariantsAndStudiesForIndexVariant(variantId: "21_33720908_T_C", pageSize: 10) {
     associations {
       study {
         traitReported
@@ -254,11 +245,9 @@ query exmaple {
       direction
       betaCILower
       betaCIUpper
-      
     }
   }
-  
-  indexVariantsAndStudiesForTagVariant(variantId:"17_17133121_G_A", pageSize:10) {
+  indexVariantsAndStudiesForTagVariant(variantId: "21_33720908_T_C", pageSize: 10) {
     associations {
       study {
         traitReported
@@ -296,11 +285,9 @@ query exmaple {
       direction
       betaCILower
       betaCIUpper
-      
     }
   }
-  
-  genesForVariant(variantId:"17_17133121_G_A") {
+  genesForVariant(variantId: "21_33720908_T_C") {
     gene {
       id
       symbol
@@ -362,7 +349,7 @@ query exmaple {
       }
     }
   }
-  gecko(chromosome:"17", start:17000000, end:19000000) {
+  gecko(chromosome: "17", start: 17000000, end: 17200000) {
     genes {
       symbol
     }
@@ -389,8 +376,7 @@ query exmaple {
       pval
     }
   }
-}
-    search(queryString:"diab") {
+  search(queryString: "diabet") {
     totalGenes
     totalVariants
     totalStudies
@@ -419,7 +405,7 @@ query exmaple {
         symbol
       }
       nearestCodingGene {
-        id
+        idGCST003044
         symbol
       }
       caddRaw
@@ -454,8 +440,7 @@ query exmaple {
       numAssocLoci
     }
   }
-
-studyInfo(studyId:"NEALE2_30010_raw") {
+  studyInfo(studyId: "NEALE2_30010_raw") {
     studyId
     traitReported
     traitEfos
@@ -472,8 +457,7 @@ studyInfo(studyId:"NEALE2_30010_raw") {
     traitCategory
     numAssocLoci
   }
-  
-  variantInfo(variantId:"1_54958724_T_G") {
+  variantInfo(variantId: "21_33720908_T_C") {
     id
     rsId
     chromosome
@@ -509,29 +493,28 @@ studyInfo(studyId:"NEALE2_30010_raw") {
     caddPhred
     gnomadEAS
   }
-    manhattan(studyId:"NEALE2_30010_raw") {
-      associations {
-        variant {
+  manhattan(studyId: "NEALE2_30010_raw") {
+    associations {
+      variant {
+        id
+        rsId
+      }
+      oddsRatio
+      beta
+      bestGenes {
+        gene {
           id
-          rsId
+          symbol
         }
-        oddsRatio
-        beta
-        bestGenes {
-          gene {
-            id
-            symbol
-          }
-          score
+        score
+      }
+      bestColocGenes {
+        gene {
+          id
+          symbol
         }
-        bestColocGenes {
-          gene {
-            id
-            symbol
-          }
-          score
-        }
+        score
       }
     }
+  }
 }
-
