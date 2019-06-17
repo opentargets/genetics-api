@@ -22,8 +22,9 @@ import play.api.Logger
 import play.api.Environment
 import play.api.libs.json.Reads._
 import java.nio.file.{Path, Paths}
+import play.api.libs.json._
 
-import models.FRM.{D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
+import models.FRM.{Coloc, CredSet, D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, SumStatsGWAS, SumStatsMolTraits, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
 import org.elasticsearch.common.lucene.search.function.FieldValueFactorFunction
 import slick.dbio.DBIOAction
 
@@ -41,7 +42,8 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   val denseRegionChecker: DenseRegionChecker = DenseRegionChecker(denseRegionsPath.toString)
 
   val v2gLabelsPath: Path = Paths.get(env.rootPath.getAbsolutePath, "resources", "v2g_display_labels.json")
-  val v2gLabels = loadJSONFromFilename(v2gLabelsPath.toString)
+  val v2gLabels = loadJSONLinesIntoMap[String, JsValue](v2gLabelsPath.toString)(l =>
+    (l \ "key").as[String] -> (l \ "value").get)
 
   val v2gBiofeatureLabelsPath: Path = Paths.get(env.rootPath.getAbsolutePath, "resources", "v2g_biofeature_labels.json")
   val v2gBiofeatureLabels = loadJSONLinesIntoMap(v2gBiofeatureLabelsPath.toString)(l =>
@@ -61,54 +63,239 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   lazy val d2v2g = TableQuery[D2V2G]
   lazy val d2v2gScored = TableQuery[D2V2GScored]
   lazy val d2v2gScores = TableQuery[D2V2GOverallScore]
+  lazy val sumstatsGWAS = TableQuery[SumStatsGWAS]
+  lazy val sumstatsMolTraits = TableQuery[SumStatsMolTraits]
+  lazy val colocs = TableQuery[Coloc]
+  lazy val credsets = TableQuery[CredSet]
 
   // you must import the DSL to use the syntax helpers
   import com.sksamuel.elastic4s.http.ElasticDsl._
+  // import implicit hit readers
+  import com.sksamuel.elastic4s.playjson._
   val esUri = ElasticsearchClientUri(config.get[String]("ot.elasticsearch.host"),
     config.get[Int]("ot.elasticsearch.port"))
   val esQ = HttpClient(esUri)
 
-  def buildPheWASTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
-  Future[Entities.PheWASTable] = {
-    val limitClause = parsePaginationTokens(pageIndex, pageSize)
-    val variant = Variant(variantID)
+  def buildPhewFromSumstats(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]): Future[Seq[SumStatsGWASRow]] = {
+    val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
+    val variant = Variant.fromString(variantID)
 
     variant match {
       case Right(v) =>
-        val segment = toSumStatsSegment(v.position)
-        val tableName = gwasSumStatsTName format v.chromosome
-        val query =
-          sql"""
-               |select
-               | study_id,
-               | pval,
-               | beta,
-               | se,
-               | eaf,
-               | maf,
-               | n_samples_variant_level,
-               | n_samples_study_level,
-               | n_cases_study_level,
-               | n_cases_variant_level,
-               | if(is_cc,exp(beta),NULL) as odds_ratio,
-               | chip,
-               | info
-               |from #$tableName
-               |prewhere chrom = ${v.chromosome} and
-               |  pos_b37 = ${v.position} and
-               |  segment = $segment and
-               |  variant_id_b37 = ${v.id}
-               |#$limitClause
-         """.stripMargin.as[VariantPheWAS]
+        val q = sumstatsGWAS
+          .filter(r => (r.chrom === v.chromosome) &&
+            (r.pos === v.position) &&
+            (r.ref === v.refAllele) &&
+            (r.alt === v.altAllele))
+          .drop(limitPair._1)
+          .take(limitPair._2)
 
-        dbSS.run(query.asTry).map {
-          case Success(traitVector) => PheWASTable(traitVector)
+        dbSS.run(q.result.asTry).map {
+          case Success(vec) => vec
           case Failure(ex) =>
             logger.error(ex.getMessage)
-            PheWASTable(associations = Vector.empty)
+            Seq.empty
         }
 
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+    }
+  }
+
+  def colocalisationsForGene(geneId: String): Future[Seq[ColocRow]] = {
+    val q1 = genes
+      .filter(_.id === geneId).take(1)
+      .result
+      .headOption.flatMap {
+      case Some(g) =>
+        colocs
+          .filter(r => (r.lChrom === g.chromosome) &&
+            (r.rGeneId === g.id) &&
+            (r.lType === GWASLiteral) &&
+            (r.rType =!= GWASLiteral))
+          .result
+
+      case None =>
+        DBIOAction.successful(Seq.empty)
+    }
+
+    db.run(q1.asTry).map {
+      case Success(v) => v.seq
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Seq.empty
+    }
+  }
+
+  def gwasColocalisationForRegion(chromosome: String, startPos: Long, endPos: Long): Future[Seq[ColocRow]] = {
+    (parseChromosome(chromosome), parseRegion(startPos, endPos, 500000L)) match {
+      case (Right(chr), Right((start, end))) =>
+        val q = colocs
+          .filter(r => (r.lChrom === chromosome) &&
+            (r.lPos >= startPos) &&
+            (r.lPos <= endPos) &&
+            (r.rPos >= startPos) &&
+            (r.rPos <= endPos) &&
+            (r.rType === GWASLiteral))
+
+        db.run(q.result.asTry).map {
+          case Success(vec) => vec
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Seq.empty
+        }
+
+      case (chrEither, rangeEither) =>
+        Future.failed(InputParameterCheckError(
+          Vector(chrEither, rangeEither).filter(_.isLeft).map(_.left.get).asInstanceOf[Vector[Violation]]))
+    }
+  }
+
+  def gwasColocalisation(studyId: String, variantId: String): Future[Seq[ColocRow]] = {
+    val variant = Variant.fromString(variantId)
+
+    variant match {
+      case Right(v) =>
+        val q = colocs
+          .filter(r => (r.lChrom === v.chromosome) &&
+            (r.lPos === v.position) &&
+            (r.lRef === v.refAllele) &&
+            (r.lAlt === v.altAllele) &&
+            (r.lStudy === studyId) &&
+            (r.rType === GWASLiteral))
+
+        db.run(q.result.asTry).map {
+          case Success(vec) => vec
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Seq.empty
+        }
+
+      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+    }
+  }
+
+  def qtlColocalisation(studyId: String, variantId: String): Future[Seq[ColocRow]] = {
+    val variant = Variant.fromString(variantId)
+
+    variant match {
+      case Right(v) =>
+        val q = colocs
+          .filter(r => (r.lChrom === v.chromosome) &&
+            (r.lPos === v.position) &&
+            (r.lRef === v.refAllele) &&
+            (r.lAlt === v.altAllele) &&
+            (r.lStudy === studyId) &&
+            (r.rType =!= GWASLiteral))
+
+        db.run(q.result.asTry).map {
+          case Success(vec) => vec
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Seq.empty
+        }
+
+      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+    }
+  }
+
+  def gwasCredibleSet(studyId: String, variantId: String): Future[Seq[(SimpleVariant, CredSetRowStats)]] = {
+    val variant = Variant.fromString(variantId)
+
+    variant match {
+      case Right(v) =>
+        val q = credsets
+          .filter(r => (r.leadChromosome === v.chromosome) &&
+            (r.leadPosition === v.position) &&
+            (r.leadRefAllele === v.refAllele) &&
+            (r.leadAltAllele === v.altAllele) &&
+            (r.studyId === studyId) &&
+            (r.dataType === GWASLiteral))
+          .map(_.tagVariantWithStats)
+
+        db.run(q.result.asTry).map {
+          case Success(vec) => vec
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Seq.empty
+        }
+
+      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+    }
+  }
+
+  def qtlCredibleSet(studyId: String, variantId: String, phenotypeId: String, bioFeatureId: String):
+    Future[Seq[(SimpleVariant, CredSetRowStats)]] = {
+    val variant = Variant.fromString(variantId)
+
+    variant match {
+      case Right(v) =>
+        val q = credsets
+          .filter(r => (r.leadChromosome === v.chromosome) &&
+            (r.leadPosition === v.position) &&
+            (r.leadRefAllele === v.refAllele) &&
+            (r.leadAltAllele === v.altAllele) &&
+            (r.studyId === studyId) &&
+            (r.dataType =!= GWASLiteral) &&
+            (r.phenotypeId === phenotypeId) &&
+            (r.bioFeature === bioFeatureId))
+          .map(_.tagVariantWithStats)
+
+        db.run(q.result.asTry).map {
+          case Success(vec) => vec
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Seq.empty
+        }
+
+      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+    }
+  }
+
+  def gwasRegionalFromSumstats(studyId: String, chromosome: String, startPos: Long, endPos: Long): Future[Seq[(SimpleVariant, Double)]] = {
+    (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
+      case (Right(chr), Right((start, end))) =>
+        val q = sumstatsGWAS
+          .filter(r => (r.chrom === chr) &&
+            (r.pos >= startPos) &&
+            (r.pos <= endPos) &&
+            (r.studyId === studyId))
+          .map(_.variantAndPVal)
+
+        dbSS.run(q.result.asTry).map {
+          case Success(xs) => xs
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Seq.empty
+        }
+
+      case (chrEither, rangeEither) =>
+        Future.failed(InputParameterCheckError(
+          Vector(chrEither, rangeEither).filter(_.isLeft).map(_.left.get).asInstanceOf[Vector[Violation]]))
+    }
+  }
+
+  def qtlRegionalFromSumstats(studyId: String, bioFeature: String, phenotypeId: String,
+                              chromosome: String, startPos: Long, endPos: Long): Future[Seq[(SimpleVariant, Double)]] = {
+    (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
+      case (Right(chr), Right((start, end))) =>
+        val q = sumstatsMolTraits
+          .filter(r => (r.chrom === chr) &&
+            (r.pos >= startPos) &&
+            (r.pos <= endPos) &&
+            (r.bioFeature === bioFeature) &&
+            (r.phenotypeId === phenotypeId) &&
+            (r.studyId === studyId))
+          .map(_.variantAndPVal)
+
+        dbSS.run(q.result.asTry).map {
+          case Success(xs) => xs
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Seq.empty
+        }
+      case (chrEither, rangeEither) =>
+        Future.failed(InputParameterCheckError(
+          Vector(chrEither, rangeEither).filter(_.isLeft).map(_.left.get).asInstanceOf[Vector[Violation]]))
     }
   }
 
@@ -117,10 +304,10 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
       (for {
         entry <- elems
       } yield Entities.G2VSchemaElement(entry._1._1, entry._1._2,
-        (v2gLabels \ entry._1._2 \ "display_label").asOpt[String],
-        (v2gLabels \ entry._1._2 \ "overview_tooltip").asOpt[String],
-        (v2gLabels \ entry._1._2 \ "tab_subtitle").asOpt[String],
-        (v2gLabels \ entry._1._2 \ "pmid").asOpt[String],
+        (v2gLabels(entry._1._2) \ "display_label").asOpt[String],
+        (v2gLabels(entry._1._2) \ "overview_tooltip").asOpt[String],
+        (v2gLabels(entry._1._2) \ "tab_subtitle").asOpt[String],
+        (v2gLabels(entry._1._2) \ "pmid").asOpt[String],
         entry._2.map(Tissue).toVector)).toSeq
     }
 
@@ -165,7 +352,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         studiesQ
       }.zip {
         esQ.execute {
-          val vToken: String = Variant(qString) match {
+          val vToken: String = Variant.fromString(qString) match {
             case Right(v) => v.id
             case _ => qString
           }
@@ -175,7 +362,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         }
       }.zip {
         esQ.execute {
-          search("genes") query boolQuery.should(termQuery("gene_id.keyword", qString.toUpperCase),
+          search("genes") query boolQuery.should(termQuery("gene_id.keyword", qString.toUpperCase)
+            .boost(100D),
+            termQuery("gene_name", qString.toUpperCase).boost(100D),
             matchQuery("gene_name", qString)
               .fuzziness("0")
               .maxExpansions(20)
@@ -205,8 +394,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   Future[Entities.OverlappedLociStudy] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
-    val tableName = "studies_overlap_exploded"
+    val tableName = "studies_overlap"
 
+    // TODO generate a vararg select expression for uniq instead a column expression
     val plainQ =
       sql"""
            |select
@@ -306,6 +496,26 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  def getGenesByRegion(chromosome: String, startPos: Long, endPos: Long): Future[Seq[Gene]] = {
+    (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
+      case (Right(chr), Right((start, end))) =>
+        val q = genes
+          .filter(r => (r.chromosome === chr) &&
+            ((r.start >= start && r.start <= end) || (r.end >= start && r.end <= end)))
+
+        db.run(q.result.asTry).map {
+          case Success(v) => v
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            Seq.empty
+        }
+
+      case (chrEither, rangeEither) =>
+        Future.failed(InputParameterCheckError(
+          Vector(chrEither, rangeEither).filter(_.isLeft).map(_.left.get).asInstanceOf[Vector[Violation]]))
+    }
+  }
+
   def getGenes(geneIds: Seq[String]): Future[Seq[Gene]] = {
     if (geneIds.nonEmpty) {
       val q = genes.filter(r => r.id inSetBind geneIds)
@@ -335,7 +545,9 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         case Success(v) =>
           val missingVIds = variantIds diff v.map(_.id)
 
-          v ++ missingVIds.map(DNA.Variant(_)).withFilter(_.isRight).map(_.right.get)
+          if (missingVIds.nonEmpty) {
+            v ++ missingVIds.map(DNA.Variant.fromString).withFilter(_.isRight).map(_.right.get)
+          } else v
         case Failure(ex) =>
           logger.error("BDIOAction failed with " + ex.getMessage)
           Seq.empty
@@ -363,82 +575,25 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def buildManhattanTable(studyId: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[Entities.ManhattanTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
-    val idxVariants = sql"""
-      |SELECT DISTINCT
-      |    lead_chrom,
-      |    lead_pos,
-      |    lead_ref,
-      |    lead_alt,
-      |    pval,
-      |    pval_mantissa,
-      |    pval_exponent,
-      |    odds,
-      |    oddsL,
-      |    oddsU,
-      |    direction,
-      |    beta,
-      |    betaL,
-      |    betaU,
-      |    credibleSetSize,
-      |    ldSetSize,
-      |    uniq_variants,
-      |    top_pairs.1 as top_genes_ids,
-      |    top_pairs.2 as top_genes_scores
-      |FROM
-      |(
-      |   SELECT
-      |    lead_chrom,
-      |    lead_pos,
-      |    lead_ref,
-      |    lead_alt,
-      |    any(pval) AS pval,
-      |    any(pval_mantissa) AS pval_mantissa,
-      |    any(pval_exponent) AS pval_exponent,
-      |    any(odds_ratio) as odds,
-      |    any(oddsr_ci_lower) as oddsL,
-      |    any(oddsr_ci_upper) as oddsU,
-      |    any(direction) as direction,
-      |    any(beta) as beta,
-      |    any(beta_ci_lower) as betaL,
-      |    any(beta_ci_upper) as betaU,
-      |    uniqIf((tag_chrom, tag_pos, tag_ref, tag_alt), posterior_prob > 0.) AS credibleSetSize,
-      |    uniqIf((tag_chrom, tag_pos, tag_ref, tag_alt), overall_r2 > 0.) AS ldSetSize,
-      |    uniq(tag_chrom, tag_pos, tag_ref, tag_alt) AS uniq_variants
-      |FROM ot.v2d_by_stchr
-      |PREWHERE study_id = $studyId
-      |GROUP BY
-      |    lead_chrom,
-      |    lead_pos,
-      |    lead_ref,
-      |    lead_alt
-      |)
-      | ALL LEFT OUTER JOIN
-      |(
-      |    SELECT
-      |        lead_chrom,
-      |        lead_pos,
-      |        lead_ref,
-      |        lead_alt,
-      |        arrayReverseSort(arrayReduce('groupUniqArray', groupArray((gene_id, overall_score)))) AS top_pairs
-      |    FROM ot.d2v2g_scored
-      |    PREWHERE study_id = $studyId
-      |    GROUP BY
-      |     lead_chrom,
-      |     lead_pos,
-      |     lead_ref,
-      |     lead_alt
-      |) USING (lead_chrom, lead_pos, lead_ref, lead_alt)
-      |#$limitClause
-      """.stripMargin.as[V2DByStudy]
 
+    val topLociEnrich =
+      sql"""
+            |SELECT *
+            |FROM ot.manhattan
+            |WHERE study = $studyId
+            |#$limitClause
+         """.stripMargin.as[V2DByStudy]
+
+      // |#$limitClause
     // map to proper manhattan association with needed fields
-    db.run(idxVariants.asTry).map {
+    db.run(topLociEnrich.asTry).map {
       case Success(v) => ManhattanTable(studyId,
         v.map(el => {
           ManhattanAssociation(el.variantId, el.pval,
             el.pval_mantissa, el.pval_exponent,
             el.v2dOdds, el.v2dBeta,
-            el.topGenes, el.credibleSetSize, el.ldSetSize, el.totalSetSize)
+            el.topGenes, el.topColocGenes,
+            el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
       case Failure(ex) =>
@@ -450,7 +605,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def buildIndexVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[VariantToDiseaseTable] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
-    val variant = Variant(variantID)
+    val variant = Variant.fromString(variantID)
 
     variant match {
       case Right(v) =>
@@ -478,7 +633,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   def buildTagVariantAssocTable(variantID: String, pageIndex: Option[Int], pageSize: Option[Int]):
   Future[VariantToDiseaseTable] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
-    val variant = Variant(variantID)
+    val variant = Variant.fromString(variantID)
 
     variant match {
       case Right(v) =>
@@ -567,7 +722,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
   }
 
   def buildG2VByVariant(variantId: String): Future[Seq[Entities.G2VAssociation]] = {
-    val variant = DNA.Variant(variantId)
+    val variant = DNA.Variant.fromString(variantId)
 
     variant match {
       case Right(v) =>
@@ -638,6 +793,4 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
         Seq.empty
     }
   }
-
-  private val gwasSumStatsTName: String = "gwas_chr_%s"
 }

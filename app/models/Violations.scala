@@ -27,7 +27,7 @@ object Violations {
   val inChromosomeRegionErrorMsg: String =
     "Ouch! The chromosome region was not properly specified. 'start' argument must be a positive number " +
       "and < 'end' argument. Also, the argument 'end' must be a positive number and > 'start'. And 'end' " +
-      "- 'start' <= 2Mbs."
+      "- 'start' <= %d."
 
   val denseRegionErrorMsg: String =
     "We are sorry but this region '(%s:%d-%d)' contains a lot of raw data. We are currently working on an " +
@@ -39,7 +39,7 @@ object Violations {
     region.start, region.end))
   case class GeneViolation(msg: String) extends BaseViolation(geneErrorMsg format msg)
   case class ChromosomeViolation(msg: String) extends BaseViolation(chromosomeErrorMsg format msg)
-  case class InChromosomeRegionViolation() extends BaseViolation(inChromosomeRegionErrorMsg)
+  case class InChromosomeRegionViolation(regionLength: Long) extends BaseViolation(inChromosomeRegionErrorMsg format regionLength)
   case class SearchStringViolation() extends BaseViolation(searchStringErrorMsg)
 
   case class InputParameterCheckError(violations: Vector[Violation])

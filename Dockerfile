@@ -1,4 +1,4 @@
-FROM gcr.io/google-appengine/openjdk:8
+FROM openjdk:11
 RUN mkdir -p /srv/app
 
 COPY target/universal/ot-genetics-api-latest.zip /srv/app/ot-genetics-api-latest.zip

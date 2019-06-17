@@ -23,7 +23,7 @@ object FRM {
   implicit val seqStringType: ClickHouseProfile.BaseColumnType[Seq[String]] =
     MappedColumnType.base[Seq[String], String](_.map("'" + _ + "'").mkString("[", ",", "]"), StrSeqRep(_))
 
-  class Overlaps(tag: Tag) extends Table[VariantStudyOverlapsRow](tag, "studies_overlap_exploded") {
+  class Overlaps(tag: Tag) extends Table[VariantStudyOverlapsRow](tag, "studies_overlap") {
     def chromA  = column[String]("A_chrom")
     def posA = column[Long]("A_pos")
     def refA = column[String]("A_ref")
@@ -67,7 +67,9 @@ object FRM {
   class Variants(tag: Tag) extends Table[Variant](tag, "variants") {
     def id = column[String]("variant_id")
     def chromosome = column[String]("chr_id")
+    def chromosomeB37 = column[Option[String]]("chr_id_b37")
     def position = column[Long]("position")
+    def positionB37 = column[Option[Long]]("position_b37")
     def refAllele = column[String]("ref_allele")
     def altAllele = column[String]("alt_allele")
     def rsId = column[Option[String]]("rs_id")
@@ -105,7 +107,7 @@ object FRM {
 
     def * =
       (chromosome, position, refAllele, altAllele, rsId,
-      annotations, caddAnnotations, gnomadAnnotations).mapTo[Variant]
+      annotations, caddAnnotations, gnomadAnnotations, chromosomeB37, positionB37).mapTo[Variant]
   }
 
   class Studies(tag: Tag) extends Table[Study](tag, "studies") {
@@ -117,6 +119,7 @@ object FRM {
     def pubJournal = column[Option[String]]("pub_journal")
     def pubTitle = column[Option[String]]("pub_title")
     def pubAuthor = column[Option[String]]("pub_author")
+    def hasSumstats = column[Option[Boolean]]("has_sumstats")
     def ancestryInitial = column[Seq[String]]("ancestry_initial")
     def ancestryReplication = column[Seq[String]]("ancestry_replication")
     def nInitial = column[Option[Long]]("n_initial")
@@ -126,7 +129,7 @@ object FRM {
     def numAssocLoci = column[Option[Long]]("num_assoc_loci")
     def * = (
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
+      pubAuthor, hasSumstats, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
       traitCategory, numAssocLoci).mapTo[Study]
   }
 
@@ -147,6 +150,7 @@ object FRM {
     def pubJournal = column[Option[String]]("pub_journal")
     def pubTitle = column[Option[String]]("pub_title")
     def pubAuthor = column[Option[String]]("pub_author")
+    def hasSumstats = column[Option[Boolean]]("has_sumstats")
     def ancestryInitial = column[Seq[String]]("ancestry_initial")
     def ancestryReplication = column[Seq[String]]("ancestry_replication")
     def nInitial = column[Option[Long]]("n_initial")
@@ -156,7 +160,7 @@ object FRM {
     def numAssocLoci = column[Option[Long]]("num_assoc_loci")
     def study = (
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
+      pubAuthor, hasSumstats, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
       traitCategory, numAssocLoci).mapTo[Study]
 
     def tagChromosome = column[String]("tag_chrom")
@@ -215,6 +219,7 @@ object FRM {
     def pubJournal = column[Option[String]]("pub_journal")
     def pubTitle = column[Option[String]]("pub_title")
     def pubAuthor = column[Option[String]]("pub_author")
+    def hasSumstats = column[Option[Boolean]]("has_sumstats")
     def ancestryInitial = column[Seq[String]]("ancestry_initial")
     def ancestryReplication = column[Seq[String]]("ancestry_replication")
     def nInitial = column[Option[Long]]("n_initial")
@@ -224,7 +229,7 @@ object FRM {
     def numAssocLoci = column[Option[Long]]("num_assoc_loci")
     def study = (
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
+      pubAuthor, hasSumstats, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
       traitCategory, numAssocLoci).mapTo[Study]
 
     def tagChromosome = column[String]("tag_chrom")
@@ -387,6 +392,7 @@ object FRM {
     def pubJournal = column[Option[String]]("pub_journal")
     def pubTitle = column[Option[String]]("pub_title")
     def pubAuthor = column[Option[String]]("pub_author")
+    def hasSumstats = column[Option[Boolean]]("has_sumstats")
     def ancestryInitial = column[Seq[String]]("ancestry_initial")
     def ancestryReplication = column[Seq[String]]("ancestry_replication")
     def nInitial = column[Option[Long]]("n_initial")
@@ -396,7 +402,7 @@ object FRM {
     def numAssocLoci = column[Option[Long]]("num_assoc_loci")
     def study = (
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
+      pubAuthor, hasSumstats, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
       traitCategory, numAssocLoci).mapTo[Study]
 
     def tagChromosome = column[String]("tag_chrom")
@@ -493,6 +499,7 @@ object FRM {
     def pubJournal = column[Option[String]]("pub_journal")
     def pubTitle = column[Option[String]]("pub_title")
     def pubAuthor = column[Option[String]]("pub_author")
+    def hasSumstats = column[Option[Boolean]]("has_sumstats")
     def ancestryInitial = column[Seq[String]]("ancestry_initial")
     def ancestryReplication = column[Seq[String]]("ancestry_replication")
     def nInitial = column[Option[Long]]("n_initial")
@@ -502,7 +509,7 @@ object FRM {
     def numAssocLoci = column[Option[Long]]("num_assoc_loci")
     def study = (
       studyId, traitReported, traitEfos, pubId, pubDate, pubJournal, pubTitle,
-      pubAuthor, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
+      pubAuthor, hasSumstats, ancestryInitial, ancestryReplication, nInitial, nReplication, nCases,
       traitCategory, numAssocLoci).mapTo[Study]
 
     def tagChromosome = column[String]("tag_chrom")
@@ -621,5 +628,150 @@ object FRM {
 
     def * =
       (variant, geneId, sources, sourceScores, overallScore).mapTo[OverallScoreRow]
+  }
+
+  class Coloc(tag: Tag) extends Table[ColocRow](tag, "v2d_coloc") {
+    def h0 = column[Double]("coloc_h0")
+    def h1 = column[Double]("coloc_h1")
+    def h2 = column[Double]("coloc_h2")
+    def h3 = column[Double]("coloc_h3")
+    def h4 = column[Double]("coloc_h4")
+    def h4h3 = column[Double]("coloc_h4_h3")
+    def log2h4h3 = column[Double]("coloc_log2_h4_h3")
+    def nVars = column[Long]("coloc_n_vars")
+    def lVariantRStudyBeta = column[Option[Double]]("left_var_right_study_beta")
+    def lVariantRStudySE = column[Option[Double]]("left_var_right_study_se")
+    def lVariantRStudyPVal = column[Option[Double]]("left_var_right_study_pval")
+    def lVariantRIsCC = column[Option[Boolean]]("left_var_right_isCC")
+
+    def hs = (h0, h1, h2, h3, h4, h4h3, log2h4h3, nVars,
+      lVariantRStudyBeta, lVariantRStudySE, lVariantRStudyPVal,
+      lVariantRIsCC)
+        .mapTo[ColocRowHs]
+
+    def isFlipped = column[Boolean]("is_flipped")
+
+    def lStudy = column[String]("left_study")
+    def lType = column[String]("left_type")
+    def lChrom = column[String]("left_chrom")
+    def lPos = column[Long]("left_pos")
+    def lRef = column[String]("left_ref")
+    def lAlt = column[String]("left_alt")
+
+    def lVariant = (lChrom, lPos, lRef, lAlt).mapTo[SimpleVariant]
+
+    def rStudy = column[String]("right_study")
+    def rType = column[String]("right_type")
+    def rChrom = column[String]("right_chrom")
+    def rPos = column[Long]("right_pos")
+    def rRef = column[String]("right_ref")
+    def rAlt = column[String]("right_alt")
+
+    def rVariant = (rChrom, rPos, rRef, rAlt).mapTo[SimpleVariant]
+
+    def rGeneId = column[Option[String]]("right_gene_id")
+    def rBioFeature = column[Option[String]]("right_bio_feature")
+    def rPhenotype = column[Option[String]]("right_phenotype")
+
+    def rightGWAS = (hs, isFlipped, rVariant, rStudy)
+      .mapTo[RightGWASColocRow]
+
+    def rightQTL = (hs, isFlipped, rVariant, rStudy, rType,
+      rGeneId, rBioFeature, rPhenotype).mapTo[RightQTLColocRow]
+
+    def * = (lVariant, lStudy, lType, hs, isFlipped,
+      rVariant, rStudy, rType, rGeneId, rBioFeature, rPhenotype).mapTo[ColocRow]
+  }
+
+  class CredSet(tag: Tag) extends Table[CredSetRow](tag, "v2d_credset") {
+    def studyId = column[String]("study_id")
+    def bioFeature = column[Option[String]]("bio_feature")
+    def phenotypeId = column[Option[String]]("phenotype_id")
+    def dataType = column[String]("data_type")
+
+    def tagChromosome = column[String]("tag_chrom")
+    def tagPosition = column[Long]("tag_pos")
+    def tagRefAllele = column[String]("tag_ref")
+    def tagAltAllele = column[String]("tag_alt")
+    def tagVariant =
+      (tagChromosome, tagPosition, tagRefAllele, tagAltAllele).mapTo[SimpleVariant]
+
+    def leadChromosome = column[String]("lead_chrom")
+    def leadPosition = column[Long]("lead_pos")
+    def leadRefAllele = column[String]("lead_ref")
+    def leadAltAllele = column[String]("lead_alt")
+    def leadVariant =
+      (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
+
+    def postProb = column[Double]("postprob")
+    def tagBeta = column[Double]("tag_beta")
+    def tagPval = column[Double]("tag_pval")
+    def tagSE = column[Double]("tag_se")
+    def is95 = column[Boolean]("is95_credset")
+    def is99 = column[Boolean]("is99_credset")
+    def logABF = column[Double]("logABF")
+    def multiSignalMethod = column[String]("multisignal_method")
+
+    def stats = (postProb, tagBeta, tagPval, tagSE, is95, is99, logABF, multiSignalMethod)
+      .mapTo[CredSetRowStats]
+
+    def tagVariantWithStats = (tagVariant, stats)
+
+    def * = (studyId, leadVariant, tagVariant, stats,
+      bioFeature, phenotypeId, dataType).mapTo[CredSetRow]
+  }
+
+  class SumStatsGWAS(tag: Tag) extends Table[SumStatsGWASRow](tag, "v2d_sa_gwas") {
+    def typeId = column[String]("type_id")
+    def studyId = column[String]("study_id")
+    def chrom = column[String]("chrom")
+    def pos = column[Long]("pos")
+    def ref = column[String]("ref")
+    def alt = column[String]("alt")
+    def eaf = column[Option[Double]]("eaf")
+    def mac = column[Option[Double]]("mac")
+    def macCases = column[Option[Double]]("mac_cases")
+    def info = column[Option[Double]]("info")
+    def beta = column[Option[Double]]("beta")
+    def se = column[Option[Double]]("se")
+    def pval = column[Double]("pval")
+    def nTotal = column[Option[Long]]("n_total")
+    def nCases = column[Option[Long]]("n_cases")
+    def isCC = column[Boolean]("is_cc")
+
+    def variant = (chrom, pos, ref, alt).mapTo[SimpleVariant]
+
+    def variantAndPVal = (variant, pval)
+
+    def * = (typeId, studyId, variant, eaf, mac, macCases, info, beta, se,
+      pval, nTotal, nCases, isCC).mapTo[SumStatsGWASRow]
+  }
+
+  class SumStatsMolTraits(tag: Tag) extends Table[SumStatsMolTraitsRow](tag, "v2d_sa_molecular_trait") {
+    def typeId = column[String]("type_id")
+    def studyId = column[String]("study_id")
+    def chrom = column[String]("chrom")
+    def pos = column[Long]("pos")
+    def ref = column[String]("ref")
+    def alt = column[String]("alt")
+    def eaf = column[Option[Double]]("eaf")
+    def mac = column[Option[Double]]("mac")
+    def numTests = column[Option[Double]]("num_tests")
+    def info = column[Option[Double]]("info")
+    def beta = column[Option[Double]]("beta")
+    def se = column[Option[Double]]("se")
+    def pval = column[Double]("pval")
+    def nTotal = column[Option[Long]]("n_total")
+    def isCC = column[Boolean]("is_cc")
+    def phenotypeId = column[String]("phenotype_id")
+    def geneId = column[String]("gene_id")
+    def bioFeature = column[String]("bio_feature")
+
+    def variant = (chrom, pos, ref, alt).mapTo[SimpleVariant]
+
+    def variantAndPVal = (variant, pval)
+
+    def * = (typeId, studyId, variant, eaf, mac, numTests, info, beta, se,
+      pval, nTotal, isCC, phenotypeId, geneId, bioFeature).mapTo[SumStatsMolTraitsRow]
   }
 }

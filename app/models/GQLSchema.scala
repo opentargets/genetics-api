@@ -4,7 +4,7 @@ import sangria.execution.deferred._
 import sangria.schema._
 import Entities._
 import Functions._
-import models.DNA.{Gene, Variant}
+import models.DNA.{Gene, SimpleVariant, Variant}
 import models.GQLSchema.{gene, genesFetcher, scoredGene, studiesFetcher, study, variant, variantsFetcher}
 
 trait GQLGene {
@@ -64,6 +64,7 @@ trait GQLGene {
 trait GQLVariant {
   implicit val variantHasId = HasId[Variant, String](_.id)
 
+
   val variantsFetcher = Fetcher(
     config = FetcherConfig.maxBatchSize(1000),
     fetch = (ctx: Backend, variantIds: Seq[String]) => {ctx.getVariants(variantIds)})
@@ -72,8 +73,11 @@ trait GQLVariant {
     "This element represents a variant object",
     fields[Backend, DNA.Variant](
       Field("id", StringType,
-        Some("Ensembl Gene ID of a gene"),
+        Some("Variant ID"),
         resolve = _.value.id),
+      Field("idB37", OptionType(StringType),
+        Some("Variant ID GRCH37"),
+        resolve = _.value.idB37),
       Field("rsId", OptionType(StringType),
         Some("Approved symbol name of a gene"),
         resolve = _.value.rsId),
@@ -83,6 +87,12 @@ trait GQLVariant {
       Field("position", LongType,
         Some("Approved symbol name of a gene"),
         resolve = _.value.position),
+      Field("chromosomeB37", OptionType(StringType),
+        Some("chrom id GRCH37"),
+        resolve = _.value.chromosomeB37),
+      Field("positionB37", OptionType(LongType),
+        Some("Approved symbol name of a gene"),
+        resolve = _.value.positionB37),
       Field("refAllele", StringType,
         Some("Ref allele"),
         resolve = _.value.refAllele),
@@ -180,6 +190,9 @@ trait GQLStudy {
       Field("pubAuthor", OptionType(StringType),
         Some("Publication author"),
         resolve = _.value.pubAuthor),
+      Field("hasSumsStats", OptionType(BooleanType),
+        Some("Contains summary stats info"),
+        resolve = _.value.hasSumstats),
       Field("ancestryInitial", ListType(StringType),
         Some("Ancestry initial"),
         resolve = _.value.ancestryInitial),
@@ -445,6 +458,9 @@ trait GQLManhattanAssociation {
       Field("bestGenes", ListType(scoredGene),
         Some("A list of best genes associated"),
         resolve = _.value.bestGenes),
+      Field("bestColocGenes", ListType(scoredGene),
+        Some("A list of best genes associated"),
+        resolve = _.value.bestColocGenes),
       Field("credibleSetSize", OptionType(LongType),
         Some("The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
         resolve = _.value.crediblbeSetSize),
@@ -462,6 +478,7 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
 
   val studyId = Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
   val geneId = Argument("geneId", StringType, description = "Gene ID using Ensembl identifier")
+  val phenotypeId = Argument("phenotypeId", StringType, description = "Phenotype ID using Ensembl identifier for the molecular traits")
   val studyIds = Argument("studyIds", ListInputType(StringType), description = "List of study IDs")
   val variantId = Argument("variantId", StringType, description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
   val variantIds = Argument("variantIds", ListInputType(StringType), description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
@@ -471,42 +488,80 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
   val dnaPosStart = Argument("start", LongType, description = "Start position in a specified chromosome")
   val dnaPosEnd = Argument("end", LongType, description = "End position in a specified chromosome")
   val queryString = Argument("queryString", StringType, description = "Query text to search for")
+  val bioFeature = Argument("bioFeature", StringType, description = "BioFeature represents either a tissue, cell type, aggregation type, ...")
 
   val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
 
+  val regionalAssociation = ObjectType("RegionalAssociation",
+    "Variant with a p-val",
+    fields[Backend,(SimpleVariant, Double)](
+      Field("variant", variant,
+        Some("Summary Stats simple variant information"),
+        resolve = r => DNA.Variant.fromString(r.value._1.id).right.get),
+      Field("pval", FloatType,
+        Some("p-val"),
+        resolve = _.value._2)
+    ))
+
+  val credSetTagElement = ObjectType("CredSetTagElement",
+  "Thsi element represents the tag variant with its associated statistics",
+    fields[Backend, (SimpleVariant, CredSetRowStats)](
+      Field("tagVariant", variant,
+        Some("Tag Variant in the credibleset table"),
+        resolve = r => DNA.Variant.fromString(r.value._1.id).right.get),
+      Field("pval", FloatType,
+        Some("p-val"),
+        resolve = _.value._2.tagPval),
+      Field("se", FloatType,
+        Some("SE"),
+        resolve = _.value._2.tagSE),
+      Field("beta", FloatType,
+        Some("beta"),
+        resolve = _.value._2.tagBeta),
+      Field("postProb", FloatType,
+        Some("Posterior Probability"),
+        resolve = _.value._2.postProb),
+      Field("MultisignalMethod", StringType,
+        Some("Multisignal Method"),
+        resolve = _.value._2.multiSignalMethod),
+      Field("logABF", FloatType,
+        Some("Log ABF"),
+        resolve = _.value._2.logABF),
+      Field("is95", BooleanType,
+        Some("Is over 95 percentile"),
+        resolve = _.value._2.is95),
+      Field("is99", BooleanType,
+        Some("Is over 99 percentile"),
+        resolve = _.value._2.is99)
+    ))
+
   val pheWASAssociation = ObjectType("PheWASAssociation",
     "This element represents an association between a variant and a reported trait through a study",
-    fields[Backend, VariantPheWAS](
+    fields[Backend, SumStatsGWASRow](
       Field("study", OptionType(study),
         Some("Study Object"),
-        resolve = rsl => studiesFetcher.deferOpt(rsl.value.stid)),
+        resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
       Field("pval", FloatType,
         Some("Computed p-Value"),
         resolve = _.value.pval),
-      Field("beta", FloatType,
+      Field("beta", OptionType(FloatType),
         Some("beta"),
         resolve = _.value.beta),
       Field("nTotal", OptionType(LongType),
         Some("total sample size (variant level)"),
-        resolve = _.value.nSamplesVariant),
+        resolve = _.value.nTotal),
       Field("nCases", OptionType(LongType),
-        Some("number of cases (variant level)"),
-        resolve = _.value.nCasesVariant),
-      Field("nTotalStudy", OptionType(LongType),
-        Some("total sample size (study level, available when variant level is not provided)"),
-        resolve = _.value.nSamplesStudy),
-      Field("nCasesStudy", OptionType(LongType),
-        Some("number of cases (study level, available when variant level is not provided)"),
-        resolve = _.value.nCasesStudy),
+        Some("number of cases"),
+        resolve = _.value.nCases),
       Field("oddsRatio", OptionType(FloatType),
         Some("Odds ratio (if case control)"),
-        resolve = _.value.oddRatio),
-      Field("chip", StringType,
-        Some("Chip type: 'metabochip' 'inmunochip', 'genome wide'"),
-        resolve = _.value.chip),
-      Field("info", OptionType(FloatType),
-        Some("Info"),
-        resolve = _.value.info)
+        resolve = _.value.oddsRatio),
+      Field("eaf", OptionType(FloatType),
+        Some("Effect Allele Frequency"),
+        resolve = _.value.eaf),
+      Field("se", OptionType(FloatType),
+        Some("Standard Error"),
+        resolve = _.value.se)
     ))
 
   val geneTagVariant = ObjectType("GeneTagVariant",
@@ -674,12 +729,16 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = ctx => ctx.ctx.getTopOverlappedStudies(ctx.value.studyId, ctx.arg(pageIndex), ctx.arg(pageSize)))
     ))
 
+  // TODO that number should be updated with sumstats changes. not sure what to do at the moment
   val pheWAS = ObjectType("PheWAS",
     "This element represents a PheWAS like plot",
-    fields[Backend, PheWASTable](
+    fields[Backend, Seq[SumStatsGWASRow]](
+      Field("totalGWASStudies", LongType,
+        Some("A total number of unique GWAS studies in the summary stats table"),
+        resolve = _ => 3618L),
       Field("associations", ListType(pheWASAssociation),
         Some("A list of associations"),
-        resolve = _.value.associations)
+        resolve = _.value)
     ))
 
   val tagVariantsAndStudiesForIndexVariant = ObjectType("TagVariantsAndStudiesForIndexVariant",
@@ -940,12 +999,121 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = _.value.studies)
     ))
 
+  val gwasSlimmedColocalisation = ObjectType(
+    "GWASLRColocalisation", fields[Backend, ColocRow](
+      Field("leftVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = r => variantsFetcher.defer(r.value.lVariant.id)),
+      Field("leftStudy", study,
+        Some("study ID"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.lStudy)),
+      Field("rightVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = r => variantsFetcher.defer(r.value.rVariant.id)),
+      Field("rightStudy", study,
+        Some("study ID"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.rStudy)),
+      Field("h3", FloatType,
+        Some("H3"),
+        resolve = _.value.hs.h3),
+      Field("h4", FloatType,
+        Some("H4"),
+        resolve = _.value.hs.h4),
+      Field("log2h4h3", FloatType,
+        Some("Log2 H4/H3"),
+        resolve = _.value.hs.log2h4h3)
+    ))
+
+  val gwasColocalisationForQTLWithGene = ObjectType(
+    "GWASColocalisationForQTLWithGene", fields[Backend, ColocRow](
+      Field("leftVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = r => variantsFetcher.defer(r.value.lVariant.id)),
+      Field("study", study,
+        Some("GWAS Study"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.lStudy)),
+      Field("qtlStudyId", StringType,
+        Some("QTL study ID"),
+        resolve = _.value.rStudy),
+      Field("phenotypeId", StringType,
+        Some("Phenotype ID"),
+        resolve = _.value.rPhenotype.get),
+      Field("tissue", tissue,
+        Some("QTL bio-feature"),
+        resolve = r => Tissue(r.value.rBioFeature.get)),
+      Field("h3", FloatType,
+        Some("H3"),
+        resolve = _.value.hs.h3),
+      Field("h4", FloatType,
+        Some("H4"),
+        resolve = _.value.hs.h4),
+      Field("log2h4h3", FloatType,
+        Some("Log2 H4/H3"),
+        resolve = _.value.hs.log2h4h3)
+    ))
+
+  val gwasColocalisation = ObjectType(
+    "GWASColocalisation", fields[Backend, ColocRow](
+      Field("indexVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = r => variantsFetcher.defer(r.value.rVariant.id)),
+      Field("study", study,
+        Some("study ID"),
+        resolve = rsl => studiesFetcher.defer(rsl.value.rStudy)),
+      Field("beta", OptionType(FloatType),
+        Some("Beta"),
+        resolve = _.value.hs.lVariantRStudyBeta),
+      Field("h3", FloatType,
+        Some("H3"),
+        resolve = _.value.hs.h3),
+      Field("h4", FloatType,
+        Some("H4"),
+        resolve = _.value.hs.h4),
+      Field("log2h4h3", FloatType,
+        Some("Log2 H4/H3"),
+        resolve = _.value.hs.log2h4h3)
+    ))
+
+  val qtlColocalisation = ObjectType(
+    "QTLColocalisation", fields[Backend, ColocRow](
+      Field("indexVariant", variant,
+        Some("Tag variant ID as ex. 1_12345_A_T"),
+        resolve = r => variantsFetcher.defer(r.value.rVariant.id)),
+      Field("gene", gene,
+        Some("Gene"),
+        resolve = rsl => genesFetcher.defer(rsl.value.rGeneId.get)),
+      Field("phenotypeId", StringType,
+        Some("QTL Phenotype ID"),
+        resolve = r => r.value.rPhenotype.get),
+      Field("tissue", tissue,
+        Some("QTL bio-feature"),
+        resolve = r => Tissue(r.value.rBioFeature.get)),
+      Field("qtlStudyName", StringType,
+        Some("QTL study ID"),
+        resolve = r => r.value.rStudy),
+      Field("beta", OptionType(FloatType),
+        Some("Beta"),
+        resolve = _.value.hs.lVariantRStudyBeta),
+      Field("h3", FloatType,
+        Some("H3"),
+        resolve = _.value.hs.h3),
+      Field("h4", FloatType,
+        Some("H4"),
+        resolve = _.value.hs.h4),
+      Field("log2h4h3", FloatType,
+        Some("Log2 H4/H3"),
+        resolve = _.value.hs.log2h4h3)
+    ))
+
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("search", searchResult,
         arguments = queryString :: pageIndex :: pageSize :: Nil,
         resolve = ctx =>
           ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
+      Field("genes", ListType(gene),
+        arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+        resolve = ctx => ctx.ctx.getGenesByRegion(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
       Field("geneInfo", OptionType(gene),
         arguments = geneId :: Nil,
         resolve = ctx => genesFetcher.deferOpt(ctx.arg(geneId))),
@@ -977,7 +1145,7 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
           ctx.ctx.buildTagVariantAssocTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("pheWAS", pheWAS,
         arguments = variantId :: pageIndex :: pageSize :: Nil,
-        resolve = ctx => ctx.ctx.buildPheWASTable(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
+        resolve = ctx => ctx.ctx.buildPhewFromSumstats(ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("gecko", OptionType(gecko),
         arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
         resolve = ctx => ctx.ctx.buildGecko(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
@@ -987,8 +1155,36 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
       Field("genesForVariant", ListType(geneForVariant),
         arguments = variantId :: Nil,
         resolve = ctx => ctx.ctx.buildG2VByVariant(ctx.arg(variantId))),
+      Field("gwasRegional", ListType(regionalAssociation),
+        arguments = studyId :: chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+        resolve = ctx => ctx.ctx.gwasRegionalFromSumstats(ctx.arg(studyId), ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
+      Field("qtlRegional", ListType(regionalAssociation),
+        arguments = studyId :: bioFeature :: phenotypeId :: chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+        resolve = ctx => ctx.ctx.qtlRegionalFromSumstats(ctx.arg(studyId), ctx.arg(bioFeature),
+          ctx.arg(phenotypeId), ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
+      Field("gwasCredibleSet", ListType(credSetTagElement),
+        arguments = studyId :: variantId :: Nil,
+        resolve = ctx => ctx.ctx.gwasCredibleSet(ctx.arg(studyId), ctx.arg(variantId))),
+      Field("qtlCredibleSet", ListType(credSetTagElement),
+        arguments = studyId :: variantId :: phenotypeId :: bioFeature :: Nil,
+        resolve = ctx =>
+          ctx.ctx.qtlCredibleSet(ctx.arg(studyId), ctx.arg(variantId),
+            ctx.arg(phenotypeId), ctx.arg(bioFeature))),
+      Field("colocalisationsForGene", ListType(gwasColocalisationForQTLWithGene),
+        arguments = geneId :: Nil,
+        resolve = ctx => ctx.ctx.colocalisationsForGene(ctx.arg(geneId))),
+      Field("gwasColocalisationForRegion", ListType(gwasSlimmedColocalisation),
+        arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+        resolve = ctx => ctx.ctx.gwasColocalisationForRegion(ctx.arg(chromosome),
+          ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
+      Field("gwasColocalisation", ListType(gwasColocalisation),
+        arguments = studyId :: variantId :: Nil,
+        resolve = ctx => ctx.ctx.gwasColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
+      Field("qtlColocalisation", ListType(qtlColocalisation),
+        arguments = studyId :: variantId :: Nil,
+        resolve = ctx =>
+          ctx.ctx.qtlColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
 
-      // TODO complete the function from the backend
       Field("studiesAndLeadVariantsForGene", ListType(studiesAndLeadVariantsForGene),
         arguments = geneId :: Nil,
         resolve = ctx => ctx.ctx.getStudiesAndLeadVariantsForGene(ctx.arg(geneId)))

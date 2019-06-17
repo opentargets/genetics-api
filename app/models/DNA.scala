@@ -97,15 +97,25 @@ object DNA {
                      override val refAllele: String, override val altAllele: String,
                      rsId: Option[String], annotation: Annotation,
                      caddAnnotation: CaddAnnotation,
-                     gnomadAnnotation: GnomadAnnotation) extends SkelVariant
+                     gnomadAnnotation: GnomadAnnotation,
+                     chromosomeB37: Option[String],
+                     positionB37: Option[Long]) extends SkelVariant {
+    lazy val idB37: Option[String] = (chromosomeB37, positionB37) match {
+      case (Some(c), Some(p)) =>
+        Some(List(c, p.toString, refAllele, altAllele)
+          .map(_.toUpperCase)
+          .mkString("_"))
+      case _ => None
+    }
+  }
 
   object Variant extends ((String, Long, String, String, Option[String],
-    Annotation, CaddAnnotation, GnomadAnnotation) => Variant) {
+    Annotation, CaddAnnotation, GnomadAnnotation, Option[String], Option[Long]) => Variant) {
     private[this] def parseVariant(variantId: String, rsId: Option[String]): Option[Variant] = {
       def _parseVariant(variantId: String, rsId: Option[String], sep: String): Option[Variant] =
         variantId.toUpperCase.split(sep).toList.filter(_.nonEmpty) match {
           case List(chr: String, pos: String, ref: String, alt: String) =>
-            Some(Variant(chr, pos.toLong, ref, alt))
+            Some(Variant.fromSimpleVariant(chr, pos.toLong, ref, alt))
           case _ => None
         }
 
@@ -116,26 +126,26 @@ object DNA {
       }
     }
 
-    def apply(chromosome: String, position: Long, refAllele: String, altAllele: String): Variant =
+    def fromSimpleVariant(chromosome: String, position: Long, refAllele: String, altAllele: String): Variant =
       Variant(chromosome, position, refAllele, altAllele, None, Annotation(),
-        CaddAnnotation(), GnomadAnnotation())
+        CaddAnnotation(), GnomadAnnotation(), None, None)
 
-    def apply(chromosome: String, position: Long,
+    def fromSimpleVariant(chromosome: String, position: Long,
               refAllele: String, altAllele: String, rsId: Option[String]): Variant =
       Variant(chromosome, position, refAllele, altAllele, rsId, Annotation(),
-        CaddAnnotation(), GnomadAnnotation())
+        CaddAnnotation(), GnomadAnnotation(), None, None)
 
-    def apply(variantId: String): Either[VariantViolation, Variant] = apply(variantId, None)
+    def fromString(variantId: String): Either[VariantViolation, Variant] = fromString(variantId, None)
 
-    def apply(variantId: String, rsId: Option[String]): Either[VariantViolation, Variant] = {
+    def fromString(variantId: String, rsId: Option[String]): Either[VariantViolation, Variant] = {
       val pv = parseVariant(variantId, rsId)
       Either.cond(pv.isDefined, pv.get, VariantViolation(variantId))
     }
 
     def unapply(v: Variant): Option[(String, Long, String, String, Option[String],
-      Annotation, CaddAnnotation, GnomadAnnotation)] =
+      Annotation, CaddAnnotation, GnomadAnnotation, Option[String], Option[Long])] =
       Some(v.chromosome, v.position, v.refAllele, v.altAllele,
-        v.rsId, v.annotation, v.caddAnnotation, v.gnomadAnnotation)
+        v.rsId, v.annotation, v.caddAnnotation, v.gnomadAnnotation, v.chromosomeB37, v.positionB37)
   }
 
   case class Gene(id: String, symbol: Option[String], bioType: Option[String],
@@ -148,7 +158,7 @@ object DNA {
     private[this] def parseGene(geneId: String, symbol : Option[String]): Option[Gene] = {
       geneId.toUpperCase.split("\\.").toList.filter(_.nonEmpty) match {
         case ensemblId :: _ =>
-          Some(Gene(ensemblId, symbol))
+          Some(Gene(ensemblId, symbol, None, None, None, None, None, None, None, Seq.empty))
         case Nil => None
       }
     }
@@ -158,13 +168,10 @@ object DNA {
       * @param geneId Ensembl Gene ID as "ENSG000000[.123]" and it will strip the version
       * @return Either a Gene or a GeneViolation as the gene was not properly specified
       */
-    def apply(geneId: String): Either[GeneViolation, Gene] = {
-      val pg = parseGene(geneId, None)
+    def fromString(geneId: String, symbol: Option[String]): Either[GeneViolation, Gene] = {
+      val pg = parseGene(geneId, symbol)
       Either.cond(pg.isDefined, pg.get, GeneViolation(geneId))
     }
-
-    def apply(geneId: String, symbol: Option[String]): Gene =
-      Gene(geneId, symbol, None, None, None, None, None, None, None, Seq.empty)
 
     def unapply(gene: Gene): Option[(String, Option[String], Option[String], Option[String],
       Option[String], Option[Long], Option[Long], Option[Long],

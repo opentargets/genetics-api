@@ -1,0 +1,520 @@
+query exmaple {
+  gwasColocalisationForRegion(chromosome: "1", start: 1000000, end: 1500000) {
+    leftVariant {
+      id
+      rsId
+    }
+    leftStudy {
+      studyId
+      traitReported
+    }
+    rightVariant {
+      id
+      rsId
+    }
+    rightStudy {
+      studyId
+      traitReported
+    }
+    h3
+    h4
+    log2h4h3
+  }
+  pheWAS(variantId: "1_1205055_G_T") {
+    associations {
+      study {
+        studyId
+        traitReported
+      }
+      pval
+      beta
+      nTotal
+      nCases
+      oddsRatio
+      eaf
+      se
+    }
+  }
+  qtlCredibleSet(studyId: "TWINSUK", variantId: "1_1280044_T_C", phenotypeId: "ENSG00000127054", bioFeature: "LCL") {
+    tagVariant {
+      id
+      rsId
+    }
+    pval
+    se
+    beta
+    postProb
+    MultisignalMethod
+    logABF
+    is95
+    is99
+  }
+  gwasCredibleSet(studyId: "GCST004131", variantId: "1_1280044_T_C") {
+    tagVariant {
+      id
+      rsId
+    }
+    pval
+    se
+    beta
+    postProb
+    MultisignalMethod
+    logABF
+    is95
+    is99
+  }
+  qtlColocalisation(studyId: "GCST004131", variantId: "1_1280044_T_C") {
+    indexVariant {
+      id
+      rsId
+    }
+    gene {
+      id
+      symbol
+    }
+    phenotypeId
+    tissue {
+      id
+      name
+    }
+    qtlStudyName
+    beta
+    h3
+    h4
+    log2h4h3
+  }
+  gwasColocalisation(studyId: "GCST004131", variantId: "1_1280044_T_C") {
+    indexVariant {
+      id
+      rsId
+    }
+    study {
+      studyId
+      traitReported
+    }
+    beta
+    h3
+    h4
+    log2h4h3
+  }
+  gwasRegional(studyId: "GCST005543", chromosome: "1", start: 1000000, end: 1500000) {
+    variant {
+      id
+      rsId
+      chromosome
+      position
+      refAllele
+      altAllele
+      nearestGene {
+        id
+      }
+      gnomadOTH
+      nearestGeneDistance
+    }
+  }
+  qtlRegional(studyId: "TWINSUK", bioFeature: "FAT", phenotypeId: "ENSG00000224969", chromosome: "1", start: 1000000, end: 1500000) {
+    variant {
+      id
+      rsId
+      chromosome
+      position
+      refAllele
+      altAllele
+      nearestGene {
+        id
+      }
+      gnomadOTH
+      nearestGeneDistance
+    }
+  }
+  topOverlappedStudies(studyId: "GCST003044", pageIndex: 0, pageSize: 100) {
+    study {
+      traitReported
+      studyId
+      traitEfos
+      pmid
+      pubDate
+      pubJournal
+      pubTitle
+      pubAuthor
+      ancestryInitial
+      ancestryReplication
+      nInitial
+      nReplication
+      nCases
+      traitCategory
+      numAssocLoci
+    }
+    topStudiesByLociOverlap {
+      study {
+        traitReported
+        studyId
+      }
+      numOverlapLoci
+    }
+  }
+  overlapInfoForStudy(studyId: "GCST003044", studyIds: ["GCST005537", "GCST000879"]) {
+    study {
+      studyId
+      traitReported
+    }
+    overlappedVariantsForStudies {
+      study {
+        studyId
+        traitReported
+      }
+      overlaps {
+        variantIdA
+        overlapAB
+        variantIdB
+        distinctA
+        distinctB
+      }
+    }
+    variantIntersectionSet
+  }
+  genesForVariantSchema {
+    qtls {
+      id
+      sourceId
+      tissues {
+        id
+        name
+      }
+    }
+    intervals {
+      id
+      sourceId
+      tissues {
+        id
+        name
+      }
+    }
+    functionalPredictions {
+      id
+      sourceId
+      tissues {
+        id
+        name
+      }
+    }
+    distances {
+      id
+      sourceId
+      tissues {
+        id
+        name
+      }
+    }
+  }
+  tagVariantsAndStudiesForIndexVariant(variantId: "21_33720908_T_C", pageSize: 10) {
+    associations {
+      study {
+        traitReported
+        traitEfos
+      }
+      tagVariant {
+        id
+        rsId
+        nearestGeneDistance
+        nearestGene {
+          symbol
+        }
+        nearestCodingGeneDistance
+        nearestCodingGene {
+          symbol
+        }
+      }
+      pval
+      nTotal
+      nCases
+      overallR2
+      afr1000GProp
+      amr1000GProp
+      eas1000GProp
+      eur1000GProp
+      sas1000GProp
+      log10Abf
+      posteriorProbability
+      pvalMantissa
+      pvalExponent
+      oddsRatio
+      oddsRatioCILower
+      oddsRatioCIUpper
+      beta
+      direction
+      betaCILower
+      betaCIUpper
+    }
+  }
+  indexVariantsAndStudiesForTagVariant(variantId: "21_33720908_T_C", pageSize: 10) {
+    associations {
+      study {
+        traitReported
+        traitEfos
+      }
+      indexVariant {
+        id
+        rsId
+        nearestGeneDistance
+        nearestGene {
+          symbol
+        }
+        nearestCodingGeneDistance
+        nearestCodingGene {
+          symbol
+        }
+      }
+      pval
+      nTotal
+      nCases
+      overallR2
+      afr1000GProp
+      amr1000GProp
+      eas1000GProp
+      eur1000GProp
+      sas1000GProp
+      log10Abf
+      posteriorProbability
+      pvalMantissa
+      pvalExponent
+      oddsRatio
+      oddsRatioCILower
+      oddsRatioCIUpper
+      beta
+      direction
+      betaCILower
+      betaCIUpper
+    }
+  }
+  genesForVariant(variantId: "21_33720908_T_C") {
+    gene {
+      id
+      symbol
+    }
+    variant
+    overallScore
+    qtls {
+      typeId
+      sourceId
+      aggregatedScore
+      tissues {
+        tissue {
+          id
+          name
+        }
+        quantile
+        beta
+        pval
+      }
+    }
+    intervals {
+      typeId
+      sourceId
+      aggregatedScore
+      tissues {
+        tissue {
+          id
+          name
+        }
+        quantile
+        score
+      }
+    }
+    functionalPredictions {
+      typeId
+      sourceId
+      aggregatedScore
+      tissues {
+        tissue {
+          id
+          name
+        }
+        maxEffectLabel
+        maxEffectScore
+      }
+    }
+    distances {
+      typeId
+      sourceId
+      aggregatedScore
+      tissues {
+        tissue {
+          id
+          name
+        }
+        distance
+        score
+        quantile
+      }
+    }
+  }
+  gecko(chromosome: "17", start: 17000000, end: 17200000) {
+    genes {
+      symbol
+    }
+    studies {
+      traitReported
+    }
+    tagVariants {
+      rsId
+    }
+    indexVariants {
+      rsId
+    }
+    geneTagVariants {
+      geneId
+      tagVariantId
+      overallScore
+    }
+    tagVariantIndexVariantStudies {
+      tagVariantId
+      indexVariantId
+      studyId
+      r2
+      posteriorProbability
+      pval
+    }
+  }
+  search(queryString: "diabet") {
+    totalGenes
+    totalVariants
+    totalStudies
+    genes {
+      id
+      symbol
+      chromosome
+      start
+      end
+      tss
+      bioType
+      fwdStrand
+      exons
+    }
+    variants {
+      id
+      rsId
+      chromosome
+      position
+      refAllele
+      altAllele
+      nearestGeneDistance
+      nearestCodingGeneDistance
+      nearestGene {
+        id
+        symbol
+      }
+      nearestCodingGene {
+        idGCST003044
+        symbol
+      }
+      caddRaw
+      caddPhred
+      gnomadAFR
+      gnomadAMR
+      gnomadASJ
+      gnomadEAS
+      gnomadFIN
+      gnomadNFE
+      gnomadNFEEST
+      gnomadNFENWE
+      gnomadNFESEU
+      gnomadNFEONF
+      gnomadOTH
+    }
+    studies {
+      studyId
+      traitReported
+      traitEfos
+      pmid
+      pubDate
+      pubJournal
+      pubTitle
+      pubAuthor
+      ancestryInitial
+      ancestryReplication
+      nInitial
+      nReplication
+      nCases
+      traitCategory
+      numAssocLoci
+    }
+  }
+  studyInfo(studyId: "NEALE2_30010_raw") {
+    studyId
+    traitReported
+    traitEfos
+    pmid
+    pubDate
+    pubJournal
+    pubTitle
+    pubAuthor
+    ancestryInitial
+    ancestryReplication
+    nInitial
+    nReplication
+    nCases
+    traitCategory
+    numAssocLoci
+  }
+  variantInfo(variantId: "21_33720908_T_C") {
+    id
+    rsId
+    chromosome
+    position
+    refAllele
+    altAllele
+    nearestGene {
+      id
+      symbol
+      chromosome
+      start
+      end
+      tss
+      bioType
+      fwdStrand
+      exons
+    }
+    nearestGeneDistance
+    nearestCodingGene {
+      id
+      symbol
+      chromosome
+      start
+      end
+      tss
+      bioType
+      fwdStrand
+      exons
+    }
+    nearestCodingGeneDistance
+    mostSevereConsequence
+    caddRaw
+    caddPhred
+    gnomadEAS
+  }
+  manhattan(studyId: "NEALE2_30010_raw") {
+    associations {
+      variant {
+        id
+        rsId
+      }
+      oddsRatio
+      beta
+      bestGenes {
+        gene {
+          id
+          symbol
+        }
+        score
+      }
+      bestColocGenes {
+        gene {
+          id
+          symbol
+        }
+        score
+      }
+    }
+  }
+}
