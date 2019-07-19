@@ -405,7 +405,7 @@ query exmaple {
         symbol
       }
       nearestCodingGene {
-        idGCST003044
+        id
         symbol
       }
       caddRaw
@@ -516,5 +516,22 @@ query exmaple {
         score
       }
     }
+  }
+  colocalisationsForGene(geneId:"ENSG00000101076") {
+    leftVariant {
+      id
+    }
+    study {
+      studyId
+    }
+    qtlStudyId
+    phenotypeId
+    tissue {
+      id
+      name
+    }
+    h3
+    h4
+    log2h4h3
   }
 }
