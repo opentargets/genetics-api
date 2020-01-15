@@ -70,6 +70,7 @@ object Entities {
                                   v2dOdds: V2DOdds, v2dBeta: V2DBeta,
                                   bestGenes: Seq[(String, Double)],
                                   bestColocGenes: Seq[(String, Double)],
+                                  bestL2Genes: Seq[(String, Double)],
                                   crediblbeSetSize: Option[Long],
                                   ldSetSize: Option[Long], totalSetSize: Long)
 
@@ -77,10 +78,21 @@ object Entities {
                            sourceId: String,
                           bioFeatureSet: Seq[String])
 
+  case class SLGRow(geneId: String,
+                    yProbaDistance: Double,
+                    yProbaInteraction: Double,
+                    yProbaInterlocus: Double,
+                    yProbaMolecularQTL: Double,
+                    yProbaPathogenicity: Double,
+                    yProbaModel: Double,
+                    hasColoc: Boolean,
+                    distanceToLocus: Long)
+  case class SLGTable(studyId: String, variantId: String, rows: Seq[SLGRow])
   case class V2DByStudy(studyId: String, variantId: String, pval: Double,
                         pval_mantissa: Double, pval_exponent: Long, v2dOdds: V2DOdds, v2dBeta: V2DBeta,
                         credibleSetSize: Option[Long], ldSetSize: Option[Long], totalSetSize: Long,
-                        topGenes: Seq[(String, Double)], topColocGenes: Seq[(String, Double)])
+                        topGenes: Seq[(String, Double)], topColocGenes: Seq[(String, Double)],
+                        topL2Genes: Seq[(String, Double)])
 
   case class StudyInfo(study: Option[Study])
 
@@ -359,8 +371,12 @@ object Entities {
   }
 
   object DBImplicits {
+    implicit val getSLGRow: GetResult[SLGRow] = {
+      GetResult(r => SLGRow(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
+    }
+
     implicit val getV2DByStudy: GetResult[V2DByStudy] = {
-      def toGeneScoreTuple(geneIds: Seq[String], geneScores: Seq[Double]): Seq[(String, Double)] = {
+      def toGeneScoreTupleWithDuplicates(geneIds: Seq[String], geneScores: Seq[Double]): Seq[(String, Double)] = {
         val ordScored = geneIds zip geneScores
 
         if (ordScored.isEmpty)
@@ -369,7 +385,7 @@ object Entities {
           ordScored.takeWhile(_._2 == ordScored.head._2)
       }
 
-      def toGeneScoreTupleColoc(geneIds: Seq[String], geneScores: Seq[Double]): Seq[(String, Double)] = {
+      def toGeneScoreTuple(geneIds: Seq[String], geneScores: Seq[Double]): Seq[(String, Double)] = {
         val ordScored = geneIds zip geneScores
 
         if (ordScored.isEmpty)
@@ -393,11 +409,14 @@ object Entities {
         val aggTop10RawScores = DSeqRep(r.<<)
         val aggTop10ColocIds = StrSeqRep(r.<<)
         val aggTop10ColocScores = DSeqRep(r.<<)
+        val aggTop10L2GIds = StrSeqRep(r.<<)
+        val aggTop10L2GScores = DSeqRep(r.<<)
 
         V2DByStudy(studyId, svID, pval, pvalMantissa, pvalExponent, odds, beta,
           credSetSize, ldSetSize, totalSize,
-          toGeneScoreTuple(aggTop10RawIds, aggTop10RawScores),
-          toGeneScoreTupleColoc(aggTop10ColocIds, aggTop10ColocScores))
+          toGeneScoreTupleWithDuplicates(aggTop10RawIds, aggTop10RawScores),
+          toGeneScoreTuple(aggTop10ColocIds, aggTop10ColocScores),
+          toGeneScoreTuple(aggTop10L2GIds, aggTop10L2GScores))
       })
     }
   }
