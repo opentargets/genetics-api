@@ -1133,6 +1133,20 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
     ExcludeFields("studyId", "variantId")
   )
 
+  implicit val V2DOddsImp = deriveObjectType[Backend, V2DOdds]()
+  implicit val V2DBetaImp = deriveObjectType[Backend, V2DBeta]()
+  implicit val V2DL2GRowByGeneImp = deriveObjectType[Backend, V2DL2GRowByGene](
+    AddFields(
+      Field("study", study,
+        description = Some("Study"),
+        resolve = ctx => studiesFetcher.defer(ctx.value.studyId)),
+      Field("variant", variant,
+        description = Some("Variant"),
+        resolve = ctx => variantsFetcher.defer(ctx.value.variantId))
+    ),
+    ExcludeFields("studyId", "variantId")
+  )
+
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("search", searchResult,
@@ -1215,9 +1229,14 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         arguments = studyId :: variantId :: Nil,
         resolve = ctx =>
           ctx.ctx.qtlColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
+      // getStudiesAndLeadVariantsForGeneByL2G
       Field("studiesAndLeadVariantsForGene", ListType(studiesAndLeadVariantsForGene),
         arguments = geneId :: Nil,
-        resolve = ctx => ctx.ctx.getStudiesAndLeadVariantsForGene(ctx.arg(geneId)))
+        resolve = ctx => ctx.ctx.getStudiesAndLeadVariantsForGene(ctx.arg(geneId))),
+      Field("studiesAndLeadVariantsForGeneByL2G", ListType(V2DL2GRowByGeneImp),
+        arguments = geneId :: pageIndex :: pageSize :: Nil,
+        resolve = ctx => ctx.ctx.getStudiesAndLeadVariantsForGeneByL2G(ctx.arg(geneId),
+          ctx.arg(pageIndex), ctx.arg(pageSize)))
     ))
 
   val schema = Schema(query)

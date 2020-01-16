@@ -496,6 +496,56 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  def getStudiesAndLeadVariantsForGeneByL2G(geneId: String,
+                                            pageIndex: Option[Int],
+                                            pageSize: Option[Int]): Future[Vector[V2DL2GRowByGene]] = {
+    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+
+    val topLociEnrich =
+      sql"""
+           |SELECT study_id,
+           |       chrom,
+           |       pos,
+           |       ref,
+           |       alt,
+           |       y_proba_logi_distance,
+           |       y_proba_logi_interaction,
+           |       y_proba_logi_interlocus,
+           |       y_proba_logi_molecularQTL,
+           |       y_proba_logi_pathogenicity,
+           |       y_proba_full_model,
+           |       odds_ratio,
+           |       oddsr_ci_lower,
+           |       oddsr_ci_upper,
+           |       direction,
+           |       beta,
+           |       beta_ci_lower,
+           |       beta_ci_upper,
+           |       pval,
+           |       pval_exponent,
+           |       pval_mantissa
+           |FROM ot.l2g_by_gsl l
+           |ANY INNER JOIN (
+           |    SELECT *,
+           |           CAST(lead_chrom, 'String') as stringChrom
+           |    FROM ot.v2d_by_stchr
+           |    ) v on (v.study_id = l.study_id and
+           |            v.stringChrom = l.chrom and
+           |            v.lead_pos = l.pos and
+           |            v.lead_ref = l.ref and
+           |            v.lead_alt = l.alt)
+           |PREWHERE gene_id = $geneId
+           |#$limitClause
+         """.stripMargin.as[V2DL2GRowByGene]
+
+    db.run(topLociEnrich.asTry).map {
+      case Success(v) => v
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Vector.empty
+    }
+  }
+
   def getGenesByRegion(chromosome: String, startPos: Long, endPos: Long): Future[Seq[Gene]] = {
     (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
       case (Right(chr), Right((start, end))) =>
