@@ -15,5 +15,16 @@ automatic_scaling:
   cpu_utilization:
     target_utilization: 0.9
 
-health_check:
-  enable_health_check: True
+liveness_check:
+  path: "/_ah/health"
+  check_interval_sec: 5
+  timeout_sec: 3
+  failure_threshold: 3
+  success_threshold: 1
+readiness_check:
+  path: "/_ah/health"
+  check_interval_sec: 5
+  timeout_sec: 3
+  failure_threshold: 10
+  success_threshold: 1
+  app_start_timeout_sec: 120
