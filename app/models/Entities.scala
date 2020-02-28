@@ -45,7 +45,7 @@ object Entities {
 
   case class V2DL2GRowByGene(studyId: String, variantId: String, odds: V2DOdds, beta: V2DBeta, pval: Double,
                              pvalExponent: Long, pvalMantissa: Double, yProbaDistance: Double,
-                             yProbaInteraction: Double, yProbaInterlocus: Double, yProbaMolecularQTL: Double,
+                             yProbaInteraction: Double, yProbaMolecularQTL: Double,
                              yProbaPathogenicity: Double, yProbaModel: Double)
 
   case class OverlapRow(stid: String, numOverlapLoci: Int)
@@ -86,7 +86,6 @@ object Entities {
   case class SLGRow(geneId: String,
                     yProbaDistance: Double,
                     yProbaInteraction: Double,
-                    yProbaInterlocus: Double,
                     yProbaMolecularQTL: Double,
                     yProbaPathogenicity: Double,
                     yProbaModel: Double,
@@ -377,7 +376,7 @@ object Entities {
 
   object DBImplicits {
     implicit val getSLGRow: GetResult[SLGRow] = {
-      GetResult(r => SLGRow(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
+      GetResult(r => SLGRow(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
     }
 
     implicit val getV2DL2GRowByGene: GetResult[V2DL2GRowByGene] = {
@@ -387,7 +386,6 @@ object Entities {
 
         val yProbaLogiDistance: Double = r.<<
         val yProbaLogiInteraction: Double = r.<<
-        val yProbaLogiInterlocus: Double = r.<<
         val yProbaLogiMolecularQTL: Double = r.<<
         val yProbaLogiPathogenicity: Double = r.<<
         val yProbaFullModel: Double = r.<<
@@ -399,7 +397,7 @@ object Entities {
         val pvalMantissa: Double = r.<<
 
         V2DL2GRowByGene(studyId, svID, odds, beta, pval, pvalExponent, pvalMantissa,
-          yProbaLogiDistance, yProbaLogiInteraction, yProbaLogiInterlocus, yProbaLogiMolecularQTL,
+          yProbaLogiDistance, yProbaLogiInteraction, yProbaLogiMolecularQTL,
           yProbaLogiPathogenicity, yProbaFullModel)
 
       })
