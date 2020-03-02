@@ -1207,6 +1207,10 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         arguments = studyId :: bioFeature :: phenotypeId :: chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
         resolve = ctx => ctx.ctx.qtlRegionalFromSumstats(ctx.arg(studyId), ctx.arg(bioFeature),
           ctx.arg(phenotypeId), ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
+      // getStudyAndLeadVariantInfo
+      Field("studyAndLeadVariantInfo", OptionType(studiesAndLeadVariantsForGene),
+        arguments = studyId :: variantId :: Nil,
+        resolve = ctx => ctx.ctx.getStudyAndLeadVariantInfo(ctx.arg(studyId), ctx.arg(variantId))),
       Field("gwasCredibleSet", ListType(credSetTagElement),
         arguments = studyId :: variantId :: Nil,
         resolve = ctx => ctx.ctx.gwasCredibleSet(ctx.arg(studyId), ctx.arg(variantId))),

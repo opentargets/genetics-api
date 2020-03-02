@@ -911,6 +911,37 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  /** query toplocus stats given study and locus information we dont need tag information
+    * so we distinct it
+    */
+  def getStudyAndLeadVariantInfo(studyId: String, variantId: String): Future[Option[LeadRow]] = {
+    val variant = DNA.Variant.fromString(variantId)
+
+    variant match {
+      case Right(v) =>
+        val q = v2DsByStudy
+          .filter(r => {
+            r.studyId === studyId &&
+            r.leadChromosome === v.chromosome &&
+            r.leadPosition === v.position &&
+            r.leadRefAllele === v.refAllele &&
+            r.leadAltAllele === v.altAllele
+          })
+          .map(_.studyIdAndLeadVariantStats)
+          .distinct
+
+        db.run(q.result.asTry).map {
+          case Success(r) => r.headOption
+
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            None
+        }
+
+      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+    }
+  }
+
   def getStudiesAndLeadVariantsForGene(geneId: String): Future[Seq[LeadRow]] = {
     val lociRange: Long = 5000000
 
