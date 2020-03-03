@@ -49,7 +49,7 @@ trait GQLGene {
         Some("Forward strand true or false"),
         resolve = _.value.fwd),
       Field("exons", ListType(LongType),
-        Some("Approved symbol name of a gene"),
+        Some("List of start and end positions for each exon of the canonical transcript for the gene"),
         resolve = _.value.exons)
     ))
 
