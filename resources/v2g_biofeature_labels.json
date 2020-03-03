@@ -47,6 +47,28 @@
 {"original_source": "GTEXv7", "biofeature_string": "Vagina", "label": "Vagina", "biofeature_code": "UBERON_0000996"}
 {"original_source": "GTEXv7", "biofeature_string": "Whole_Blood", "label": "Whole blood", "biofeature_code": "UBERON_0000178"}
 {"original_source": "GTEXv7", "biofeature_string": "blood_plasma", "label": "Blood plasma", "biofeature_code": "UBERON_0001969"}
+{"original_source": "jung2019", "biofeature_string": "Trophoblast", "label": "Trophoblast", "biofeature_code": "UBERON_0000088"}
+{"original_source": "jung2019", "biofeature_string": "Left Ventricle", "label": "Heart left ventricle", "biofeature_code": "UBERON_0002084"}
+{"original_source": "jung2019", "biofeature_string": "Adrenal Gland", "label": "Adrenal gland", "biofeature_code": "UBERON_0002369"}
+{"original_source": "jung2019", "biofeature_string": "Human ES cells", "label": "Embryonic stem cells", "biofeature_code": "ES_CELLS"}
+{"original_source": "jung2019", "biofeature_string": "Neural Progenitor Cell", "label": "Neural Progenitor Cell", "biofeature_code": "NEURAL_PROGENITOR_CELL"}
+{"original_source": "jung2019", "biofeature_string": "Small Bowel", "label": "Small intestine", "biofeature_code": "UBERON_0002108"}
+{"original_source": "jung2019", "biofeature_string": "Right Ventricle", "label": "Right Ventricle", "biofeature_code": "UBERON_0002080"}
+{"original_source": "jung2019", "biofeature_string": "Mesendoderm", "label": "Mesendoderm", "biofeature_code": "MESENDODERM"}
+{"original_source": "jung2019", "biofeature_string": "Mesenchymal Stem Cell", "label": "Mesenchymal Stem Cell", "biofeature_code": "MESENCHYMAL_STEM_CELL"}
+{"original_source": "jung2019", "biofeature_string": "Sigmoid Colon", "label": "Colon sigmoid", "biofeature_code": "UBERON_0001159"}
+{"original_source": "jung2019", "biofeature_string": "Fibroblast", "label": "Fibroblast", "biofeature_code": "FIBROBLAST"}
+{"original_source": "jung2019", "biofeature_string": "Hippocampus", "label": "Brain hippocampus", "biofeature_code": "UBERON_0002421"}
+{"original_source": "jung2019", "biofeature_string": "Esophagus", "label": "Esophagus", "biofeature_code": "UBERON_0001043"}
+{"original_source": "jung2019", "biofeature_string": "Dorsolateral Prefrontal Cortex", "label": "Dorsolateral Prefrontal Cortex", "biofeature_code": "UBERON_0009834"}
+{"original_source": "jung2019", "biofeature_string": "Fat", "label": "Fat", "biofeature_code": "FAT"}
+{"original_source": "jung2019", "biofeature_string": "Bladder", "label": "Bladder", "biofeature_code": "UBERON_0001255"}
+{"original_source": "jung2019", "biofeature_string": "Thymus", "label": "Thymus", "biofeature_code": "UBERON_0002370"}
+{"original_source": "jung2019", "biofeature_string": "Psoas", "label": "Psoas", "biofeature_code": "UBERON_0008450"}
+{"original_source": "jung2019", "biofeature_string": "Lymphoblastoid cell lines", "label": "Lymphoblastoid cell lines", "biofeature_code": "LYMPHOBLASTOID_CELL"}
+{"original_source": "jung2019", "biofeature_string": "Aorta", "label": "Artery aorta", "biofeature_code": "UBERON_0000947"}
+{"original_source": "jung2019", "biofeature_string": "Gastric", "label": "Gastric", "biofeature_code": "GASTRIC"}
+{"original_source": "jung2019", "biofeature_string": "Right Atrium", "label": "Right Atrium", "biofeature_code": "UBERON_0002078"}
 {"original_source": "javierre2016", "biofeature_string": "Endothelial_precursors", "label": "Endothelial precursors", "biofeature_code": "ENDOTHELIAL_PRECURSORS"}
 {"original_source": "javierre2016", "biofeature_string": "Erythroblasts", "label": "Erythroblasts", "biofeature_code": "ERYTHROBLASTS"}
 {"original_source": "javierre2016", "biofeature_string": "Foetal_thymus", "label": "Foetal thymus", "biofeature_code": "FOETAL_THYMUS"}

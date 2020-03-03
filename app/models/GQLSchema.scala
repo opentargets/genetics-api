@@ -2,6 +2,10 @@ package models
 
 import sangria.execution.deferred._
 import sangria.schema._
+import sangria.macros._
+import sangria.macros.derive._
+import sangria.ast
+import sangria.execution._
 import Entities._
 import Functions._
 import models.DNA.{Gene, SimpleVariant, Variant}
@@ -461,6 +465,9 @@ trait GQLManhattanAssociation {
       Field("bestColocGenes", ListType(scoredGene),
         Some("A list of best genes associated"),
         resolve = _.value.bestColocGenes),
+      Field("bestLocus2Genes", ListType(scoredGene),
+        Some("A list of best L2G scored genes associated"),
+        resolve = _.value.bestL2Genes),
       Field("credibleSetSize", OptionType(LongType),
         Some("The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
         resolve = _.value.crediblbeSetSize),
@@ -1105,6 +1112,41 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         resolve = _.value.hs.log2h4h3)
     ))
 
+  implicit val slgRowImp = deriveObjectType[Backend, SLGRow](
+    AddFields(
+      Field("gene", gene,
+        description = Some("Gene"),
+        resolve = ctx => genesFetcher.defer(ctx.value.geneId))
+    ),
+    ExcludeFields("geneId")
+  )
+
+  implicit val slgTableImp = deriveObjectType[Backend, SLGTable](
+    AddFields(
+      Field("study", OptionType(study),
+        description = Some("Study"),
+        resolve = ctx => studiesFetcher.deferOpt(ctx.value.studyId)),
+      Field("variant", OptionType(variant),
+        description = Some("Variant"),
+        resolve = ctx => variantsFetcher.deferOpt(ctx.value.variantId))
+    ),
+    ExcludeFields("studyId", "variantId")
+  )
+
+  implicit val V2DOddsImp = deriveObjectType[Backend, V2DOdds]()
+  implicit val V2DBetaImp = deriveObjectType[Backend, V2DBeta]()
+  implicit val V2DL2GRowByGeneImp = deriveObjectType[Backend, V2DL2GRowByGene](
+    AddFields(
+      Field("study", study,
+        description = Some("Study"),
+        resolve = ctx => studiesFetcher.defer(ctx.value.studyId)),
+      Field("variant", variant,
+        description = Some("Variant"),
+        resolve = ctx => variantsFetcher.defer(ctx.value.variantId))
+    ),
+    ExcludeFields("studyId", "variantId")
+  )
+
   val query = ObjectType(
     "Query", fields[Backend, Unit](
       Field("search", searchResult,
@@ -1126,6 +1168,9 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
       Field("studiesForGene", ListType(studyForGene),
         arguments = geneId :: Nil,
         resolve = ctx => ctx.ctx.getStudiesForGene(ctx.arg(geneId))),
+      Field("studyLocus2GeneTable", slgTableImp,
+        arguments = studyId :: variantId :: pageIndex :: pageSize :: Nil,
+        resolve = ctx => ctx.ctx.buildSLGTable(ctx.arg(studyId), ctx.arg(variantId), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field("manhattan", manhattan,
         arguments = studyId :: pageIndex :: pageSize :: Nil,
         resolve = ctx => ctx.ctx.buildManhattanTable(ctx.arg(studyId), ctx.arg(pageIndex), ctx.arg(pageSize))),
@@ -1162,6 +1207,10 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         arguments = studyId :: bioFeature :: phenotypeId :: chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
         resolve = ctx => ctx.ctx.qtlRegionalFromSumstats(ctx.arg(studyId), ctx.arg(bioFeature),
           ctx.arg(phenotypeId), ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
+      // getStudyAndLeadVariantInfo
+      Field("studyAndLeadVariantInfo", OptionType(studiesAndLeadVariantsForGene),
+        arguments = studyId :: variantId :: Nil,
+        resolve = ctx => ctx.ctx.getStudyAndLeadVariantInfo(ctx.arg(studyId), ctx.arg(variantId))),
       Field("gwasCredibleSet", ListType(credSetTagElement),
         arguments = studyId :: variantId :: Nil,
         resolve = ctx => ctx.ctx.gwasCredibleSet(ctx.arg(studyId), ctx.arg(variantId))),
@@ -1184,10 +1233,14 @@ object GQLSchema extends GQLGene with GQLVariant with GQLStudy with GQLIndexVari
         arguments = studyId :: variantId :: Nil,
         resolve = ctx =>
           ctx.ctx.qtlColocalisation(ctx.arg(studyId), ctx.arg(variantId))),
-
+      // getStudiesAndLeadVariantsForGeneByL2G
       Field("studiesAndLeadVariantsForGene", ListType(studiesAndLeadVariantsForGene),
         arguments = geneId :: Nil,
-        resolve = ctx => ctx.ctx.getStudiesAndLeadVariantsForGene(ctx.arg(geneId)))
+        resolve = ctx => ctx.ctx.getStudiesAndLeadVariantsForGene(ctx.arg(geneId))),
+      Field("studiesAndLeadVariantsForGeneByL2G", ListType(V2DL2GRowByGeneImp),
+        arguments = geneId :: pageIndex :: pageSize :: Nil,
+        resolve = ctx => ctx.ctx.getStudiesAndLeadVariantsForGeneByL2G(ctx.arg(geneId),
+          ctx.arg(pageIndex), ctx.arg(pageSize)))
     ))
 
   val schema = Schema(query)

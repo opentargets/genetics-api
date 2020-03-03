@@ -496,6 +496,55 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     }
   }
 
+  def getStudiesAndLeadVariantsForGeneByL2G(geneId: String,
+                                            pageIndex: Option[Int],
+                                            pageSize: Option[Int]): Future[Vector[V2DL2GRowByGene]] = {
+    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+
+    val topLociEnrich =
+      sql"""
+           |SELECT study_id,
+           |       chrom,
+           |       pos,
+           |       ref,
+           |       alt,
+           |       y_proba_logi_distance,
+           |       y_proba_logi_interaction,
+           |       y_proba_logi_molecularQTL,
+           |       y_proba_logi_pathogenicity,
+           |       y_proba_full_model,
+           |       odds_ratio,
+           |       oddsr_ci_lower,
+           |       oddsr_ci_upper,
+           |       direction,
+           |       beta,
+           |       beta_ci_lower,
+           |       beta_ci_upper,
+           |       pval,
+           |       pval_exponent,
+           |       pval_mantissa
+           |FROM ot.l2g_by_gsl l
+           |ANY INNER JOIN (
+           |    SELECT *,
+           |           CAST(lead_chrom, 'String') as stringChrom
+           |    FROM ot.v2d_by_stchr
+           |    ) v on (v.study_id = l.study_id and
+           |            v.stringChrom = l.chrom and
+           |            v.lead_pos = l.pos and
+           |            v.lead_ref = l.ref and
+           |            v.lead_alt = l.alt)
+           |PREWHERE gene_id = $geneId
+           |#$limitClause
+         """.stripMargin.as[V2DL2GRowByGene]
+
+    db.run(topLociEnrich.asTry).map {
+      case Success(v) => v
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Vector.empty
+    }
+  }
+
   def getGenesByRegion(chromosome: String, startPos: Long, endPos: Long): Future[Seq[Gene]] = {
     (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
       case (Right(chr), Right((start, end))) =>
@@ -579,7 +628,7 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
     val topLociEnrich =
       sql"""
             |SELECT *
-            |FROM ot.manhattan
+            |FROM ot.manhattan_with_l2g
             |WHERE study = $studyId
             |#$limitClause
          """.stripMargin.as[V2DByStudy]
@@ -592,13 +641,108 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
           ManhattanAssociation(el.variantId, el.pval,
             el.pval_mantissa, el.pval_exponent,
             el.v2dOdds, el.v2dBeta,
-            el.topGenes, el.topColocGenes,
+            el.topGenes, el.topColocGenes, el.topL2Genes,
             el.credibleSetSize, el.ldSetSize, el.totalSetSize)
         })
       )
       case Failure(ex) =>
         logger.error(ex.getMessage)
         ManhattanTable(studyId, associations = Vector.empty)
+    }
+  }
+
+  def buildSLGTable(studyId: String, variantId: String, pageIndex: Option[Int], pageSize: Option[Int]):
+  Future[Entities.SLGTable] = {
+    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+    val variant = Variant.fromString(variantId)
+
+    variant match {
+      case Right(v) =>
+        val slgQ =
+          sql"""
+               |SELECT
+               |    gene_id,
+               |    y_proba_logi_distance,
+               |    y_proba_logi_interaction,
+               |    y_proba_logi_molecularQTL,
+               |    y_proba_logi_pathogenicity,
+               |    y_proba_full_model,
+               |    has_coloc,
+               |    d AS distance_to_locus
+               |FROM
+               |(
+               |    SELECT
+               |        study_id,
+               |        chrom,
+               |        CAST(chrom, 'Enum8(\'1\' = 1, \'2\' = 2, \'3\' = 3, \'4\' = 4, \'5\' = 5, \'6\' = 6, \'7\' = 7, \'8\' = 8, \'9\' = 9, \'10\' = 10, \'11\' = 11, \'12\'
+               |= 12, \'13\' = 13, \'14\' = 14, \'15\' = 15, \'16\' = 16, \'17\' = 17, \'18\' = 18, \'19\' = 19, \'20\' = 20, \'21\' = 21, \'22\' = 22, \'X\' = 23, \'Y\' = 24,
+               | \'MT\' = 25)') AS enumChrom,
+               |        pos,
+               |        ref,
+               |        alt,
+               |        gene_id,
+               |        y_proba_logi_distance,
+               |        y_proba_logi_interaction,
+               |        y_proba_logi_molecularQTL,
+               |        y_proba_logi_pathogenicity,
+               |        y_proba_full_model,
+               |        C.has_coloc AS has_coloc
+               |    FROM ot.l2g_by_slg AS L
+               |    ANY LEFT JOIN
+               |    (
+               |        SELECT
+               |            left_study AS study_id,
+               |            right_gene_id AS gene_id,
+               |            left_chrom as enumChrom,
+               |            left_pos as pos,
+               |            left_ref as ref,
+               |            left_alt as alt,
+               |            count() > 0 AS has_coloc
+               |        FROM ot.v2d_coloc
+               |        PREWHERE coloc_h4 > 0.8
+               |        GROUP BY
+               |            left_study,
+               |            left_chrom,
+               |            left_pos,
+               |            left_ref,
+               |            left_alt,
+               |            right_gene_id
+               |    ) AS C USING (study_id, enumChrom, pos, ref, alt, gene_id)
+               |    PREWHERE (study_id = $studyId) AND
+               |      (chrom = ${v.chromosome}) AND
+               |      (pos = ${v.position}) AND
+               |      (ref = ${v.refAllele}) AND
+               |      (alt = ${v.altAllele})
+               |) AS LL
+               |ANY LEFT JOIN
+               |(
+               |    SELECT
+               |        chr_id AS chrom,
+               |        position AS pos,
+               |        ref_allele AS ref,
+               |        alt_allele AS alt,
+               |        gene_id,
+               |        d
+               |    FROM ot.v2g
+               |    PREWHERE (type_id = 'distance') AND
+               |    (source_id = 'canonical_tss') AND
+               |    (chrom = ${v.chromosome}) AND
+               |      (pos = ${v.position}) AND
+               |      (ref = ${v.refAllele}) AND
+               |      (alt = ${v.altAllele})
+               |) AS G ON (LL.enumChrom = G.chrom) AND (LL.pos = G.pos) AND (LL.ref = G.ref) AND (LL.alt = G.alt) AND (LL.gene_id = G.gene_id)
+               |#$limitClause
+         """.stripMargin.as[SLGRow]
+
+        // WHERE (study_id = $studyId) AND (chrom = '20') AND (pos = 35437976) AND (ref = 'A') AND (alt = 'G')
+        db.run(slgQ.asTry).map {
+          case Success(v) => SLGTable(studyId, variant.right.get.id, v)
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            SLGTable(studyId, variant.right.get.id, Vector.empty)
+        }
+      case Left(violation) =>
+        Future.failed(InputParameterCheckError(Vector(violation)))
     }
   }
 
@@ -761,6 +905,37 @@ class Backend @Inject()(@NamedDatabase("default") protected val dbConfigProvider
           case Failure(ex) =>
             logger.error(ex.getMessage)
             Seq.empty
+        }
+
+      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+    }
+  }
+
+  /** query toplocus stats given study and locus information we dont need tag information
+    * so we distinct it
+    */
+  def getStudyAndLeadVariantInfo(studyId: String, variantId: String): Future[Option[LeadRow]] = {
+    val variant = DNA.Variant.fromString(variantId)
+
+    variant match {
+      case Right(v) =>
+        val q = v2DsByStudy
+          .filter(r => {
+            r.studyId === studyId &&
+            r.leadChromosome === v.chromosome &&
+            r.leadPosition === v.position &&
+            r.leadRefAllele === v.refAllele &&
+            r.leadAltAllele === v.altAllele
+          })
+          .map(_.studyIdAndLeadVariantStats)
+          .distinct
+
+        db.run(q.result.asTry).map {
+          case Success(r) => r.headOption
+
+          case Failure(ex) =>
+            logger.error(ex.getMessage)
+            None
         }
 
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))

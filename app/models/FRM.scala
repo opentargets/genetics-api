@@ -207,6 +207,9 @@ object FRM {
       (pval, pvalExponent, pvalMantissa, r2, log10Abf, posteriorProbability, afr1000GProp,
         amr1000GProp, eas1000GProp, eur1000GProp, sas1000GProp).mapTo[V2DAssociation]
 
+    def studyIdAndLeadVariantStats =
+      (studyId, leadVariant, odds, beta, pval, pvalExponent, pvalMantissa).mapTo[LeadRow]
+
     def * = (tagVariant, leadVariant, study, association, odds, beta).mapTo[V2DRow]
   }
 
