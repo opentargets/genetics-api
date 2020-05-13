@@ -76,7 +76,7 @@ object Entities {
                                   bestGenes: Seq[(String, Double)],
                                   bestColocGenes: Seq[(String, Double)],
                                   bestL2Genes: Seq[(String, Double)],
-                                  crediblbeSetSize: Option[Long],
+                                  credibleSetSize: Option[Long],
                                   ldSetSize: Option[Long], totalSetSize: Long)
 
   case class V2DStructure(typeId: String,
