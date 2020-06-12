@@ -470,7 +470,7 @@ trait GQLManhattanAssociation {
         resolve = _.value.bestL2Genes),
       Field("credibleSetSize", OptionType(LongType),
         Some("The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
-        resolve = _.value.crediblbeSetSize),
+        resolve = _.value.credibleSetSize),
       Field("ldSetSize", OptionType(LongType),
         Some("The cardinal of the set defined as tag variants for an index variant coming from ld expansion"),
         resolve = _.value.ldSetSize),
