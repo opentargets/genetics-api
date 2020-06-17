@@ -2,8 +2,10 @@ package models
 
 import clickhouse.ClickHouseProfile
 import clickhouse.rep.SeqRep.{DSeqRep, ISeqRep, LSeqRep, StrSeqRep}
+import clickhouse.rep.SeqRep.Implicits._
 import models.DNA._
 import models.Entities._
+
 
 object FRM {
 
