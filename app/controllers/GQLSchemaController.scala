@@ -11,11 +11,13 @@ import scala.concurrent.ExecutionContext
 class GQLSchemaController @Inject()(implicit ec: ExecutionContext, cc: ControllerComponents)
   extends AbstractController(cc) {
 
-  def renderSchema = Action {
-    Ok(SchemaRenderer.renderSchema(GQLSchema.schema))
-  }
+  def renderSchema =
+    Action {
+      Ok(SchemaRenderer.renderSchema(GQLSchema.schema))
+    }
 
-  def renderClient = Action {
-    Ok(views.html.graphiql(None))
-  }
+  def renderClient =
+    Action {
+      Ok(views.html.graphiql(None))
+    }
 }
