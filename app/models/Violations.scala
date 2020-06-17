@@ -1,8 +1,8 @@
 package models
 
+import models.DNA.Region
 import sangria.execution.{UserFacingError, WithViolations}
 import sangria.validation.{BaseViolation, Violation}
-import models.DNA.Region
 
 object Violations {
   val searchStringErrorMsg: String =
@@ -35,16 +35,28 @@ object Violations {
       "to have this ready by our next release in February 2019, so please try this region again soon."
 
   case class VariantViolation(msg: String) extends BaseViolation(variantErrorMsg format msg)
-  case class RegionViolation(region: Region) extends BaseViolation(denseRegionErrorMsg format(region.chrId,
-    region.start, region.end))
+
+  case class RegionViolation(region: Region)
+    extends BaseViolation(
+      denseRegionErrorMsg format(region.chrId,
+        region.start, region.end)
+    )
+
   case class GeneViolation(msg: String) extends BaseViolation(geneErrorMsg format msg)
+
   case class ChromosomeViolation(msg: String) extends BaseViolation(chromosomeErrorMsg format msg)
-  case class InChromosomeRegionViolation(regionLength: Long) extends BaseViolation(inChromosomeRegionErrorMsg format regionLength)
+
+  case class InChromosomeRegionViolation(regionLength: Long)
+    extends BaseViolation(inChromosomeRegionErrorMsg format regionLength)
+
   case class SearchStringViolation() extends BaseViolation(searchStringErrorMsg)
 
   case class InputParameterCheckError(violations: Vector[Violation])
-    extends Exception(s"Error during input parameter check. " +
-      s"Violations:\n\n${violations map (_.errorMessage) mkString "\n\n"}")
+    extends Exception(
+      s"Error during input parameter check. " +
+        s"Violations:\n\n${violations map (_.errorMessage) mkString "\n\n"}"
+    )
       with WithViolations
       with UserFacingError
+
 }

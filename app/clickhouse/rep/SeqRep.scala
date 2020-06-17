@@ -15,7 +15,9 @@ sealed abstract class SeqRep[T](val from: String) {
 }
 
 object SeqRep {
-  sealed abstract class NumSeqRep[T](override val from: String, val f: String => T) extends SeqRep[T](from) {
+
+  sealed abstract class NumSeqRep[T](override val from: String, val f: String => T)
+    extends SeqRep[T](from) {
     override protected def parse(from: String): SeqT = {
       if (from.nonEmpty) {
         from.length match {
