@@ -130,7 +130,7 @@ object DNA {
                       gnomadAnnotation: GnomadAnnotation,
                       chromosomeB37: Option[String],
                       positionB37: Option[Long]
-                    ) extends SkelVariant {
+                    ) extends ElasticSearchEntity with SkelVariant {
     lazy val idB37: Option[String] = (chromosomeB37, positionB37) match {
       case (Some(c), Some(p)) =>
         Some(
@@ -260,7 +260,7 @@ object DNA {
                    end: Option[Long],
                    fwd: Option[Boolean],
                    exons: Seq[Long]
-                 )
+                 ) extends ElasticSearchEntity
 
   object Gene
     extends (
