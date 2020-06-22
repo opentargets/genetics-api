@@ -1,11 +1,10 @@
-package models
+package models.entities
 
-import clickhouse.rep.SeqRep.Implicits._
-import clickhouse.rep.SeqRep._
-import models.DNA._
-import models.Functions._
+import models.ElasticSearchEntity
+import models.Functions.{defaultDistanceTypes, defaultFPredTypes, defaultIntervalTypes, defaultQtlTypes}
+import models.entities.DNA.{Gene, SimpleVariant, Variant}
 
-import scala.collection.{SeqView, breakOut}
+import scala.collection.SeqView
 
 object Entities {
 

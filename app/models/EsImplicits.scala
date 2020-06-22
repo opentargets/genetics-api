@@ -1,12 +1,19 @@
 package models
 
 import clickhouse.rep.SeqRep.LSeqRep
-import models.DNA.{Annotation, CaddAnnotation, Gene, GnomadAnnotation, Variant}
-import models.Entities.Study
+import models.entities.DNA.{Annotation, CaddAnnotation, Gene, GnomadAnnotation, Variant}
+import models.entities.Entities.Study
 import play.api.libs.json.{JsPath, Reads}
 import play.api.libs.functional.syntax._
 
 object EsImplicits {
+
+  private def nullableIntToBoolean(int: Int): Boolean =
+    int match {
+      case 1 => true
+      case _ => false
+    }
+
   implicit val geneHitReader: Reads[Gene] = (
     (JsPath \ "gene_id").read[String] and
       (JsPath \ "gene_name").readNullable[String] and
@@ -19,9 +26,7 @@ object EsImplicits {
       (JsPath \ "fwdstrand")
         .readNullable[Int]
         .map(_.map {
-          case 0 => false
-          case 1 => true
-          case _ => false
+          nullableIntToBoolean
         }) and
       (JsPath \ "exons").readNullable[String].map(r => LSeqRep(r.getOrElse("")).rep)
     ) (Gene.apply _)
@@ -81,8 +86,7 @@ object EsImplicits {
       (JsPath \ "has_sumstats")
         .readNullable[Int]
         .map(_.map {
-          case 1 => true
-          case _ => false
+          nullableIntToBoolean
         }) and
       (JsPath \ "ancestry_initial").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
       (JsPath \ "ancestry_replication").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
@@ -92,5 +96,5 @@ object EsImplicits {
       (JsPath \ "trait_category").readNullable[String] and
       (JsPath \ "num_assoc_loci").readNullable[Long]
     ) (Study.apply _)
-}
 
+}

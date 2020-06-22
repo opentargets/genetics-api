@@ -1,8 +1,8 @@
 package models
 
 import clickhouse.rep.SeqRep.{DSeqRep, StrSeqRep}
-import models.DNA.SimpleVariant
-import models.Entities.{SLGRow, V2DBeta, V2DByStudy, V2DL2GRowByGene, V2DOdds}
+import models.entities.DNA.SimpleVariant
+import models.entities.Entities.{SLGRow, V2DBeta, V2DByStudy, V2DL2GRowByGene, V2DOdds}
 import slick.jdbc.GetResult
 
 import scala.collection.breakOut

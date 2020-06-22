@@ -12,21 +12,6 @@ import play.api.test._
   * For more information, see https://www.playframework.com/documentation/latest/ScalaTestingWithScalaTest
   */
 class FunctionsSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
-  // "A Stack" must {
-  //    "pop values in last-in-first-out order" in {
-  //      val stack = new mutable.Stack[Int]
-  //      stack.push(1)
-  //      stack.push(2)
-  //      stack.pop() mustBe 2
-  //      stack.pop() mustBe 1
-  //    }
-  //    "throw NoSuchElementException if an empty stack is popped" in {
-  //      val emptyStack = new mutable.Stack[Int]
-  //      a[NoSuchElementException] must be thrownBy {
-  //        emptyStack.pop()
-  //      }
-  //    }
-  //  }
 
   "A Clickhouse Array(String) must be Seq.empty" in {
     StrSeqRep("['']").rep mustBe Seq.empty

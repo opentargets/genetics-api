@@ -1,6 +1,6 @@
 package models
 
-import models.DNA.Region
+import models.entities.DNA.Region
 import sangria.execution.{UserFacingError, WithViolations}
 import sangria.validation.{BaseViolation, Violation}
 

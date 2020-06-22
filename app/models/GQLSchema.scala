@@ -1,9 +1,10 @@
 package models
 
-import models.DNA.{Gene, SimpleVariant, Variant}
-import models.Entities._
+import models.entities.DNA.{Gene, SimpleVariant, Variant}
+import models.entities.Entities._
 import models.Functions._
 import models.GQLSchema.{gene, genesFetcher, scoredGene, studiesFetcher, study, variant, variantsFetcher}
+import models.entities.DNA
 import sangria.execution.deferred._
 import sangria.macros.derive._
 import sangria.schema._

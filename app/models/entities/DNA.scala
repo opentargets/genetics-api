@@ -1,9 +1,10 @@
-package models
+package models.entities
 
 import java.io.FileNotFoundException
 
 import kantan.csv._
 import kantan.csv.ops._
+import models.ElasticSearchEntity
 import models.Violations.{GeneViolation, VariantViolation}
 import play.api.Logger
 
@@ -36,8 +37,7 @@ object DNA {
           .filter(_.isRight)
           .map(_.right.get)
           .toList
-          .groupBy(_.chrId)
-      )
+          .groupBy(_.chrId))
 
     /** build a `DenseRegionChecker` implementation based o list of regions in a DNA
       *
@@ -81,8 +81,7 @@ object DNA {
                          nearestGeneDistance: Option[Long] = None,
                          nearestCodingGeneId: Option[String] = None,
                          nearestCodingGeneDistance: Option[Long] = None,
-                         mostSevereConsequence: Option[String] = None
-                       )
+                         mostSevereConsequence: Option[String] = None)
 
   case class CaddAnnotation(raw: Option[Double] = None, phred: Option[Double] = None)
 
@@ -98,8 +97,7 @@ object DNA {
                                nfeSEU: Option[Double] = None,
                                nfeONF: Option[Double] = None,
                                nfeNWE: Option[Double] = None,
-                               oth: Option[Double] = None
-                             )
+                               oth: Option[Double] = None)
 
   sealed trait SkelVariant {
     val chromosome: String
@@ -110,14 +108,15 @@ object DNA {
     lazy val id: String = List(chromosome, position.toString, refAllele, altAllele)
       .map(_.toUpperCase)
       .mkString("_")
+
   }
 
   case class SimpleVariant(
                             override val chromosome: String,
                             override val position: Long,
                             override val refAllele: String,
-                            override val altAllele: String
-                          ) extends SkelVariant
+                            override val altAllele: String)
+    extends SkelVariant
 
   case class Variant(
                       override val chromosome: String,
@@ -129,17 +128,19 @@ object DNA {
                       caddAnnotation: CaddAnnotation,
                       gnomadAnnotation: GnomadAnnotation,
                       chromosomeB37: Option[String],
-                      positionB37: Option[Long]
-                    ) extends ElasticSearchEntity with SkelVariant {
+                      positionB37: Option[Long])
+    extends ElasticSearchEntity
+      with SkelVariant {
+
     lazy val idB37: Option[String] = (chromosomeB37, positionB37) match {
       case (Some(c), Some(p)) =>
         Some(
           List(c, p.toString, refAllele, altAllele)
             .map(_.toUpperCase)
-            .mkString("_")
-        )
+            .mkString("_"))
       case _ => None
     }
+
   }
 
   object Variant
@@ -154,9 +155,8 @@ object DNA {
           CaddAnnotation,
           GnomadAnnotation,
           Option[String],
-          Option[Long]
-        ) => Variant
-      ) {
+          Option[Long]) => Variant) {
+
     private[this] def parseVariant(variantId: String, rsId: Option[String]): Option[Variant] = {
       def _parseVariant(variantId: String, rsId: Option[String], sep: String): Option[Variant] =
         variantId.toUpperCase.split(sep).toList.filter(_.nonEmpty) match {
@@ -178,8 +178,7 @@ object DNA {
                            chromosome: String,
                            position: Long,
                            refAllele: String,
-                           altAllele: String
-                         ): Variant =
+                           altAllele: String): Variant =
       Variant(
         chromosome,
         position,
@@ -190,16 +189,14 @@ object DNA {
         CaddAnnotation(),
         GnomadAnnotation(),
         None,
-        None
-      )
+        None)
 
     def fromSimpleVariant(
                            chromosome: String,
                            position: Long,
                            refAllele: String,
                            altAllele: String,
-                           rsId: Option[String]
-                         ): Variant =
+                           rsId: Option[String]): Variant =
       Variant(
         chromosome,
         position,
@@ -210,8 +207,7 @@ object DNA {
         CaddAnnotation(),
         GnomadAnnotation(),
         None,
-        None
-      )
+        None)
 
     def fromString(variantId: String): Either[VariantViolation, Variant] =
       fromString(variantId, None)
@@ -221,20 +217,17 @@ object DNA {
       Either.cond(pv.isDefined, pv.get, VariantViolation(variantId))
     }
 
-    def unapply(v: Variant): Option[
-      (
+    def unapply(v: Variant): Option[(
+      String,
+        Long,
         String,
-          Long,
-          String,
-          String,
-          Option[String],
-          Annotation,
-          CaddAnnotation,
-          GnomadAnnotation,
-          Option[String],
-          Option[Long]
-        )
-    ] =
+        String,
+        Option[String],
+        Annotation,
+        CaddAnnotation,
+        GnomadAnnotation,
+        Option[String],
+        Option[Long])] =
       Some(
         v.chromosome,
         v.position,
@@ -245,8 +238,8 @@ object DNA {
         v.caddAnnotation,
         v.gnomadAnnotation,
         v.chromosomeB37,
-        v.positionB37
-      )
+        v.positionB37)
+
   }
 
   case class Gene(
@@ -259,8 +252,8 @@ object DNA {
                    start: Option[Long],
                    end: Option[Long],
                    fwd: Option[Boolean],
-                   exons: Seq[Long]
-                 ) extends ElasticSearchEntity
+                   exons: Seq[Long])
+    extends ElasticSearchEntity
 
   object Gene
     extends (
@@ -274,9 +267,8 @@ object DNA {
           Option[Long],
           Option[Long],
           Option[Boolean],
-          Seq[Long]
-        ) => Gene
-      ) {
+          Seq[Long]) => Gene) {
+
     private[this] def parseGene(geneId: String, symbol: Option[String]): Option[Gene] = {
       geneId.toUpperCase.split("\\.").toList.filter(_.nonEmpty) match {
         case ensemblId :: _ =>
@@ -295,20 +287,17 @@ object DNA {
       Either.cond(pg.isDefined, pg.get, GeneViolation(geneId))
     }
 
-    def unapply(gene: Gene): Option[
-      (
-        String,
-          Option[String],
-          Option[String],
-          Option[String],
-          Option[String],
-          Option[Long],
-          Option[Long],
-          Option[Long],
-          Option[Boolean],
-          Seq[Long]
-        )
-    ] =
+    def unapply(gene: Gene): Option[(
+      String,
+        Option[String],
+        Option[String],
+        Option[String],
+        Option[String],
+        Option[Long],
+        Option[Long],
+        Option[Long],
+        Option[Boolean],
+        Seq[Long])] =
       Some(
         gene.id,
         gene.symbol,
@@ -319,7 +308,8 @@ object DNA {
         gene.start,
         gene.end,
         gene.fwd,
-        gene.exons
-      )
+        gene.exons)
+
   }
+
 }
