@@ -7,6 +7,7 @@ import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
 import com.sksamuel.elastic4s.requests.searches.queries.funcscorer.FieldValueFactorFunctionModifier
 import com.sksamuel.elastic4s.{ElasticClient, ElasticProperties, RequestFailure, RequestSuccess, Response}
+import configuration.ElasticsearchConfiguration
 import javax.inject.Inject
 import models.entities.DNA._
 import models.DbImplicits._
@@ -80,13 +81,10 @@ class Backend @Inject()(
   // you must import the DSL to use the syntax helpers
 
   import com.sksamuel.elastic4s.ElasticDsl._
-  // import implicit hit readers
-  import com.sksamuel.elastic4s.playjson._
 
-  // fixme: The protocol and option should come from the config
-  val esUri: ElasticProperties = ElasticProperties(
-    config.get[String]("ot.elasticsearch.host") +
-      config.get[Int]("ot.elasticsearch.port").toString)
+  // import implicit hit readers
+  val elasticsearchConfiguration = config.get[ElasticsearchConfiguration]("ot")
+  val esUri: ElasticProperties = elasticsearchConfiguration.asElasticProperties
   val esQ = ElasticClient(JavaClient(esUri))
 
   def buildPhewFromSumstats(
