@@ -1,11 +1,14 @@
 package clickhouse.rep
 
+import clickhouse.ClickHouseProfile
+
+
 /** Clickhouse supports Array of elements from different types and this is an approximation
-  * to it.
-  *
-  * @param from
-  * @tparam T
-  */
+ * to it.
+ *
+ * @param from
+ * @tparam T
+ */
 sealed abstract class SeqRep[T](val from: String) {
   protected val minLenTokensForStr = 4
   protected val minLenTokensForNum = 2
@@ -48,9 +51,30 @@ object SeqRep {
   }
 
   object Implicits {
+
+    import clickhouse.ClickHouseProfile.api._
+
+    /** ClickHouse driver allows us to get serialised Arrays of all scalar types. But
+     * jdbc does not allow to map to a seq of a scalar so these columns are defined here to
+     * be able to interpret them implicitly.
+     */
     implicit def seqInt(from: ISeqRep): Seq[Int] = from.rep
+
     implicit def seqLong(from: LSeqRep): Seq[Long] = from.rep
+
     implicit def seqDouble(from: DSeqRep): Seq[Double] = from.rep
+
     implicit def seqStr(from: StrSeqRep): Seq[String] = from.rep
+
+    implicit val seqIntType: ClickHouseProfile.BaseColumnType[Seq[Int]] =
+      MappedColumnType.base[Seq[Int], String](_.mkString("[", ",", "]"), ISeqRep(_))
+    implicit val seqLongType: ClickHouseProfile.BaseColumnType[Seq[Long]] =
+      MappedColumnType.base[Seq[Long], String](_.mkString("[", ",", "]"), LSeqRep(_))
+    implicit val seqDoubleType: ClickHouseProfile.BaseColumnType[Seq[Double]] =
+      MappedColumnType.base[Seq[Double], String](_.mkString("[", ",", "]"), DSeqRep(_))
+    implicit val seqStringType: ClickHouseProfile.BaseColumnType[Seq[String]] =
+      MappedColumnType
+        .base[Seq[String], String](_.map("'" + _ + "'").mkString("[", ",", "]"), StrSeqRep(_))
   }
+
 }

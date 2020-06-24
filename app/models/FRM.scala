@@ -9,20 +9,6 @@ object FRM {
 
   import clickhouse.ClickHouseProfile.api._
 
-  /** ClickHouse driver allows us to get serialised Arrays of all scalar types. But
-   * jdbc does not allow to map to a seq of a scalar so these columns are defined here to
-   * be able to interpret them implicitly. It is worth noting these functions can be
-   * moved into the slick driver for clickhouse
-   */
-  implicit val seqIntType: ClickHouseProfile.BaseColumnType[Seq[Int]] =
-    MappedColumnType.base[Seq[Int], String](_.mkString("[", ",", "]"), ISeqRep(_))
-  implicit val seqLongType: ClickHouseProfile.BaseColumnType[Seq[Long]] =
-    MappedColumnType.base[Seq[Long], String](_.mkString("[", ",", "]"), LSeqRep(_))
-  implicit val seqDoubleType: ClickHouseProfile.BaseColumnType[Seq[Double]] =
-    MappedColumnType.base[Seq[Double], String](_.mkString("[", ",", "]"), DSeqRep(_))
-  implicit val seqStringType: ClickHouseProfile.BaseColumnType[Seq[String]] =
-    MappedColumnType
-      .base[Seq[String], String](_.map("'" + _ + "'").mkString("[", ",", "]"), StrSeqRep(_))
 
   class Overlaps(tag: Tag) extends Table[VariantStudyOverlapsRow](tag, "studies_overlap") {
     def chromA = column[String]("A_chrom")
