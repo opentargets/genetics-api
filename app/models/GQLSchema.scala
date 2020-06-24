@@ -1,25 +1,14 @@
 package models
 
-import models.entities.DNA.{
-  Gene,
-  SimpleVariant,
-  Variant
-}
+import models.entities.DNA.{Gene, SimpleVariant, Variant}
 import models.entities.Entities._
 import models.Functions._
-import models.GQLSchema.{
-  gene,
-  genesFetcher,
-  scoredGene,
-  studiesFetcher,
-  study,
-  variant,
-  variantsFetcher
-}
+import models.GQLSchema.{gene, genesFetcher, scoredGene, studiesFetcher, study, variant, variantsFetcher}
 import models.entities.DNA
 import sangria.execution.deferred._
 import sangria.macros.derive._
-import sangria.schema._
+import sangria.schema
+import sangria.schema.{Field, _}
 
 trait GQLGene {
   implicit val geneHasId = HasId[Gene, String](_.id)
@@ -414,12 +403,14 @@ trait GQLTagVariantAssociation {
 
 }
 
-trait GQLManhattanAssociation {
+trait GQLManhattanAssociation extends GQLGene {
 
-  val manhattanAssociation = ObjectType(
-    "ManhattanAssociation",
-    "This element represents an association between a trait and a variant through a study",
-    fields[Backend, ManhattanAssociation](
+  val manhattanAssociation = deriveObjectType[Backend, ManhattanAssociation](
+    ExcludeFields("v2dOdds", "v2dBeta", "variantId", "pval", "bestGenes", "bestColocGenes", "bestL2Genes"),
+    DocumentField("credibleSetSize", "The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
+    DocumentField("ldSetSize", "The cardinal of the set defined as tag variants for an index variant coming from ld expansion"),
+    DocumentField("totalSetSize", "The cardinal of the set defined as tag variants for an index variant coming from any expansion"),
+    AddFields(
       Field(
         "variant",
         variant,
@@ -429,18 +420,7 @@ trait GQLManhattanAssociation {
         "pval",
         FloatType,
         Some("Computed p-Value"),
-        resolve = r => toSafeDouble(r.value.pvalMantissa, r.value.pvalExponent)
-      ), // TODO TEMPORAL HACK
-      Field(
-        "pvalMantissa",
-        FloatType,
-        Some("p-val between a study and an the provided index variant"),
-        resolve = _.value.pvalMantissa),
-      Field(
-        "pvalExponent",
-        LongType,
-        Some("p-val between a study and an the provided index variant"),
-        resolve = _.value.pvalExponent),
+        resolve = r => toSafeDouble(r.value.pvalMantissa, r.value.pvalExponent)),
       Field("oddsRatio", OptionType(FloatType), Some(""), resolve = _.value.v2dOdds.oddsCI),
       Field(
         "oddsRatioCILower",
@@ -470,25 +450,8 @@ trait GQLManhattanAssociation {
         "bestLocus2Genes",
         ListType(scoredGene),
         Some("A list of best L2G scored genes associated"),
-        resolve = _.value.bestL2Genes),
-      Field(
-        "credibleSetSize",
-        OptionType(LongType),
-        Some(
-          "The cardinal of the set defined as tag variants for an index variant coming from crediblesets"),
-        resolve = _.value.credibleSetSize),
-      Field(
-        "ldSetSize",
-        OptionType(LongType),
-        Some(
-          "The cardinal of the set defined as tag variants for an index variant coming from ld expansion"),
-        resolve = _.value.ldSetSize),
-      Field(
-        "totalSetSize",
-        LongType,
-        Some(
-          "The cardinal of the set defined as tag variants for an index variant coming from any expansion"),
-        resolve = _.value.totalSetSize)))
+        resolve = _.value.bestL2Genes))
+  )
 
 }
 
