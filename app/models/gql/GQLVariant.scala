@@ -4,12 +4,13 @@ import models.Backend
 import models.Functions.toSafeDouble
 import models.GQLSchema.{studiesFetcher, study}
 import models.entities.DNA.Variant
-import models.entities.Entities.{LeadRow, V2DRow}
+import models.entities.Entities.{GeneTagVariant, LeadRow, TagVariantIndexVariantStudy, V2DRow}
 import sangria.execution.deferred.{Fetcher, FetcherConfig, HasId}
 import sangria.macros.derive.{AddFields, DocumentField, ExcludeFields, deriveObjectType}
 import sangria.schema.{Field, FloatType, LongType, ObjectType, OptionType, StringType, fields}
 
-trait GQLVariant extends GQLGene {
+trait GQLVariant {
+  self: GQLGene =>
 
   implicit val variantHasId: HasId[Variant, String] = HasId[Variant, String](_.id)
 
@@ -122,7 +123,8 @@ trait GQLVariant extends GQLGene {
 
 }
 
-trait GQLIndexVariantAssociation extends GQLVariant {
+trait GQLIndexVariantAssociation {
+  self: GQLVariant =>
 
   val indexVariantAssociation: ObjectType[Backend, V2DRow] = ObjectType(
     "IndexVariantAssociation",
@@ -213,7 +215,8 @@ trait GQLIndexVariantAssociation extends GQLVariant {
 
 }
 
-trait GQLStudyLeadVariantAssociation extends GQLVariant {
+trait GQLStudyLeadVariantAssociation {
+  self: GQLVariant =>
 
   val studiesAndLeadVariantsForGene: ObjectType[Backend, LeadRow] = ObjectType(
     "StudiesAndLeadVariantsForGene",
@@ -263,7 +266,8 @@ trait GQLStudyLeadVariantAssociation extends GQLVariant {
 
 }
 
-trait GQLTagVariantAssociation extends GQLVariant {
+trait GQLTagVariantAssociation {
+  self: GQLVariant =>
 
   val tagVariantAssociation: ObjectType[Backend, V2DRow] = ObjectType(
     "TagVariantAssociation",
@@ -354,3 +358,54 @@ trait GQLTagVariantAssociation extends GQLVariant {
 
 }
 
+trait GQLTagVariantIndexVariantStudy {
+
+  val geneTagVariant = deriveObjectType[Backend, GeneTagVariant]()
+
+  val tagVariantIndexVariantStudy = ObjectType(
+    "TagVariantIndexVariantStudy",
+    "",
+    fields[Backend, TagVariantIndexVariantStudy](
+      Field("tagVariantId", StringType, Some(""), resolve = _.value.tagVariantId),
+      Field("indexVariantId", StringType, Some(""), resolve = _.value.indexVariantId),
+      Field("studyId", StringType, Some(""), resolve = _.value.studyId),
+      Field("r2", OptionType(FloatType), Some(""), resolve = _.value.v2DAssociation.r2),
+      Field(
+        "posteriorProbability",
+        OptionType(FloatType),
+        Some(""),
+        resolve = _.value.v2DAssociation.posteriorProbability),
+      Field(
+        "pval",
+        FloatType,
+        Some(""),
+        resolve = r =>
+          toSafeDouble(r.value.v2DAssociation.pvalMantissa, r.value.v2DAssociation.pvalExponent)
+      ), // TODO TEMPORAL HACK
+      Field(
+        "pvalMantissa",
+        FloatType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.v2DAssociation.pvalMantissa),
+      Field(
+        "pvalExponent",
+        LongType,
+        Some("p-val between a study and an the provided index variant"),
+        resolve = _.value.v2DAssociation.pvalExponent),
+      Field("oddsRatio", OptionType(FloatType), Some(""), resolve = _.value.odds.oddsCI),
+      Field(
+        "oddsRatioCILower",
+        OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCILower),
+      Field(
+        "oddsRatioCIUpper",
+        OptionType(FloatType),
+        Some(""),
+        resolve = _.value.odds.oddsCIUpper),
+      Field("beta", OptionType(FloatType), Some(""), resolve = _.value.beta.betaCI),
+      Field("betaCILower", OptionType(FloatType), Some(""), resolve = _.value.beta.betaCILower),
+      Field("betaCIUpper", OptionType(FloatType), Some(""), resolve = _.value.beta.betaCIUpper),
+      Field("direction", OptionType(StringType), Some(""), resolve = _.value.beta.direction)))
+
+}

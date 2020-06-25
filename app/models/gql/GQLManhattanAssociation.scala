@@ -6,7 +6,8 @@ import models.entities.Entities.ManhattanAssociation
 import sangria.macros.derive.{AddFields, DocumentField, ExcludeFields, deriveObjectType}
 import sangria.schema.{Field, FloatType, ListType, ObjectType, OptionType, StringType}
 
-trait GQLManhattanAssociation extends GQLGene with GQLVariant {
+trait GQLManhattanAssociation {
+  self: GQLGene with GQLVariant =>
 
   val manhattanAssociation: ObjectType[Backend, ManhattanAssociation] = deriveObjectType[Backend, ManhattanAssociation](
     ExcludeFields("v2dOdds", "v2dBeta", "variantId", "pval", "bestGenes", "bestColocGenes", "bestL2Genes"),

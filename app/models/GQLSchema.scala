@@ -2,9 +2,8 @@ package models
 
 import models.entities.DNA.SimpleVariant
 import models.entities.Entities._
-import models.Functions._
 import models.entities.DNA
-import models.gql.{GQLArguments, GQLGene, GQLIndexVariantAssociation, GQLManhattanAssociation, GQLStudy, GQLStudyLeadVariantAssociation, GQLTagVariantAssociation, GQLVariant}
+import models.gql.{GQLArguments, GQLGene, GQLIndexVariantAssociation, GQLManhattanAssociation, GQLOverlaps, GQLStudy, GQLStudyLeadVariantAssociation, GQLTagVariantAssociation, GQLTagVariantIndexVariantStudy, GQLTissue, GQLVariant}
 import sangria.execution.deferred._
 import sangria.macros.derive._
 import sangria.schema.{Field, _}
@@ -15,13 +14,14 @@ object GQLSchema
     with GQLStudy
     with GQLIndexVariantAssociation
     with GQLTagVariantAssociation
+    with GQLTagVariantIndexVariantStudy
     with GQLManhattanAssociation
-    with GQLStudyLeadVariantAssociation with GQLArguments {
+    with GQLStudyLeadVariantAssociation
+    with GQLArguments with GQLOverlaps with GQLTissue {
 
+  val resolvers: DeferredResolver[Backend] = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
 
-  val resolvers = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
-
-  val regionalAssociation = ObjectType(
+  val regionalAssociation: ObjectType[Backend, (SimpleVariant, Double)] = ObjectType(
     "RegionalAssociation",
     "Variant with a p-val",
     fields[Backend, (SimpleVariant, Double)](
@@ -32,7 +32,7 @@ object GQLSchema
         resolve = r => DNA.Variant.fromString(r.value._1.id).right.get),
       Field("pval", FloatType, Some("p-val"), resolve = _.value._2)))
 
-  val credSetTagElement = ObjectType(
+  val credSetTagElement: ObjectType[Backend, (SimpleVariant, CredSetRowStats)] = ObjectType(
     "CredSetTagElement",
     "Thsi element represents the tag variant with its associated statistics",
     fields[Backend, (SimpleVariant, CredSetRowStats)](
@@ -54,86 +54,18 @@ object GQLSchema
       Field("is95", BooleanType, Some("Is over 95 percentile"), resolve = _.value._2.is95),
       Field("is99", BooleanType, Some("Is over 99 percentile"), resolve = _.value._2.is99)))
 
-  val pheWASAssociation = ObjectType(
-    "PheWASAssociation",
-    "This element represents an association between a variant and a reported trait through a study",
-    fields[Backend, SumStatsGWASRow](
-      Field(
-        "study",
-        OptionType(study),
-        Some("Study Object"),
-        resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
-      Field("pval", FloatType, Some("Computed p-Value"), resolve = _.value.pval),
-      Field("beta", OptionType(FloatType), Some("beta"), resolve = _.value.beta),
-      Field(
-        "nTotal",
-        OptionType(LongType),
-        Some("total sample size (variant level)"),
-        resolve = _.value.nTotal),
-      Field("nCases", OptionType(LongType), Some("number of cases"), resolve = _.value.nCases),
-      Field(
-        "oddsRatio",
-        OptionType(FloatType),
-        Some("Odds ratio (if case control)"),
-        resolve = _.value.oddsRatio),
-      Field("eaf", OptionType(FloatType), Some("Effect Allele Frequency"), resolve = _.value.eaf),
-      Field("se", OptionType(FloatType), Some("Standard Error"), resolve = _.value.se)))
+  val pheWASAssociation: ObjectType[Backend, SumStatsGWASRow] = deriveObjectType[Backend, SumStatsGWASRow](
+    ExcludeFields("typeId", "variant", "mac", "macCases", "info", "isCC"),
+    ObjectTypeDescription(
+      "This element represents an association between a variant and a reported trait through a study"),
+    DocumentField("pval", "Computed p-Value"),
+    DocumentField("nTotal", "Total sample size (variant level)"),
+    // todo: @mkarmona this field doesn't exist of the object but was in the original GQL spec?
+    //    DocumentField("oddsRatio", "Total sample size (variant level)"),
+    DocumentField("eaf", "Effect Allele Frequency"),
+    DocumentField("se", "Standard error"))
 
-  val geneTagVariant = ObjectType(
-    "GeneTagVariant",
-    "",
-    fields[Backend, GeneTagVariant](
-      Field("geneId", StringType, Some(""), resolve = _.value.geneId),
-      Field("tagVariantId", StringType, Some(""), resolve = _.value.tagVariantId),
-      Field("overallScore", OptionType(FloatType), Some(""), resolve = _.value.overallScore)))
-
-  val tagVariantIndexVariantStudy = ObjectType(
-    "TagVariantIndexVariantStudy",
-    "",
-    fields[Backend, TagVariantIndexVariantStudy](
-      Field("tagVariantId", StringType, Some(""), resolve = _.value.tagVariantId),
-      Field("indexVariantId", StringType, Some(""), resolve = _.value.indexVariantId),
-      Field("studyId", StringType, Some(""), resolve = _.value.studyId),
-      Field("r2", OptionType(FloatType), Some(""), resolve = _.value.v2DAssociation.r2),
-      Field(
-        "posteriorProbability",
-        OptionType(FloatType),
-        Some(""),
-        resolve = _.value.v2DAssociation.posteriorProbability),
-      Field(
-        "pval",
-        FloatType,
-        Some(""),
-        resolve = r =>
-          toSafeDouble(r.value.v2DAssociation.pvalMantissa, r.value.v2DAssociation.pvalExponent)
-      ), // TODO TEMPORAL HACK
-      Field(
-        "pvalMantissa",
-        FloatType,
-        Some("p-val between a study and an the provided index variant"),
-        resolve = _.value.v2DAssociation.pvalMantissa),
-      Field(
-        "pvalExponent",
-        LongType,
-        Some("p-val between a study and an the provided index variant"),
-        resolve = _.value.v2DAssociation.pvalExponent),
-      Field("oddsRatio", OptionType(FloatType), Some(""), resolve = _.value.odds.oddsCI),
-      Field(
-        "oddsRatioCILower",
-        OptionType(FloatType),
-        Some(""),
-        resolve = _.value.odds.oddsCILower),
-      Field(
-        "oddsRatioCIUpper",
-        OptionType(FloatType),
-        Some(""),
-        resolve = _.value.odds.oddsCIUpper),
-      Field("beta", OptionType(FloatType), Some(""), resolve = _.value.beta.betaCI),
-      Field("betaCILower", OptionType(FloatType), Some(""), resolve = _.value.beta.betaCILower),
-      Field("betaCIUpper", OptionType(FloatType), Some(""), resolve = _.value.beta.betaCIUpper),
-      Field("direction", OptionType(StringType), Some(""), resolve = _.value.beta.direction)))
-
-  val gecko = ObjectType(
+  val gecko: ObjectType[Backend, Gecko] = ObjectType(
     "Gecko",
     "",
     fields[Backend, Gecko](
@@ -168,97 +100,7 @@ object GQLSchema
         Some(""),
         resolve = _.value.tagVariantIndexVariantStudies)))
 
-  val overlap = ObjectType(
-    "Overlap",
-    "This element represent an overlap between two variants for two studies",
-    fields[Backend, OverlappedVariant](
-      Field("variantIdA", StringType, None, resolve = _.value.variantIdA),
-      Field("variantIdB", StringType, None, resolve = _.value.variantIdB),
-      Field("overlapAB", LongType, None, resolve = _.value.overlapAB),
-      Field("distinctA", LongType, None, resolve = _.value.distinctA),
-      Field("distinctB", LongType, None, resolve = _.value.distinctB)))
-
-  val overlappedStudy = ObjectType(
-    "OverlappedStudy",
-    "This element represent a overlap between two stduies",
-    fields[Backend, OverlapRow](
-      Field(
-        "study",
-        study,
-        Some("A study object"),
-        resolve = rsl => studiesFetcher.defer(rsl.value.stid)),
-      Field(
-        "numOverlapLoci",
-        IntType,
-        Some(
-          "Orig variant id which is been used for computing the " +
-            "overlap with the referenced study"),
-        resolve = _.value.numOverlapLoci)))
-
-  val overlappedVariantsStudies = ObjectType(
-    "OverlappedVariantsStudies",
-    "This element represent a overlap between two stduies",
-    fields[Backend, OverlappedVariantsStudy](
-      Field(
-        "study",
-        OptionType(study),
-        Some("A study object"),
-        resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
-      Field(
-        "overlaps",
-        ListType(overlap),
-        Some(
-          "Orig variant id which is been used for computing the " +
-            "overlap with the referenced study"),
-        resolve = _.value.overlaps)))
-
-  val topOverlappedStudies = ObjectType(
-    "TopOverlappedStudies",
-    "This element represent a overlap between two stduies",
-    fields[Backend, OverlappedLociStudy](
-      Field(
-        "study",
-        OptionType(study),
-        Some("A study object"),
-        resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
-      Field(
-        "topStudiesByLociOverlap",
-        ListType(overlappedStudy),
-        Some("Top N studies ordered by loci overlap"),
-        resolve = _.value.topOverlappedStudies)))
-
-  val studyForGene = ObjectType(
-    "StudyForGene",
-    "",
-    fields[Backend, String](
-      Field(
-        "study",
-        study,
-        Some("A study object"),
-        resolve = rsl => studiesFetcher.defer(rsl.value))))
-
-  val overlappedInfoForStudy = ObjectType(
-    "OverlappedInfoForStudy",
-    "",
-    fields[Backend, (String, Seq[String])](
-      Field(
-        "study",
-        OptionType(study),
-        Some("A study object"),
-        resolve = rsl => studiesFetcher.deferOpt(rsl.value._1)),
-      Field(
-        "overlappedVariantsForStudies",
-        ListType(overlappedVariantsStudies),
-        Some(""),
-        resolve = rsl => rsl.ctx.getOverlapVariantsForStudies(rsl.value._1, rsl.value._2)),
-      Field(
-        "variantIntersectionSet",
-        ListType(StringType),
-        Some(""),
-        resolve =
-          rsl => rsl.ctx.getOverlapVariantsIntersectionForStudies(rsl.value._1, rsl.value._2))))
-
-  val manhattan = ObjectType(
+  val manhattan: ObjectType[Backend, ManhattanTable] = ObjectType(
     "Manhattan",
     "This element represents a Manhattan like plot",
     fields[Backend, ManhattanTable](
@@ -272,12 +114,12 @@ object GQLSchema
         OptionType(topOverlappedStudies),
         Some("A list of overlapped studies"),
         arguments = pageIndex :: pageSize :: Nil,
-        resolve = ctx =>
-          ctx.ctx
-            .getTopOverlappedStudies(ctx.value.studyId, ctx.arg(pageIndex), ctx.arg(pageSize)))))
+        resolve = c =>
+          c.ctx
+            .getTopOverlappedStudies(c.value.studyId, c.arg(pageIndex), c.arg(pageSize)))))
 
   // TODO that number should be updated with sumstats changes. not sure what to do at the moment
-  val pheWAS = ObjectType(
+  val pheWAS: ObjectType[Backend, Seq[SumStatsGWASRow]] = ObjectType(
     "PheWAS",
     "This element represents a PheWAS like plot",
     fields[Backend, Seq[SumStatsGWASRow]](
@@ -292,7 +134,7 @@ object GQLSchema
         Some("A list of associations"),
         resolve = _.value)))
 
-  val tagVariantsAndStudiesForIndexVariant = ObjectType(
+  val tagVariantsAndStudiesForIndexVariant: ObjectType[Backend, VariantToDiseaseTable] = ObjectType(
     "TagVariantsAndStudiesForIndexVariant",
     "A list of rows with each link",
     fields[Backend, VariantToDiseaseTable](
@@ -303,7 +145,7 @@ object GQLSchema
           "A list of associations connected to a Index variant and a Study through some expansion methods"),
         resolve = _.value.associations)))
 
-  val indexVariantsAndStudiesForTagVariant = ObjectType(
+  val indexVariantsAndStudiesForTagVariant: ObjectType[Backend, VariantToDiseaseTable] = ObjectType(
     "IndexVariantsAndStudiesForTagVariant",
     "A list of rows with each link",
     fields[Backend, VariantToDiseaseTable](
@@ -314,18 +156,7 @@ object GQLSchema
           "A list of associations connected to a Index variant and a Study through some expansion methods"),
         resolve = _.value.associations)))
 
-  val tissue = ObjectType(
-    "Tissue",
-    "",
-    fields[Backend, Tissue](
-      Field("id", StringType, Some(""), resolve = _.value.id),
-      Field(
-        "name",
-        StringType,
-        Some(""),
-        resolve = r => r.ctx.v2gBiofeatureLabels.getOrElse(r.value.id, r.value.name))))
-
-  val g2vSchemaElement = ObjectType(
+  val g2vSchemaElement: ObjectType[Backend, G2VSchemaElement] = ObjectType(
     "G2VSchemaElement",
     "A list of rows with each link",
     fields[Backend, G2VSchemaElement](
@@ -345,7 +176,7 @@ object GQLSchema
       Field("pmid", OptionType(StringType), Some("PubmedID"), resolve = _.value.pmid),
       Field("tissues", ListType(tissue), Some(""), resolve = _.value.tissues)))
 
-  val v2gSchema = ObjectType(
+  val v2gSchema: ObjectType[Backend, G2VSchema] = ObjectType(
     "G2VSchema",
     "A list of rows with each link",
     fields[Backend, G2VSchema](
@@ -370,85 +201,7 @@ object GQLSchema
         Some("Distance structure definition"),
         resolve = _.value.distances)))
 
-  val qtlTissue = ObjectType(
-    "QTLTissue",
-    "",
-    fields[Backend, QTLTissue](
-      Field("tissue", tissue, Some(""), resolve = _.value.tissue),
-      Field("quantile", FloatType, Some(""), resolve = _.value.quantile),
-      Field("beta", OptionType(FloatType), Some(""), resolve = _.value.beta),
-      Field("pval", OptionType(FloatType), Some(""), resolve = _.value.pval)))
-
-  val intervalTissue = ObjectType(
-    "IntervalTissue",
-    "",
-    fields[Backend, IntervalTissue](
-      Field("tissue", tissue, Some(""), resolve = _.value.tissue),
-      Field("quantile", FloatType, Some(""), resolve = _.value.quantile),
-      Field("score", OptionType(FloatType), Some(""), resolve = _.value.score)))
-
-  val fpredTissue = ObjectType(
-    "FPredTissue",
-    "",
-    fields[Backend, FPredTissue](
-      Field("tissue", tissue, Some(""), resolve = _.value.tissue),
-      Field("maxEffectLabel", OptionType(StringType), Some(""), resolve = _.value.maxEffectLabel),
-      Field("maxEffectScore", OptionType(FloatType), Some(""), resolve = _.value.maxEffectScore)))
-
-  val distanceTisse = ObjectType(
-    "DistanceTissue",
-    "",
-    fields[Backend, DistancelTissue](
-      Field("tissue", tissue, Some(""), resolve = _.value.tissue),
-      Field(
-        "distance",
-        OptionType(LongType),
-        Some("Distance to the canonical TSS"),
-        resolve = _.value.distance),
-      Field("score", OptionType(FloatType), Some("Score 1 / Distance"), resolve = _.value.score),
-      Field(
-        "quantile",
-        OptionType(FloatType),
-        Some("Quantile of the score"),
-        resolve = _.value.quantile)))
-
-  val qtlElement = ObjectType(
-    "QTLElement",
-    "A list of rows with each link",
-    fields[Backend, G2VElement[QTLTissue]](
-      Field("typeId", StringType, Some(""), resolve = _.value.id),
-      Field("sourceId", StringType, Some(""), resolve = _.value.sourceId),
-      Field("aggregatedScore", FloatType, Some(""), resolve = _.value.aggregatedScore),
-      Field("tissues", ListType(qtlTissue), Some(""), resolve = _.value.tissues)))
-
-  val intervalElement = ObjectType(
-    "IntervalElement",
-    "A list of rows with each link",
-    fields[Backend, G2VElement[IntervalTissue]](
-      Field("typeId", StringType, Some(""), resolve = _.value.id),
-      Field("sourceId", StringType, Some(""), resolve = _.value.sourceId),
-      Field("aggregatedScore", FloatType, Some(""), resolve = _.value.aggregatedScore),
-      Field("tissues", ListType(intervalTissue), Some(""), resolve = _.value.tissues)))
-
-  val fPredElement = ObjectType(
-    "FunctionalPredictionElement",
-    "A list of rows with each link",
-    fields[Backend, G2VElement[FPredTissue]](
-      Field("typeId", StringType, Some(""), resolve = _.value.id),
-      Field("sourceId", StringType, Some(""), resolve = _.value.sourceId),
-      Field("aggregatedScore", FloatType, Some(""), resolve = _.value.aggregatedScore),
-      Field("tissues", ListType(fpredTissue), Some(""), resolve = _.value.tissues)))
-
-  val distElement = ObjectType(
-    "DistanceElement",
-    "A list of rows with each link",
-    fields[Backend, G2VElement[DistancelTissue]](
-      Field("typeId", StringType, Some(""), resolve = _.value.id),
-      Field("sourceId", StringType, Some(""), resolve = _.value.sourceId),
-      Field("aggregatedScore", FloatType, Some(""), resolve = _.value.aggregatedScore),
-      Field("tissues", ListType(distanceTisse), Some(""), resolve = _.value.tissues)))
-
-  val geneForVariant = ObjectType(
+  val geneForVariant: ObjectType[Backend, G2VAssociation] = ObjectType(
     "GeneForVariant",
     "A list of rows with each link",
     fields[Backend, G2VAssociation](
@@ -464,13 +217,13 @@ object GQLSchema
       Field("functionalPredictions", ListType(fPredElement), Some(""), resolve = _.value.fpreds),
       Field("distances", ListType(distElement), Some(""), resolve = _.value.distances)))
 
-  val variantSearchResult = ObjectType(
+  val variantSearchResult: ObjectType[Backend, VariantSearchResult] = ObjectType(
     "VariantSearchResult",
     "Variant search result object",
     fields[Backend, VariantSearchResult](
       Field("variant", variant, Some("A variant"), resolve = _.value.variant)))
 
-  val searchResult = ObjectType(
+  val searchResult: ObjectType[Backend, SearchResultSet] = ObjectType(
     "SearchResult",
     "Search data by a query string",
     fields[Backend, SearchResultSet](
@@ -501,7 +254,7 @@ object GQLSchema
         Some("Study search result list"),
         resolve = _.value.studies)))
 
-  val gwasSlimmedColocalisation = ObjectType(
+  val gwasSlimmedColocalisation: ObjectType[Backend, ColocRow] = ObjectType(
     "GWASLRColocalisation",
     fields[Backend, ColocRow](
       Field(
@@ -528,7 +281,7 @@ object GQLSchema
       Field("h4", FloatType, Some("H4"), resolve = _.value.hs.h4),
       Field("log2h4h3", FloatType, Some("Log2 H4/H3"), resolve = _.value.hs.log2h4h3)))
 
-  val gwasColocalisationForQTLWithGene = ObjectType(
+  val gwasColocalisationForQTLWithGene: ObjectType[Backend, ColocRow] = ObjectType(
     "GWASColocalisationForQTLWithGene",
     fields[Backend, ColocRow](
       Field(
@@ -552,7 +305,7 @@ object GQLSchema
       Field("h4", FloatType, Some("H4"), resolve = _.value.hs.h4),
       Field("log2h4h3", FloatType, Some("Log2 H4/H3"), resolve = _.value.hs.log2h4h3)))
 
-  val gwasColocalisation = ObjectType(
+  val gwasColocalisation: ObjectType[Backend, ColocRow] = ObjectType(
     "GWASColocalisation",
     fields[Backend, ColocRow](
       Field(
@@ -570,7 +323,7 @@ object GQLSchema
       Field("h4", FloatType, Some("H4"), resolve = _.value.hs.h4),
       Field("log2h4h3", FloatType, Some("Log2 H4/H3"), resolve = _.value.hs.log2h4h3)))
 
-  val qtlColocalisation = ObjectType(
+  val qtlColocalisation: ObjectType[Backend, ColocRow] = ObjectType(
     "QTLColocalisation",
     fields[Backend, ColocRow](
       Field(
@@ -595,7 +348,7 @@ object GQLSchema
       Field("h4", FloatType, Some("H4"), resolve = _.value.hs.h4),
       Field("log2h4h3", FloatType, Some("Log2 H4/H3"), resolve = _.value.hs.log2h4h3)))
 
-  implicit val slgRowImp = deriveObjectType[Backend, SLGRow](
+  implicit val slgRowImp: ObjectType[Backend, SLGRow] = deriveObjectType[Backend, SLGRow](
     AddFields(
       Field(
         "gene",
@@ -604,7 +357,7 @@ object GQLSchema
         resolve = ctx => genesFetcher.defer(ctx.value.geneId))),
     ExcludeFields("geneId"))
 
-  implicit val slgTableImp = deriveObjectType[Backend, SLGTable](
+  implicit val slgTableImp: ObjectType[Backend, SLGTable] = deriveObjectType[Backend, SLGTable](
     AddFields(
       Field(
         "study",
@@ -618,10 +371,10 @@ object GQLSchema
         resolve = ctx => variantsFetcher.deferOpt(ctx.value.variantId))),
     ExcludeFields("studyId", "variantId"))
 
-  implicit val V2DOddsImp = deriveObjectType[Backend, V2DOdds]()
-  implicit val V2DBetaImp = deriveObjectType[Backend, V2DBeta]()
+  implicit val V2DOddsImp: ObjectType[Backend, V2DOdds] = deriveObjectType[Backend, V2DOdds]()
+  implicit val V2DBetaImp: ObjectType[Backend, V2DBeta] = deriveObjectType[Backend, V2DBeta]()
 
-  implicit val V2DL2GRowByGeneImp = deriveObjectType[Backend, V2DL2GRowByGene](
+  implicit val V2DL2GRowByGeneImp: ObjectType[Backend, V2DL2GRowByGene] = deriveObjectType[Backend, V2DL2GRowByGene](
     AddFields(
       Field(
         "study",
@@ -635,7 +388,7 @@ object GQLSchema
         resolve = ctx => variantsFetcher.defer(ctx.value.variantId))),
     ExcludeFields("studyId", "variantId"))
 
-  val query = ObjectType(
+  val query: ObjectType[Backend, Unit] = ObjectType(
     "Query",
     fields[Backend, Unit](
       Field(
@@ -820,5 +573,5 @@ object GQLSchema
             ctx.arg(pageIndex),
             ctx.arg(pageSize)))))
 
-  val schema = Schema(query)
+  val schema: Schema[Backend, Unit] = Schema(query)
 }

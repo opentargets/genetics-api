@@ -1,10 +1,11 @@
 package models.gql
 
 import models.Backend
+import models.GQLSchema.{studiesFetcher, study}
 import models.entities.Entities.Study
 import sangria.execution.deferred.{Fetcher, FetcherConfig, HasId}
 import sangria.macros.derive.{AddFields, DocumentField, deriveObjectType}
-import sangria.schema.{Field, LongType, ObjectType}
+import sangria.schema.{Field, LongType, ObjectType, fields}
 
 trait GQLStudy {
   implicit val studyHasId: HasId[Study, String] = HasId[Study, String](_.studyId)
@@ -29,4 +30,13 @@ trait GQLStudy {
         Some("n total cases (n initial + n replication)"),
         resolve = r => r.value.nInitial.getOrElse(0L) + r.value.nReplication.getOrElse(0L))))
 
+  val studyForGene: ObjectType[Backend, String] = ObjectType(
+    "StudyForGene",
+    "",
+    fields[Backend, String](
+      Field(
+        "study",
+        study,
+        Some("A study object"),
+        resolve = rsl => studiesFetcher.defer(rsl.value))))
 }
