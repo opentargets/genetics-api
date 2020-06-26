@@ -3,7 +3,7 @@ package models.gql
 import models.Backend
 import models.entities.DNA.Gene
 import sangria.execution.deferred.{Fetcher, FetcherConfig, HasId}
-import sangria.macros.derive.deriveObjectType
+import sangria.macros.derive.{RenameField, deriveObjectType}
 import sangria.schema.{Field, FloatType, ObjectType, fields}
 
 trait GQLGene {
@@ -15,7 +15,9 @@ trait GQLGene {
       ctx.getGenes(geneIds)
     })
 
-  implicit val gene: ObjectType[Backend, Gene] = deriveObjectType[Backend, Gene]()
+  implicit val gene: ObjectType[Backend, Gene] = deriveObjectType[Backend, Gene](
+    RenameField("fwd", "fwdStrand")
+  )
 
   val scoredGene: ObjectType[Backend, (String, Double)] = ObjectType(
     "ScoredGene",

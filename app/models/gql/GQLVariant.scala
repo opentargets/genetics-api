@@ -28,6 +28,7 @@ trait GQLVariant {
     DocumentField("chromosomeB37", "chrom ID GRCH37"),
     DocumentField("positionB37", "Approved symbol name of a gene"),
     AddFields(
+      Field("id", StringType, Some("Variant ID"), resolve = _.value.id),
       Field(
         "nearestGene",
         OptionType(gene),

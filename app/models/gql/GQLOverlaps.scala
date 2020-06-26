@@ -2,7 +2,7 @@ package models.gql
 
 import models.Backend
 import models.entities.Entities.{OverlapRow, OverlappedLociStudy, OverlappedVariant, OverlappedVariantsStudy}
-import sangria.macros.derive.{DocumentField, ObjectTypeDescription, ObjectTypeName, deriveObjectType}
+import sangria.macros.derive.{AddFields, DocumentField, ExcludeFields, ObjectTypeDescription, ObjectTypeName, RenameField, deriveObjectType}
 import sangria.schema.{Field, IntType, ListType, ObjectType, OptionType, StringType, fields}
 
 trait GQLOverlaps {
@@ -31,7 +31,14 @@ trait GQLOverlaps {
   val overlappedVariantsStudies: ObjectType[Backend, OverlappedVariantsStudy] = deriveObjectType[Backend, OverlappedVariantsStudy](
     ObjectTypeName("OverlappedVariantsStudies"),
     ObjectTypeDescription("This element represents an overlap between two studies"),
-    DocumentField("overlaps", "Orig variant id which is been used for computing the overlap with the referenced study")
+    DocumentField("overlaps", "Orig variant id which is been used for computing the overlap with the referenced study"),
+    ExcludeFields("studyId"),
+    AddFields(Field(
+      "study",
+      OptionType(study),
+      Some("A study object"),
+      resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)
+    ))
   )
   val topOverlappedStudies: ObjectType[Backend, OverlappedLociStudy] = ObjectType(
     "TopOverlappedStudies",

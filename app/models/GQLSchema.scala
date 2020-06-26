@@ -3,7 +3,19 @@ package models
 import models.entities.DNA.SimpleVariant
 import models.entities.Entities._
 import models.entities.DNA
-import models.gql.{GQLArguments, GQLGene, GQLIndexVariantAssociation, GQLManhattanAssociation, GQLOverlaps, GQLStudy, GQLStudyLeadVariantAssociation, GQLTagVariantAssociation, GQLTagVariantIndexVariantStudy, GQLTissue, GQLVariant}
+import models.gql.{
+  GQLArguments,
+  GQLGene,
+  GQLIndexVariantAssociation,
+  GQLManhattanAssociation,
+  GQLOverlaps,
+  GQLStudy,
+  GQLStudyLeadVariantAssociation,
+  GQLTagVariantAssociation,
+  GQLTagVariantIndexVariantStudy,
+  GQLTissue,
+  GQLVariant
+}
 import sangria.execution.deferred._
 import sangria.macros.derive._
 import sangria.schema.{Field, _}
@@ -17,9 +29,12 @@ object GQLSchema
     with GQLTagVariantIndexVariantStudy
     with GQLManhattanAssociation
     with GQLStudyLeadVariantAssociation
-    with GQLArguments with GQLOverlaps with GQLTissue {
+    with GQLArguments
+    with GQLOverlaps
+    with GQLTissue {
 
-  val resolvers: DeferredResolver[Backend] = DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
+  val resolvers: DeferredResolver[Backend] =
+    DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
 
   val regionalAssociation: ObjectType[Backend, (SimpleVariant, Double)] = ObjectType(
     "RegionalAssociation",
@@ -54,16 +69,29 @@ object GQLSchema
       Field("is95", BooleanType, Some("Is over 95 percentile"), resolve = _.value._2.is95),
       Field("is99", BooleanType, Some("Is over 99 percentile"), resolve = _.value._2.is99)))
 
-  val pheWASAssociation: ObjectType[Backend, SumStatsGWASRow] = deriveObjectType[Backend, SumStatsGWASRow](
-    ExcludeFields("typeId", "variant", "mac", "macCases", "info", "isCC"),
-    ObjectTypeDescription(
-      "This element represents an association between a variant and a reported trait through a study"),
-    DocumentField("pval", "Computed p-Value"),
-    DocumentField("nTotal", "Total sample size (variant level)"),
-    // todo: @mkarmona this field doesn't exist of the object but was in the original GQL spec?
-    //    DocumentField("oddsRatio", "Total sample size (variant level)"),
-    DocumentField("eaf", "Effect Allele Frequency"),
-    DocumentField("se", "Standard error"))
+  val pheWASAssociation: ObjectType[Backend, SumStatsGWASRow] =
+    deriveObjectType[Backend, SumStatsGWASRow](
+      ObjectTypeName("PheWASAssociation"),
+      ExcludeFields("typeId", "variant", "mac", "macCases", "info", "isCC"),
+      ObjectTypeDescription(
+        "This element represents an association between a variant and a reported trait through a study"),
+      DocumentField("pval", "Computed p-Value"),
+      DocumentField("nTotal", "Total sample size (variant level)"),
+      // todo: @mkarmona this field doesn't exist of the object but was in the original GQL spec?
+      //    DocumentField("oddsRatio", "Total sample size (variant level)"),
+      DocumentField("eaf", "Effect Allele Frequency"),
+      DocumentField("se", "Standard error"),
+      AddFields(
+        Field(
+          "study",
+          OptionType(study),
+          Some("Study Object"),
+          resolve = rsl => studiesFetcher.deferOpt(rsl.value.studyId)),
+        Field(
+          "oddsRatio",
+          OptionType(FloatType),
+          Some("Odds ratio (if case control)"),
+          resolve = _.value.oddsRatio)))
 
   val gecko: ObjectType[Backend, Gecko] = ObjectType(
     "Gecko",
@@ -374,19 +402,23 @@ object GQLSchema
   implicit val V2DOddsImp: ObjectType[Backend, V2DOdds] = deriveObjectType[Backend, V2DOdds]()
   implicit val V2DBetaImp: ObjectType[Backend, V2DBeta] = deriveObjectType[Backend, V2DBeta]()
 
-  implicit val V2DL2GRowByGeneImp: ObjectType[Backend, V2DL2GRowByGene] = deriveObjectType[Backend, V2DL2GRowByGene](
-    AddFields(
-      Field(
-        "study",
-        study,
-        description = Some("Study"),
-        resolve = ctx => studiesFetcher.defer(ctx.value.studyId)),
-      Field(
-        "variant",
-        variant,
-        description = Some("Variant"),
-        resolve = ctx => variantsFetcher.defer(ctx.value.variantId))),
-    ExcludeFields("studyId", "variantId"))
+  implicit val V2DL2GRowByGeneImp: ObjectType[Backend, V2DL2GRowByGene] =
+    deriveObjectType[Backend, V2DL2GRowByGene](
+      AddFields(
+        Field(
+          "study",
+          study,
+          description = Some("Study"),
+          resolve = ctx => studiesFetcher.defer(ctx.value.studyId)),
+        Field(
+          "variant",
+          variant,
+          description = Some("Variant"),
+          resolve = ctx => variantsFetcher.defer(ctx.value.variantId))),
+      ExcludeFields("studyId", "variantId"))
+
+  val pageArgs: List[Argument[_]] = pageIndex :: pageSize :: Nil
+  val dnaArgs: List[Argument[_]] = dnaPosStart :: dnaPosEnd :: Nil
 
   val query: ObjectType[Backend, Unit] = ObjectType(
     "Query",
@@ -394,13 +426,13 @@ object GQLSchema
       Field(
         "search",
         searchResult,
-        arguments = queryString :: pageIndex :: pageSize :: Nil,
+        arguments = queryString :: pageArgs,
         resolve = ctx =>
           ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
       Field(
         "genes",
         ListType(gene),
-        arguments = chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+        arguments = chromosome :: dnaArgs,
         resolve = ctx =>
           ctx.ctx.getGenesByRegion(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
       Field(

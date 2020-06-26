@@ -4,7 +4,7 @@ import models.Backend
 import models.GQLSchema.{studiesFetcher, study}
 import models.entities.Entities.Study
 import sangria.execution.deferred.{Fetcher, FetcherConfig, HasId}
-import sangria.macros.derive.{AddFields, DocumentField, deriveObjectType}
+import sangria.macros.derive.{AddFields, DocumentField, RenameField, deriveObjectType}
 import sangria.schema.{Field, LongType, ObjectType, fields}
 
 trait GQLStudy {
@@ -20,6 +20,7 @@ trait GQLStudy {
     DocumentField("traitReported", "Trait Label as reported on the publication"),
     DocumentField("traitEfos", "A list of curated efo codes"),
     DocumentField("pubId", "PubMed ID for the corresponding publication"),
+    RenameField("pubId", "pmid"),
     DocumentField("pubDate", "Publication Date as YYYY-MM-DD"),
     DocumentField("pubJournal", "Publication Journal name"),
     DocumentField("hasSumstats", "Contains summary statistical information"),
