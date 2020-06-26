@@ -1,6 +1,6 @@
 package models
 
-import org.scalatest.{Ignore, Tag}
+import configuration.IntegrationTestTag
 import org.scalatestplus.play.PlaySpec
 import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
@@ -9,11 +9,6 @@ import models.entities.DNA.{Gene, Variant}
 import models.entities.Entities.Study
 
 import scala.concurrent.{ExecutionContext, Future}
-
-/**
- * EsTest requires that a configured instance of Elasticsearch be reachable on localhost:9200.
- */
-object EsTest extends Tag("ot-genetics-api.esTest")
 
 trait ElasticSearchSetup {
 
@@ -33,7 +28,7 @@ class Elastic4sHitReaderTest extends PlaySpec with ElasticSearchSetup {
 
   import com.sksamuel.elastic4s.ElasticDsl._
 
-  "A query to elastic search for a gene should correctly return that gene as a case class" taggedAs EsTest in withElasticSearch {
+  "A query to elastic search for a gene should correctly return that gene as a case class" taggedAs IntegrationTestTag in withElasticSearch {
     client => {
       //given
       val searchId = "ENSG00000000419"
@@ -49,7 +44,7 @@ class Elastic4sHitReaderTest extends PlaySpec with ElasticSearchSetup {
       assert(esrAsGene.id == searchId)
     }
   }
-  "A query to elastic search for a study should correctly return that study as a case class" taggedAs EsTest in withElasticSearch {
+  "A query to elastic search for a study should correctly return that study as a case class" taggedAs IntegrationTestTag in withElasticSearch {
     client => {
       //given
       val searchId = "GCST000001"
@@ -66,7 +61,7 @@ class Elastic4sHitReaderTest extends PlaySpec with ElasticSearchSetup {
     }
   }
 
-  "A query to elastic search for a variant should correctly return that variant as a case class" taggedAs EsTest in withElasticSearch {
+  "A query to elastic search for a variant should correctly return that variant as a case class" taggedAs IntegrationTestTag in withElasticSearch {
     client => {
       //given
       val searchId = "X_103426259_G_A"
