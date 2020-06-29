@@ -7,13 +7,14 @@ import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import com.sksamuel.elastic4s.{ElasticClient, ElasticProperties, Response}
 import models.entities.DNA.{Gene, Variant}
 import models.entities.Entities.Study
+import models.implicits.{ElasticSearchEntity, EsHitReader}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 trait ElasticSearchSetup {
 
-  implicit val ec = ExecutionContext.global
-  implicit val esHitReader = EsHitReader
+  implicit val ec: ExecutionContextExecutor = ExecutionContext.global
+  implicit val esHitReader: EsHitReader.type = EsHitReader
 
   def withElasticSearch(testMethod: ElasticClient => Any) {
     val client = ElasticClient(JavaClient(ElasticProperties("http://localhost:9200")))

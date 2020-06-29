@@ -10,13 +10,14 @@ import com.sksamuel.elastic4s.{ElasticClient, ElasticProperties, RequestFailure,
 import configuration.ElasticsearchConfiguration
 import javax.inject.Inject
 import models.entities.DNA._
-import models.DbImplicits._
-import models.EsImplicits._
+import models.implicits.DbImplicits._
+import models.implicits.EsImplicits._
 import models.entities.Entities._
-import models.FRM.{Coloc, CredSet, D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, SumStatsGWAS, SumStatsMolTraits, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
+import models.database.FRM.{Coloc, CredSet, D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, SumStatsGWAS, SumStatsMolTraits, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
 import models.Functions._
-import models.Violations._
+import models.entities.Violations._
 import models.entities.{DNA, Entities}
+import models.implicits.{ElasticSearchEntity, EsHitReader}
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -51,12 +52,12 @@ class Backend @Inject()(
 
   val v2gLabelsPath: Path =
     Paths.get(env.rootPath.getAbsolutePath, "resources", "v2g_display_labels.json")
-  val v2gLabels = loadJSONLinesIntoMap[String, JsValue](v2gLabelsPath.toString)(l =>
+  val v2gLabels: Map[String, JsValue] = loadJSONLinesIntoMap[String, JsValue](v2gLabelsPath.toString)(l =>
     (l \ "key").as[String] -> (l \ "value").get)
 
   val v2gBiofeatureLabelsPath: Path =
     Paths.get(env.rootPath.getAbsolutePath, "resources", "v2g_biofeature_labels.json")
-  val v2gBiofeatureLabels = loadJSONLinesIntoMap(v2gBiofeatureLabelsPath.toString)(l =>
+  val v2gBiofeatureLabels: Map[String, String] = loadJSONLinesIntoMap(v2gBiofeatureLabelsPath.toString)(l =>
     (l \ "biofeature_code").as[String] -> (l \ "label").as[String])
 
   import dbConfig.profile.api._
@@ -83,9 +84,9 @@ class Backend @Inject()(
   import com.sksamuel.elastic4s.ElasticDsl._
 
   // import implicit hit readers
-  val elasticsearchConfiguration = config.get[ElasticsearchConfiguration]("ot")
+  val elasticsearchConfiguration: ElasticsearchConfiguration = config.get[ElasticsearchConfiguration]("ot")
   val esUri: ElasticProperties = elasticsearchConfiguration.asElasticProperties
-  val esQ = ElasticClient(JavaClient(esUri))
+  val esQ: ElasticClient = ElasticClient(JavaClient(esUri))
 
   def buildPhewFromSumstats(
                              variantID: String,
@@ -528,7 +529,7 @@ class Backend @Inject()(
     db.run(plainQ.asTry).map {
       case Success(v) =>
         if (v.nonEmpty) {
-          OverlappedLociStudy(stid, v.map(t => OverlapRow(t._1, t._2)).toVector)
+          OverlappedLociStudy(stid, v.map(t => OverlapRow(t._1, t._2)))
         } else {
           OverlappedLociStudy(stid, Vector.empty)
         }

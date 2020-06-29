@@ -1,7 +1,7 @@
 package models
 
 import better.files._
-import models.Violations.{ChromosomeViolation, InChromosomeRegionViolation}
+import models.entities.Violations.{ChromosomeViolation, InChromosomeRegionViolation}
 import play.api.libs.json._
 
 object Functions {

@@ -1,8 +1,8 @@
 package models.entities
 
-import models.ElasticSearchEntity
 import models.Functions.{defaultDistanceTypes, defaultFPredTypes, defaultIntervalTypes, defaultQtlTypes}
 import models.entities.DNA.{Gene, SimpleVariant, Variant}
+import models.implicits.ElasticSearchEntity
 
 import scala.collection.SeqView
 

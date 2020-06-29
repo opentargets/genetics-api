@@ -1,4 +1,4 @@
-package models
+package models.implicits
 
 import com.sksamuel.elastic4s.{Hit, HitReader}
 import models.entities.DNA.{Gene, Variant}
@@ -15,7 +15,7 @@ object EsHitReader extends HitReader[ElasticSearchEntity] {
     Json.parse(hit.sourceAsString).validate[T].get
 
   override def read(hit: Hit): Try[ElasticSearchEntity] = {
-    import EsImplicits._
+    import models.implicits.EsImplicits._
 
     hit.index match {
       case "genes" => Try(convertHit[Gene](hit))

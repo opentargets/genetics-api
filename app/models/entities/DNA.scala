@@ -4,8 +4,8 @@ import java.io.FileNotFoundException
 
 import kantan.csv._
 import kantan.csv.ops._
-import models.ElasticSearchEntity
-import models.Violations.{GeneViolation, VariantViolation}
+import Violations.{GeneViolation, VariantViolation}
+import models.implicits.ElasticSearchEntity
 import play.api.Logger
 
 import scala.io.Source
@@ -24,7 +24,7 @@ object DNA {
   }
 
   object DenseRegionChecker {
-    val logger = Logger(DenseRegionChecker.getClass)
+    val logger: Logger = Logger(DenseRegionChecker.getClass)
 
     implicit val regionDecoder: RowDecoder[Region] = RowDecoder.decoder(0, 1, 2)(Region.apply)
 

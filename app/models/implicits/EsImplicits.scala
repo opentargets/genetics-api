@@ -1,7 +1,7 @@
-package models
+package models.implicits
 
 import clickhouse.rep.SeqRep.LSeqRep
-import models.entities.DNA.{Annotation, CaddAnnotation, Gene, GnomadAnnotation, Variant}
+import models.entities.DNA._
 import models.entities.Entities.Study
 import play.api.libs.json.{JsPath, Reads}
 import play.api.libs.functional.syntax._

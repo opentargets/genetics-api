@@ -1,24 +1,12 @@
-package models
+package models.gql
 
+import models.Backend
+import models.entities.DNA
 import models.entities.DNA.SimpleVariant
 import models.entities.Entities._
-import models.entities.DNA
-import models.gql.{
-  GQLArguments,
-  GQLGene,
-  GQLIndexVariantAssociation,
-  GQLManhattanAssociation,
-  GQLOverlaps,
-  GQLStudy,
-  GQLStudyLeadVariantAssociation,
-  GQLTagVariantAssociation,
-  GQLTagVariantIndexVariantStudy,
-  GQLTissue,
-  GQLVariant
-}
-import sangria.execution.deferred._
+import sangria.execution.deferred.DeferredResolver
 import sangria.macros.derive._
-import sangria.schema.{Field, _}
+import sangria.schema.{Argument, BooleanType, Field, FloatType, ListType, LongType, ObjectType, OptionType, Schema, StringType, fields}
 
 object GQLSchema
   extends GQLGene

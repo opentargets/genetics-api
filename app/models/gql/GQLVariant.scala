@@ -2,7 +2,7 @@ package models.gql
 
 import models.Backend
 import models.Functions.toSafeDouble
-import models.GQLSchema.{studiesFetcher, study}
+import GQLSchema.{studiesFetcher, study}
 import models.entities.DNA.Variant
 import models.entities.Entities.{GeneTagVariant, LeadRow, TagVariantIndexVariantStudy, V2DRow}
 import sangria.execution.deferred.{Fetcher, FetcherConfig, HasId}
@@ -361,9 +361,9 @@ trait GQLTagVariantAssociation {
 
 trait GQLTagVariantIndexVariantStudy {
 
-  val geneTagVariant = deriveObjectType[Backend, GeneTagVariant]()
+  val geneTagVariant: ObjectType[Backend, GeneTagVariant] = deriveObjectType[Backend, GeneTagVariant]()
 
-  val tagVariantIndexVariantStudy = ObjectType(
+  val tagVariantIndexVariantStudy: ObjectType[Backend, TagVariantIndexVariantStudy] = ObjectType(
     "TagVariantIndexVariantStudy",
     "",
     fields[Backend, TagVariantIndexVariantStudy](

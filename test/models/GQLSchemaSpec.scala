@@ -1,5 +1,6 @@
 package models
 
+import models.gql.GQLSchema
 import org.scalatest.FlatSpecLike
 
 /**

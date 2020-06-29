@@ -8,7 +8,7 @@ import models.entities.Entities.{
   QTLTissue,
   Tissue
 }
-import models.{Backend, GQLSchema}
+import models.Backend
 import sangria.schema.{
   Field,
   FloatType,

@@ -1,4 +1,4 @@
-package models
+package models.entities
 
 import models.entities.DNA.Region
 import sangria.execution.{UserFacingError, WithViolations}
