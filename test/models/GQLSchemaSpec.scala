@@ -29,10 +29,11 @@ trait GQLFieldSpecification {
     "oddsRatioCIUpper"
   )
   val manhattanTableFields = List("topOverlappedStudies", "associations")
-  val tissue = List("id", "name")
-  val qtlTissue = List("tissue", "quantile", "beta", "pval")
-  val intervalTissue = List("tissue", "quantile", "score")
-  val fpredTissue = List("tissue", "maxEffectLabel", "maxEffectScore")
+  val tissueFields = List("id", "name")
+  val qtlTissueFields = List("tissue", "quantile", "beta", "pval")
+  val intervalTissueFields = List("tissue", "quantile", "score")
+  val fpredTissueFields = List("tissue", "maxEffectLabel", "maxEffectScore")
+  val distanceTissueFields = List("tissue", "distance", "score", "quantile")
   val qtlElement = List("tissue", "distance", "score", "quantile")
   val intervalElement = List("tissue", "distance", "score", "quantile")
   val fpredElement = List("tissue", "distance", "score", "quantile")
@@ -40,6 +41,25 @@ trait GQLFieldSpecification {
   val overlappedVariantsStudiesFields = List("study")
   val topOverlappedStudiesFields = List("study", "topStudiesByLociOverlap")
   val overlappedInfoForStudyFields = List("study", "overlappedVariantsForStudies", "variantIntersectionSet")
+  val studyFields = List(
+    "studyId",
+    "traitReported",
+    "traitEfos",
+    "pmid",
+    "pubDate",
+    "pubJournal",
+    "pubTitle",
+    "pubAuthor",
+    "hasSumstats",
+    "ancestryInitial",
+    "ancestryReplication",
+    "nInitial",
+    "nReplication",
+    "nCases",
+    "traitCategory",
+    "numAssocLoci",
+    "nTotal"
+  )
 }
 
 class GqlEntities extends FlatSpecLike {
@@ -69,27 +89,7 @@ class GqlEntities extends FlatSpecLike {
       assert(validate(overlappedInfoForStudyFields, overlappedInfoForStudy), errorString(" overlapped info for study"))
     }
 
-
     "The GQLStudy entities" should "have the expected fields" in {
-      val studyFields = List(
-        "studyId",
-        "traitReported",
-        "traitEfos",
-        "pmid",
-        "pubDate",
-        "pubJournal",
-        "pubTitle",
-        "pubAuthor",
-        "hasSumstats",
-        "ancestryInitial",
-        "ancestryReplication",
-        "nInitial",
-        "nReplication",
-        "nCases",
-        "traitCategory",
-        "numAssocLoci",
-        "nTotal"
-      )
       val studyForGeneFields = List("study")
       val study = GQLSchema.study.fieldsByName.keySet
       val studyForGene = GQLSchema.studyForGene.fieldsByName.keySet
@@ -97,10 +97,19 @@ class GqlEntities extends FlatSpecLike {
       assert(validate(studyForGeneFields, studyForGene), errorString("study for gene"))
     }
 
-    //    "The GQLTissue entities" should "have the expected fields" in {
-    //      ???
-    //    }
-    //
+    "The GQLTissue entities" should "have the expected fields" in {
+      val tissue = GQLSchema.tissue.fieldsByName.keySet
+      val qtlTissue = GQLSchema.qtlTissue.fieldsByName.keySet
+      val intervalTissue = GQLSchema.intervalTissue.fieldsByName.keySet
+      val fpredTissue = GQLSchema.fpredTissue.fieldsByName.keySet
+      val distanceTissue = GQLSchema.distanceTissue.fieldsByName.keySet
+      assert(validate(tissueFields, tissue), errorString("tissue"))
+      assert(validate(qtlTissueFields, qtlTissue), errorString("qtl tissue"))
+      assert(validate(intervalTissueFields, intervalTissue), errorString("interval tissue"))
+      assert(validate(fpredTissueFields, fpredTissue), errorString("fpred tissue"))
+      assert(validate(distanceTissueFields, distanceTissue), errorString("distance tissue"))
+    }
+
     //    "The GQLVariant entities" should "have the expected fields" in {
     //      ???
     //    }
