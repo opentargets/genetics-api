@@ -1,6 +1,6 @@
 package controllers
 
-import org.scalatest.FlatSpecLike
+import configuration.IntegrationTestTag
 import org.scalatestplus.play._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json}
@@ -28,7 +28,7 @@ trait TestQueries {
 class GraphqlControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Results {
 
   new TestQueries {
-    "A post request with a valid query should return the selected items" in {
+    "A post request with a valid query should return the selected items" taggedAs IntegrationTestTag in {
       // given
       val r = generatePostRequest(simpleGeneQuery)
       // when
@@ -41,7 +41,7 @@ class GraphqlControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Resul
       assert(data.value.nonEmpty)
     }
 
-    "A post request for metadata should return all metadata information" in {
+    "A post request for metadata should return all metadata information" taggedAs IntegrationTestTag in {
       // given
       val r = generatePostRequest(metadataQuery)
       // when
