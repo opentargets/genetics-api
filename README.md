@@ -7,6 +7,25 @@ This repo contains the application code for the GraphQL of [Open Targets Genetic
 
 It is one component of several and the overarching project is described [here](https://github.com/opentargets/genetics), which is also where issues can be raised.
 
+## User guide
+
+The API is a GraphQL implementation and can be queried at the following [endpoint](http://genetics-api.opentargets.io/graphql/browser)
+
+The data used by the service is updated regularly; to see which version is currently in use you can use the following query in the browser linked to above:
+
+```graqhql
+query metadataQ {
+  meta{
+    dataVersion {
+      major
+      minor
+      patch
+    }
+  }
+}
+``` 
+The `dataVersion` can be typically interpreted as the major version being the year, the minor version the month, and the patch number indicating iterative releases. Older data can be found on the [Genetics Portal's data mirror](ftp://ftp.ebi.ac.uk/pub/databases/opentargets/genetics/).
+
 ## To set up development
 You can use an IDE such as IntelliJ IDEA, which is recommended, but it's also sufficient to have `sbt` installed.
 

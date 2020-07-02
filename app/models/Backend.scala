@@ -7,7 +7,7 @@ import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
 import com.sksamuel.elastic4s.requests.searches.queries.funcscorer.FieldValueFactorFunctionModifier
 import com.sksamuel.elastic4s.{ElasticClient, ElasticProperties, RequestFailure, RequestSuccess, Response}
-import configuration.ElasticsearchConfiguration
+import configuration.{ElasticsearchConfiguration, Metadata, MetadataConfiguration}
 import javax.inject.Inject
 import models.entities.DNA._
 import models.implicits.DbImplicits._
@@ -367,6 +367,11 @@ class Backend @Inject()(
               .map(_.left.get)
               .asInstanceOf[Vector[Violation]]))
     }
+  }
+
+  def getMetadata: Future[Metadata] = {
+    import MetadataConfiguration._
+    Future(config.get[Metadata]("ot.meta"))
   }
 
   def getG2VSchema: Future[Entities.G2VSchema] = {

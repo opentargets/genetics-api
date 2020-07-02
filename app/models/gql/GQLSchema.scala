@@ -19,7 +19,8 @@ object GQLSchema
     with GQLStudyLeadVariantAssociation
     with GQLArguments
     with GQLOverlaps
-    with GQLTissue {
+    with GQLTissue
+    with GQLMetadata {
 
   val resolvers: DeferredResolver[Backend] =
     DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
@@ -411,6 +412,10 @@ object GQLSchema
   val query: ObjectType[Backend, Unit] = ObjectType(
     "Query",
     fields[Backend, Unit](
+      Field("meta", metadata,
+        description = Some("Return Open Targets Genetics API metadata"),
+        arguments = Nil,
+        resolve = _.ctx.getMetadata),
       Field(
         "search",
         searchResult,
