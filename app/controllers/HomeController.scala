@@ -19,8 +19,4 @@ class HomeController @Inject()(implicit
       Ok(views.html.index())
     }
 
-  def healthcheck() =
-    Action { request =>
-      Ok("alive!")
-    }
 }

@@ -2,6 +2,7 @@ package configuration
 
 import com.typesafe.config.Config
 import play.api.ConfigLoader
+import play.api.libs.json.{JsValue, Json, Writes}
 
 /**
  * Metadata regarding the application version. This information is made
@@ -38,4 +39,10 @@ object MetadataConfiguration {
       VersionLoader.load(conf, "dataVersion")
     )
   }
+
+  implicit val metadataWriter: Writes[Metadata] = (md: Metadata) => Json.obj(
+    "name" -> md.name,
+    "api_version" -> md.apiVersion.toString,
+    "data_version" -> md.dataVersion.toString
+  )
 }
