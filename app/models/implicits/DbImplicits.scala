@@ -1,6 +1,6 @@
 package models.implicits
 
-import clickhouse.rep.SeqRep.{DSeqRep, StrSeqRep}
+import components.clickhouse.rep.SeqRep.{DSeqRep, StrSeqRep}
 import models.entities.DNA.SimpleVariant
 import models.entities.Entities._
 import slick.jdbc.GetResult
@@ -9,7 +9,7 @@ import scala.collection.breakOut
 
 object DbImplicits {
 
-  import clickhouse.rep.SeqRep.Implicits._
+  import components.clickhouse.rep.SeqRep.Implicits._
 
   implicit val getSLGRow: GetResult[SLGRow] = {
     GetResult(r => SLGRow(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))

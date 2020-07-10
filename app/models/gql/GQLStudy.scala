@@ -1,7 +1,7 @@
 package models.gql
 
-import models.Backend
 import GQLSchema.{studiesFetcher, study}
+import components.Backend
 import models.entities.Entities.Study
 import sangria.execution.deferred.{Fetcher, FetcherConfig, HasId}
 import sangria.macros.derive.{AddFields, DocumentField, RenameField, deriveObjectType}

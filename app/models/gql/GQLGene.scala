@@ -1,6 +1,6 @@
 package models.gql
 
-import models.Backend
+import components.Backend
 import models.entities.DNA.Gene
 import sangria.execution.deferred.{Fetcher, FetcherConfig, HasId}
 import sangria.macros.derive.{RenameField, deriveObjectType}

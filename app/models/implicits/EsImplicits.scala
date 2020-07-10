@@ -1,6 +1,6 @@
 package models.implicits
 
-import clickhouse.rep.SeqRep.LSeqRep
+import components.clickhouse.rep.SeqRep.LSeqRep
 import models.entities.DNA._
 import models.entities.Entities.Study
 import play.api.libs.json.{JsPath, Reads}

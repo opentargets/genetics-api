@@ -1,22 +1,21 @@
-package models
+package components
 
 import java.nio.file.{Path, Paths}
 
-import clickhouse.ClickHouseProfile
 import com.sksamuel.elastic4s.http.JavaClient
-import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
 import com.sksamuel.elastic4s.requests.searches.queries.funcscorer.FieldValueFactorFunctionModifier
-import com.sksamuel.elastic4s.{ElasticClient, ElasticProperties, RequestFailure, RequestSuccess, Response}
+import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
+import com.sksamuel.elastic4s._
+import components.clickhouse.ClickHouseProfile
 import configuration.{ElasticsearchConfiguration, Metadata, MetadataConfiguration}
 import javax.inject.Inject
-import models.entities.DNA._
-import models.implicits.DbImplicits._
-import models.implicits.EsImplicits._
-import models.entities.Entities._
-import models.database.FRM.{Coloc, CredSet, D2V2G, D2V2GOverallScore, D2V2GScored, Genes, Overlaps, Studies, SumStatsGWAS, SumStatsMolTraits, V2DsByChrPos, V2DsByStudy, V2G, V2GOverallScore, V2GStructure, Variants}
 import models.Functions._
+import models.database.FRM._
+import models.entities.DNA._
+import models.entities.Entities._
 import models.entities.Violations._
 import models.entities.{DNA, Entities}
+import models.implicits.DbImplicits._
 import models.implicits.{ElasticSearchEntity, EsHitReader}
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.libs.json.Reads._
@@ -25,12 +24,10 @@ import play.api.{Configuration, Environment, Logger}
 import play.db.NamedDatabase
 import sangria.validation.Violation
 import slick.dbio.DBIOAction
-import slick.jdbc.JdbcBackend
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.util.{Failure, Success}
-import scala.reflect.runtime.universe._
 
 class Backend @Inject()(
                          @NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
@@ -418,7 +415,7 @@ class Backend @Inject()(
     def extractSearchResponse(resp: Response[SearchResponse]): SearchResponse = {
       resp match {
         case failure: RequestFailure =>
-          logger.error(s"Error querying elasticsearch: ${failure.error}")
+          logger.error(s"Error querying components.elasticsearch: ${failure.error}")
           failure.result
         case success: RequestSuccess[SearchResponse] => success.result
       }

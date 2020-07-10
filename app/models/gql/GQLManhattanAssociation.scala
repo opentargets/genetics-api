@@ -1,6 +1,6 @@
 package models.gql
 
-import models.Backend
+import components.Backend
 import models.Functions.toSafeDouble
 import models.entities.Entities.ManhattanAssociation
 import sangria.macros.derive.{AddFields, DocumentField, ExcludeFields, deriveObjectType}

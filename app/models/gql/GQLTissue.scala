@@ -1,24 +1,8 @@
 package models.gql
 
-import models.entities.Entities.{
-  DistancelTissue,
-  FPredTissue,
-  G2VElement,
-  IntervalTissue,
-  QTLTissue,
-  Tissue
-}
-import models.Backend
-import sangria.schema.{
-  Field,
-  FloatType,
-  ListType,
-  LongType,
-  ObjectType,
-  OptionType,
-  StringType,
-  fields
-}
+import components.Backend
+import models.entities.Entities.{DistancelTissue, FPredTissue, G2VElement, IntervalTissue, QTLTissue, Tissue}
+import sangria.schema.{Field, FloatType, ListType, LongType, ObjectType, OptionType, StringType, fields}
 
 trait GQLTissue {
   this: GQLSchema.type =>

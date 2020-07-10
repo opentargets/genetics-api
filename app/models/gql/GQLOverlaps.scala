@@ -1,6 +1,6 @@
 package models.gql
 
-import models.Backend
+import components.Backend
 import models.entities.Entities.{OverlapRow, OverlappedLociStudy, OverlappedVariant, OverlappedVariantsStudy}
 import sangria.macros.derive.{AddFields, DocumentField, ExcludeFields, ObjectTypeDescription, ObjectTypeName, RenameField, deriveObjectType}
 import sangria.schema.{Field, IntType, ListType, ObjectType, OptionType, StringType, fields}

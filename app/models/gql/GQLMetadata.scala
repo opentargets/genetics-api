@@ -1,7 +1,7 @@
 package models.gql
 
+import components.Backend
 import configuration.{Metadata, Version}
-import models.Backend
 import sangria.macros.derive.deriveObjectType
 
 trait GQLMetadata {

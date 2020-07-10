@@ -1,8 +1,8 @@
 package models.gql
 
-import models.Backend
 import models.Functions.toSafeDouble
 import GQLSchema.{studiesFetcher, study}
+import components.Backend
 import models.entities.DNA.Variant
 import models.entities.Entities.{GeneTagVariant, LeadRow, TagVariantIndexVariantStudy, V2DRow}
 import sangria.execution.deferred.{Fetcher, FetcherConfig, HasId}

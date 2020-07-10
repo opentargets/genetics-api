@@ -1,4 +1,4 @@
-package clickhouse
+package components.clickhouse
 
 import slick.ast.Library.SqlAggregateFunction
 import slick.ast.ScalaBaseType._

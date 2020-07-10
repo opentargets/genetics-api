@@ -2,12 +2,12 @@ package models.database
 
 import models.entities.DNA._
 import models.entities.Entities._
-import clickhouse.rep.SeqRep.Implicits._
+import components.clickhouse.rep.SeqRep.Implicits._
 import slick.lifted.MappedProjection
 
 object FRM {
 
-  import clickhouse.ClickHouseProfile.api._
+  import components.clickhouse.ClickHouseProfile.api._
 
   class Overlaps(tag: Tag) extends Table[VariantStudyOverlapsRow](tag, "studies_overlap") {
     def chromA = column[String]("A_chrom")

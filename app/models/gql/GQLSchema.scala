@@ -1,6 +1,6 @@
 package models.gql
 
-import models.Backend
+import components.Backend
 import models.entities.DNA
 import models.entities.DNA.SimpleVariant
 import models.entities.Entities._

@@ -1,6 +1,6 @@
-package clickhouse.rep
+package components.clickhouse.rep
 
-import clickhouse.ClickHouseProfile
+import components.clickhouse.ClickHouseProfile
 
 
 /** Clickhouse supports Array of elements from different types and this is an approximation
@@ -19,10 +19,22 @@ sealed abstract class SeqRep[T](val from: String) {
 
 object SeqRep {
 
+  /**
+   * Slick will return items to us from the Clickhouse database as a String, and we want
+   * to be abl
+   *
+   * @param from String returned from database
+   * @param f    convert String to T
+   * @tparam T
+   */
   sealed abstract class NumSeqRep[T](override val from: String, val f: String => T)
     extends SeqRep[T](from) {
     override protected def parse(from: String): SeqT = {
       if (from.nonEmpty) {
+
+        /* From is returned as "[e1, e2, ..., en]", so the empty set as a string
+          looks like "[]". Because of this the below is actually fully defined. 
+        * */
         from.length match {
           case n if n > minLenTokensForNum =>
             from.slice(1, n - 1).split(",").map(f(_))
@@ -52,7 +64,7 @@ object SeqRep {
 
   object Implicits {
 
-    import clickhouse.ClickHouseProfile.api._
+    import components.clickhouse.ClickHouseProfile.api._
 
     /** ClickHouse driver allows us to get serialised Arrays of all scalar types. But
      * jdbc does not allow to map to a seq of a scalar so these columns are defined here to
