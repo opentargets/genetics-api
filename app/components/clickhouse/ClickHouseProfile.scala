@@ -40,9 +40,9 @@ final class CHSingleColumnQueryExtensionMethods[B1, P1, C[_]](val q: Query[Rep[P
   extends AnyVal {
   type OptionTM = TypedType[Option[B1]]
 
-  def uniq(implicit tm: OptionTM) = CHLibrary.Uniq.column[Option[Long]](q.toNode)
+  def uniq(implicit tm: OptionTM): Rep[Option[Long]] = CHLibrary.Uniq.column[Option[Long]](q.toNode)
 
-  def any(implicit tm: OptionTM) = CHLibrary.Any.column[Option[B1]](q.toNode)
+  def any(implicit tm: OptionTM): Rep[Option[B1]] = CHLibrary.Any.column[Option[B1]](q.toNode)
 }
 
 trait ClickHouseProfile extends JdbcProfile {
@@ -90,7 +90,7 @@ trait ClickHouseProfile extends JdbcProfile {
     // override protected val concatOperator = Some("||")
     override protected val alwaysAliasSubqueries = false
     override protected val supportsLiteralGroupBy = true
-    override protected val quotedJdbcFns = Some(Nil)
+    override protected val quotedJdbcFns: Option[Nil.type] = Some(Nil)
 
     override protected def buildFetchOffsetClause(
                                                    fetch: Option[Node],
