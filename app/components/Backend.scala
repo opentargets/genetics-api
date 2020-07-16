@@ -8,7 +8,7 @@ import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
 import com.sksamuel.elastic4s._
 import components.clickhouse.ClickHouseProfile
 import configuration.{ElasticsearchConfiguration, Metadata, MetadataConfiguration}
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models.Functions._
 import models.database.FRM._
 import models.entities.DNA._
@@ -29,6 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.util.{Failure, Success}
 
+@Singleton
 class Backend @Inject()(
                          @NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                          @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
@@ -609,22 +610,33 @@ class Backend @Inject()(
     }
   }
 
-  def getStudiesForGene(geneId: String): Future[Vector[String]] = {
-    val geneQ = genes.filter(_.id === geneId)
-
-    val studiesQ =
-      d2v2g
-        .filter(r => (r.geneId in geneQ.map(_.id)) && (r.tagChromosome in geneQ.map(_.chromosome)))
-        .groupBy(_.studyId)
-        .map(_._1)
-
-    db.run(studiesQ.result.asTry).map {
-      case Success(v) => v.toVector
+  def getGeneChromosome(geneId: String): Future[String] = {
+    val geneQ = genes.filter(_.id === geneId).map(g => g.chromosome)
+    db.run(geneQ.result.head.asTry).map {
+      case Success(s) => s
       case Failure(ex) =>
         logger.error(ex.getMessage)
-        Vector.empty
+        ""
     }
   }
+
+  def getStudiesForGene(geneId: String): Future[Vector[String]] = {
+    val geneChr: Future[String] = getGeneChromosome(geneId)
+    for (chr <- geneChr) yield {
+      val studiesQ =
+        d2v2g
+          .filter(r => (r.geneId === geneId) && (r.tagChromosome === chr))
+          .groupBy(_.studyId)
+          .map(_._1)
+
+      db.run(studiesQ.result.asTry).map {
+        case Success(v) => v.toVector
+        case Failure(ex) =>
+          logger.error(ex.getMessage)
+          Vector.empty
+      }
+    }
+  }.flatten
 
   def getStudiesAndLeadVariantsForGeneByL2G(
                                              geneId: String,

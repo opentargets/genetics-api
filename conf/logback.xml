@@ -18,6 +18,7 @@
     <logger name="app" level="INFO"/>
     <logger name="org.apache" level="WARN"/>
     <logger name="httpclient" level="WARN"/>
+    <logger name="slick.jdbc.JdbcBackend.statement" level="DEBUG"/>
 
     <!-- Off these ones as they are annoying, and anyway we manage configuration ourselves -->
     <logger name="com.avaje.ebean.config.PropertyMapLoader" level="OFF"/>
