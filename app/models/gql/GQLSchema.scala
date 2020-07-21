@@ -406,7 +406,7 @@ object GQLSchema
           resolve = ctx => variantsFetcher.defer(ctx.value.variantId))),
       ExcludeFields("studyId", "variantId"))
 
-  val pageArgs: List[Argument[_]] = pageIndex :: pageSize :: Nil
+  // todo: move these to GQLArguments [and create as case classes?]
   val dnaArgs: List[Argument[_]] = dnaPosStart :: dnaPosEnd :: Nil
 
   val query: ObjectType[Backend, Unit] = ObjectType(
@@ -419,9 +419,9 @@ object GQLSchema
       Field(
         "search",
         searchResult,
-        arguments = queryString :: pageArgs,
+        arguments = queryString :: pageArg :: Nil,
         resolve = ctx =>
-          ctx.ctx.getSearchResultSet(ctx.arg(queryString), ctx.arg(pageIndex), ctx.arg(pageSize))),
+          ctx.ctx.search(ctx.arg(queryString), ctx.arg(pageArg))),
       Field(
         "genes",
         ListType(gene),

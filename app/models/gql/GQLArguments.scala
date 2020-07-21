@@ -1,10 +1,14 @@
 package models.gql
 
+import components.elasticsearch.Pagination
 import sangria.marshalling.FromInput
-import sangria.schema.{Argument, IntType, ListInputType, LongType, OptionInputType, StringType}
+import sangria.marshalling.playJson._
+import sangria.schema.{Argument, InputObjectType, IntType, ListInputType, LongType, OptionInputType, StringType}
 import sangria.util.tag.@@
 
 trait GQLArguments {
+
+  import sangria.macros.derive._
 
   val studyId: Argument[String] =
     Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
@@ -40,6 +44,10 @@ trait GQLArguments {
 
   val pageSize: Argument[Option[Int]] =
     Argument("pageSize", OptionInputType(IntType), description = "pagination size > 0")
+
+  val pagination: InputObjectType[Pagination] = deriveInputObjectType[Pagination]()
+
+  val pageArg: Argument[Option[Pagination]] = Argument("page", OptionInputType(pagination))
 
   val dnaPosStart: Argument[Long] =
     Argument("start", LongType, description = "Start position in a specified chromosome")

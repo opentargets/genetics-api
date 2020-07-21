@@ -2,12 +2,9 @@ package components
 
 import java.nio.file.{Path, Paths}
 
-import com.sksamuel.elastic4s.http.JavaClient
-import com.sksamuel.elastic4s.requests.searches.queries.funcscorer.FieldValueFactorFunctionModifier
-import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
-import com.sksamuel.elastic4s._
 import components.clickhouse.ClickHouseProfile
-import configuration.{ElasticsearchConfiguration, Metadata, MetadataConfiguration}
+import components.elasticsearch.{ElasticsearchComponent, Pagination}
+import configuration.{Metadata, MetadataConfiguration}
 import javax.inject.{Inject, Singleton}
 import models.Functions._
 import models.database.FRM._
@@ -16,7 +13,6 @@ import models.entities.Entities._
 import models.entities.Violations._
 import models.entities.{DNA, Entities}
 import models.implicits.DbImplicits._
-import models.implicits.{ElasticSearchEntity, EsHitReader}
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -33,9 +29,9 @@ import scala.util.{Failure, Success}
 class Backend @Inject()(
                          @NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
                          @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
+                         elasticsearch: ElasticsearchComponent,
                          config: Configuration,
-                         env: Environment
-                       ) {
+                         env: Environment) {
 
   // Import config and settings files
   private val dbConfig = dbConfigProvider.get[ClickHouseProfile]
@@ -46,17 +42,22 @@ class Backend @Inject()(
 
   val denseRegionsPath: Path =
     Paths.get(env.rootPath.getAbsolutePath, "resources", "dense_regions.tsv")
+
   val denseRegionChecker: DenseRegionChecker = DenseRegionChecker(denseRegionsPath.toString)
 
   val v2gLabelsPath: Path =
     Paths.get(env.rootPath.getAbsolutePath, "resources", "v2g_display_labels.json")
-  val v2gLabels: Map[String, JsValue] = loadJSONLinesIntoMap[String, JsValue](v2gLabelsPath.toString)(l =>
-    (l \ "key").as[String] -> (l \ "value").get)
+
+  val v2gLabels: Map[String, JsValue] =
+    loadJSONLinesIntoMap[String, JsValue](v2gLabelsPath.toString)(l =>
+      (l \ "key").as[String] -> (l \ "value").get)
 
   val v2gBiofeatureLabelsPath: Path =
     Paths.get(env.rootPath.getAbsolutePath, "resources", "v2g_biofeature_labels.json")
-  val v2gBiofeatureLabels: Map[String, String] = loadJSONLinesIntoMap(v2gBiofeatureLabelsPath.toString)(l =>
-    (l \ "biofeature_code").as[String] -> (l \ "label").as[String])
+
+  val v2gBiofeatureLabels: Map[String, String] =
+    loadJSONLinesIntoMap(v2gBiofeatureLabelsPath.toString)(l =>
+      (l \ "biofeature_code").as[String] -> (l \ "label").as[String])
 
   import dbConfig.profile.api._
 
@@ -77,20 +78,10 @@ class Backend @Inject()(
   lazy val colocs = TableQuery[Coloc]
   lazy val credsets = TableQuery[CredSet]
 
-  // you must import the DSL to use the syntax helpers
-
-  import com.sksamuel.elastic4s.ElasticDsl._
-
-  // import implicit hit readers
-  val elasticsearchConfiguration: ElasticsearchConfiguration = config.get[ElasticsearchConfiguration]("ot")
-  val esUri: ElasticProperties = elasticsearchConfiguration.asElasticProperties
-  val esQ: ElasticClient = ElasticClient(JavaClient(esUri))
-
   def buildPhewFromSumstats(
                              variantID: String,
                              pageIndex: Option[Int],
-                             pageSize: Option[Int]
-                           ): Future[Seq[SumStatsGWASRow]] = {
+                             pageSize: Option[Int]): Future[Seq[SumStatsGWASRow]] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
     val variant = Variant.fromString(variantID)
 
@@ -149,8 +140,7 @@ class Backend @Inject()(
   def gwasColocalisationForRegion(
                                    chromosome: String,
                                    startPos: Long,
-                                   endPos: Long
-                                 ): Future[Seq[ColocRow]] = {
+                                   endPos: Long): Future[Seq[ColocRow]] = {
     (parseChromosome(chromosome), parseRegion(startPos, endPos, 500000L)) match {
       case (Right(chr), Right((start, end))) =>
         val q = colocs
@@ -234,8 +224,7 @@ class Backend @Inject()(
 
   def gwasCredibleSet(
                        studyId: String,
-                       variantId: String
-                     ): Future[Seq[(SimpleVariant, CredSetRowStats)]] = {
+                       variantId: String): Future[Seq[(SimpleVariant, CredSetRowStats)]] = {
     val variant = Variant.fromString(variantId)
 
     variant match {
@@ -266,8 +255,7 @@ class Backend @Inject()(
                       studyId: String,
                       variantId: String,
                       phenotypeId: String,
-                      bioFeatureId: String
-                    ): Future[Seq[(SimpleVariant, CredSetRowStats)]] = {
+                      bioFeatureId: String): Future[Seq[(SimpleVariant, CredSetRowStats)]] = {
     val variant = Variant.fromString(variantId)
 
     variant match {
@@ -300,8 +288,7 @@ class Backend @Inject()(
                                 studyId: String,
                                 chromosome: String,
                                 startPos: Long,
-                                endPos: Long
-                              ): Future[Seq[(SimpleVariant, Double)]] = {
+                                endPos: Long): Future[Seq[(SimpleVariant, Double)]] = {
     (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
       case (Right(chr), Right((start, end))) =>
         val q = sumstatsGWAS
@@ -336,8 +323,7 @@ class Backend @Inject()(
                                phenotypeId: String,
                                chromosome: String,
                                startPos: Long,
-                               endPos: Long
-                             ): Future[Seq[(SimpleVariant, Double)]] = {
+                               endPos: Long): Future[Seq[(SimpleVariant, Double)]] = {
     (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
       case (Right(chr), Right((start, end))) =>
         val q = sumstatsMolTraits
@@ -404,91 +390,8 @@ class Backend @Inject()(
     }
   }
 
-  def getSearchResultSet(
-                          qString: String,
-                          pageIndex: Option[Int],
-                          pageSize: Option[Int]
-                        ): Future[Entities.SearchResultSet] = {
-
-    logger.info(s"Recieved request for $qString")
-    val limitClause = parsePaginationTokensForES(pageIndex, pageSize)
-
-    def extractSearchResponse(resp: Response[SearchResponse]): SearchResponse = {
-      resp match {
-        case failure: RequestFailure =>
-          logger.error(s"Error querying components.elasticsearch: ${failure.error}")
-          failure.result
-        case success: RequestSuccess[SearchResponse] => success.result
-      }
-    }
-
-    def queryAndExtract[T <: ElasticSearchEntity](
-                                                   searchRequest: SearchRequest
-                                                 ): Future[(Long, Seq[ElasticSearchEntity])] = {
-      esQ
-        .execute {
-          searchRequest
-        }
-        .map(extractSearchResponse)
-        .map(sr => {
-          implicit val reader: EsHitReader.type = EsHitReader
-          (sr.hits.size, sr.to[ElasticSearchEntity])
-        })
-    }
-
-    val geneQuery: SearchRequest = search("genes") query boolQuery.should(
-      termQuery("gene_id.keyword", qString.toUpperCase)
-        .boost(100d),
-      termQuery("gene_name", qString.toUpperCase).boost(100d),
-      matchQuery("gene_name", qString)
-        .fuzziness("0")
-        .maxExpansions(20)
-        .prefixLength(2)
-        .operator("AND")
-        .analyzer("autocomplete_search")) start limitClause._1 limit limitClause._2
-    val variantQuery = {
-      val vToken: String = Variant.fromString(qString) match {
-        case Right(v) => v.id
-        case _ => qString
-      }
-      search("variant_*") query boolQuery.should(
-        termQuery("variant_id.keyword", vToken),
-        termQuery("rs_id.keyword", qString.toLowerCase)) start limitClause._1 limit limitClause._2
-    }
-    val studiesQuery = search("studies") query boolQuery.should(
-      prefixQuery("study_id.keyword", qString.toUpperCase),
-      termQuery("pmid", qString),
-      functionScoreQuery(
-        matchQuery("mixed_field", qString)
-          .fuzziness("AUTO")
-          .maxExpansions(20)
-          .prefixLength(2)
-          .operator("AND")
-          .analyzer("autocomplete_search")).functions(
-        fieldFactorScore("num_assoc_loci")
-          .factor(1.1)
-          .missing(1d)
-          .modifier(
-            FieldValueFactorFunctionModifier.LOG2P))) start limitClause._1 limit limitClause._2
-
-    if (qString.length > 0) {
-      val studies: Future[(Long, Seq[ElasticSearchEntity])] = queryAndExtract(studiesQuery)
-      val variant: Future[(Long, Seq[ElasticSearchEntity])] = queryAndExtract(variantQuery)
-      val genes: Future[(Long, Seq[ElasticSearchEntity])] = queryAndExtract(geneQuery)
-      genes zip variant zip studies map {
-        case ((genes, variant), studies) =>
-          SearchResultSet(
-            genes._1,
-            genes._2.asInstanceOf[Seq[Gene]],
-            variant._1,
-            variant._2.asInstanceOf[Seq[Variant]],
-            studies._1,
-            studies._2.asInstanceOf[Seq[Study]])
-
-      }
-    } else {
-      Future.failed(InputParameterCheckError(Vector(SearchStringViolation())))
-    }
+  def search(query: String, pagination: Option[Pagination]): Future[SearchResultSet] = {
+    elasticsearch.getSearchResultSet(query, pagination.getOrElse(Pagination.mkDefault))
   }
 
   /** get top Functions.defaultTopOverlapStudiesSize studies sorted desc by
@@ -500,8 +403,8 @@ class Backend @Inject()(
   def getTopOverlappedStudies(
                                stid: String,
                                pageIndex: Option[Int] = Some(0),
-                               pageSize: Option[Int] = Some(defaultTopOverlapStudiesSize)
-                             ): Future[Entities.OverlappedLociStudy] = {
+                               pageSize: Option[Int] = Some(defaultTopOverlapStudiesSize))
+  : Future[Entities.OverlappedLociStudy] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
     val tableName = "studies_overlap"
@@ -544,8 +447,7 @@ class Backend @Inject()(
 
   def getOverlapVariantsIntersectionForStudies(
                                                 stid: String,
-                                                stids: Seq[String]
-                                              ): Future[Vector[String]] = {
+                                                stids: Seq[String]): Future[Vector[String]] = {
     if (stids.nonEmpty) {
       val numStudies = stids.length.toLong
 
@@ -570,8 +472,7 @@ class Backend @Inject()(
 
   def getOverlapVariantsForStudies(
                                     stid: String,
-                                    stids: Seq[String]
-                                  ): Future[Vector[Entities.OverlappedVariantsStudy]] = {
+                                    stids: Seq[String]): Future[Vector[Entities.OverlappedVariantsStudy]] = {
     val q =
       overlaps
         .filter(r => (r.studyIdA === stid) && (r.studyIdB inSetBind stids))
@@ -641,8 +542,7 @@ class Backend @Inject()(
   def getStudiesAndLeadVariantsForGeneByL2G(
                                              geneId: String,
                                              pageIndex: Option[Int],
-                                             pageSize: Option[Int]
-                                           ): Future[Vector[V2DL2GRowByGene]] = {
+                                             pageSize: Option[Int]): Future[Vector[V2DL2GRowByGene]] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
 
     val topLociEnrich =
@@ -774,8 +674,7 @@ class Backend @Inject()(
   def buildManhattanTable(
                            studyId: String,
                            pageIndex: Option[Int],
-                           pageSize: Option[Int]
-                         ): Future[Entities.ManhattanTable] = {
+                           pageSize: Option[Int]): Future[Entities.ManhattanTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
 
     val topLociEnrich =
@@ -817,8 +716,7 @@ class Backend @Inject()(
                      studyId: String,
                      variantId: String,
                      pageIndex: Option[Int],
-                     pageSize: Option[Int]
-                   ): Future[Entities.SLGTable] = {
+                     pageSize: Option[Int]): Future[Entities.SLGTable] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
     val variant = Variant.fromString(variantId)
 
@@ -916,8 +814,7 @@ class Backend @Inject()(
   def buildIndexVariantAssocTable(
                                    variantID: String,
                                    pageIndex: Option[Int],
-                                   pageSize: Option[Int]
-                                 ): Future[VariantToDiseaseTable] = {
+                                   pageSize: Option[Int]): Future[VariantToDiseaseTable] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
     val variant = Variant.fromString(variantID)
 
@@ -949,8 +846,7 @@ class Backend @Inject()(
   def buildTagVariantAssocTable(
                                  variantID: String,
                                  pageIndex: Option[Int],
-                                 pageSize: Option[Int]
-                               ): Future[VariantToDiseaseTable] = {
+                                 pageSize: Option[Int]): Future[VariantToDiseaseTable] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
     val variant = Variant.fromString(variantID)
 
@@ -982,8 +878,7 @@ class Backend @Inject()(
   def buildGecko(
                   chromosome: String,
                   posStart: Long,
-                  posEnd: Long
-                ): Future[Option[Entities.Gecko]] = {
+                  posEnd: Long): Future[Option[Entities.Gecko]] = {
     (parseChromosome(chromosome), parseRegion(posStart, posEnd)) match {
       case (Right(chr), Right((start, end))) =>
         val inRegion = Region(chr, start, end)
@@ -1208,4 +1103,5 @@ class Backend @Inject()(
         Seq.empty
     }
   }
+
 }

@@ -298,13 +298,24 @@ object Entities {
   case class VariantSearchResult(variant: Variant)
 
   case class SearchResultSet(
-                              totalGenes: Long,
-                              genes: Seq[Gene],
-                              totalVariants: Long,
-                              variants: Seq[Variant],
-                              totalStudies: Long,
-                              studies: Seq[Study]
-                            )
+                              totalGenes: Long = 0,
+                              genes: Seq[Gene] = Seq(),
+                              totalVariants: Long = 0,
+                              variants: Seq[Variant] = Seq(),
+                              totalStudies: Long = 0,
+                              studies: Seq[Study] = Seq()
+                            ) {
+    def combine(that: SearchResultSet): SearchResultSet = {
+      SearchResultSet(
+        totalGenes + that.totalGenes,
+        genes ++ that.genes,
+        totalVariants + that.totalVariants,
+        variants ++ that.variants,
+        totalStudies + that.totalStudies,
+        studies ++ that.studies
+      )
+    }
+  }
 
   case class Tissue(id: String) {
     lazy val name: String = id.replace("_", " ").toLowerCase.capitalize
