@@ -391,7 +391,7 @@ class Backend @Inject()(
   }
 
   def search(query: String, pagination: Option[Pagination]): Future[SearchResultSet] = {
-    elasticsearch.getSearchResultSet(query, pagination.getOrElse(Pagination.mkDefault))
+    elasticsearch.search(query, pagination.getOrElse(Pagination.mkDefault))
   }
 
   /** get top Functions.defaultTopOverlapStudiesSize studies sorted desc by

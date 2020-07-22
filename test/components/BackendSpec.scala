@@ -7,8 +7,6 @@ import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Logging
-import sangria.validation.Violation
-
 
 class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with ScalaFutures {
 

@@ -10,6 +10,8 @@ case class Pagination(index: Int, size: Int) {
 
   def hasValidRange(maxSize: Int = Pagination.sizeMax): Boolean = size <= maxSize
 
+  def next: Pagination = this.copy(index + 1)
+
   val toSQL: String = (index, size) match {
     case (0, 0) => s"LIMIT ${Pagination.sizeDefault}"
     case (0, s) => s"LIMIT $s"
