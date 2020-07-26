@@ -1,9 +1,9 @@
 package components
 
 import components.elasticsearch.Pagination
-import org.scalatest.FlatSpecLike
+import org.scalatest.flatspec.AnyFlatSpecLike
 
-class PaginationSpec extends FlatSpecLike {
+class PaginationSpec extends AnyFlatSpecLike {
 
   behavior of "Pagination for Elasticsearch"
 

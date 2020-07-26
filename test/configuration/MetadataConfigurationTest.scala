@@ -1,11 +1,12 @@
 package configuration
 
 import com.typesafe.config.ConfigFactory
+import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3}
-import org.scalatest.{FlatSpecLike, Matchers}
+import org.scalatest.matchers.should.Matchers
 import play.api.Configuration
 
-class MetadataConfigurationTest extends FlatSpecLike with Matchers with TableDrivenPropertyChecks {
+class MetadataConfigurationTest extends AnyFlatSpecLike with Matchers with TableDrivenPropertyChecks {
 
   import MetadataConfiguration._
 

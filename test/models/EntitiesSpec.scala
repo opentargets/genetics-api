@@ -1,10 +1,10 @@
 package models
 
 import models.entities.Entities.SearchResultSet
-import org.scalatest.FlatSpecLike
+import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatestplus.play.PlaySpec
 
-class EntitiesSpec extends FlatSpecLike {
+class EntitiesSpec extends AnyFlatSpecLike {
 
   "Two SearchResultSets" should "combine" in {
     // given

@@ -1,9 +1,11 @@
 package configuration
 
 import com.sksamuel.elastic4s.ElasticProperties
-import org.scalatest.{FlatSpecLike, Matchers}
+import org.scalatest.flatspec._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest._
 
-class ElasticConfigurationTest extends FlatSpecLike with Matchers {
+class ElasticConfigurationTest extends AnyFlatSpecLike with Matchers {
   private val validUrl = "http://elastic.co/9191"
   private val elasticProperties = ElasticProperties(validUrl)
 
