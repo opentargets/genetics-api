@@ -28,7 +28,7 @@ libraryDependencies ++= Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test,
   "com.typesafe.play" %% "play" % playVersion,
   "com.typesafe.play" %% "play-logback" % playVersion,
-  "com.typesafe.play" %% "play-json" % "2.8.1",
+  "com.typesafe.play" %% "play-json" % playVersion,
   "com.typesafe.play" %% "play-slick" % "5.0.0",
   "ru.yandex.clickhouse" % "clickhouse-jdbc" % "0.2.4",
   "org.sangria-graphql" %% "sangria" % "2.0.0",
