@@ -1,7 +1,7 @@
 package models
 
 import models.gql.GQLSchema
-import org.scalatest.FlatSpecLike
+import org.scalatest.flatspec.AnyFlatSpecLike
 
 /**
  * The publically exposed fields for each GQL object where the object isn't publicly exposed it is
@@ -63,7 +63,7 @@ trait GQLFieldSpecification {
   )
 }
 
-class GqlEntities extends FlatSpecLike {
+class GqlEntities extends AnyFlatSpecLike {
 
   new GQLFieldSpecification {
 
@@ -122,7 +122,7 @@ class GqlEntities extends FlatSpecLike {
   }
 }
 
-class GQLSchemaSpec extends FlatSpecLike {
+class GQLSchemaSpec extends AnyFlatSpecLike {
 
   val elements = List(
     "CredSetTagElement",

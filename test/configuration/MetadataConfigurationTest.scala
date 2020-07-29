@@ -1,11 +1,13 @@
 package configuration
 
 import com.typesafe.config.ConfigFactory
+import common.OpenTargetsSpec
+import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor3}
-import org.scalatest.{FlatSpecLike, Matchers}
+import org.scalatest.matchers.should.Matchers
 import play.api.Configuration
 
-class MetadataConfigurationTest extends FlatSpecLike with Matchers with TableDrivenPropertyChecks {
+class MetadataConfigurationTest extends OpenTargetsSpec with TableDrivenPropertyChecks {
 
   import MetadataConfiguration._
 
@@ -34,7 +36,7 @@ class MetadataConfigurationTest extends FlatSpecLike with Matchers with TableDri
 
   "Version" should "print nicely" in {
     val v = Version(0, 0, 1)
-    v.toString.equals("0.0.1")
+    v.toString must be ("0.0.1")
   }
 
 }
