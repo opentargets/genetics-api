@@ -3,7 +3,7 @@ package models.implicits
 import components.clickhouse.rep.SeqRep.{DSeqRep, StrSeqRep}
 import models.entities.DNA.SimpleVariant
 import models.entities.Entities._
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, PositionedResult}
 
 import scala.collection.breakOut
 
@@ -107,4 +107,8 @@ object DbImplicits {
       )
     })
   }
+
+  implicit val GetV2DStructure: Any with GetResult[V2DStructure] = GetResult(
+    r => V2DStructure(typeId = r.<<, sourceId = r.<<, bioFeatureSet = StrSeqRep(r.<<)))
+
 }

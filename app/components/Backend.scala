@@ -19,7 +19,7 @@ import play.api.libs.json._
 import play.api.{Configuration, Environment, Logger}
 import play.db.NamedDatabase
 import sangria.validation.Violation
-import slick.dbio.DBIOAction
+import slick.dbio.{DBIO, DBIOAction}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
@@ -39,6 +39,10 @@ class Backend @Inject()(
   private val db = dbConfig.db
   private val dbSS = dbConfigSumStats.db
   private val logger: Logger = Logger(this.getClass)
+
+  def executeQuery[T](query: DBIO[T]): Future[T] = {
+    db.run(query)
+  }
 
   val denseRegionsPath: Path =
     Paths.get(env.rootPath.getAbsolutePath, "resources", "dense_regions.tsv")
@@ -359,33 +363,40 @@ class Backend @Inject()(
   }
 
   def getG2VSchema: Future[Entities.G2VSchema] = {
-    def toSeqStruct(elems: Map[(String, String), Seq[String]]) = {
-      (for {
+    // converts V2DStructure to G2VSchemaElement
+    def toSeqStruct(elems: Seq[V2DStructure]): Seq[G2VSchemaElement] = {
+      for {
         entry <- elems
       } yield Entities.G2VSchemaElement(
-        entry._1._1,
-        entry._1._2,
-        (v2gLabels(entry._1._2) \ "display_label").asOpt[String],
-        (v2gLabels(entry._1._2) \ "overview_tooltip").asOpt[String],
-        (v2gLabels(entry._1._2) \ "tab_subtitle").asOpt[String],
-        (v2gLabels(entry._1._2) \ "pmid").asOpt[String],
-        entry._2.map(Tissue).toVector)).toSeq
+        entry.typeId,
+        entry.sourceId,
+        (v2gLabels(entry.sourceId) \ "display_label").asOpt[String],
+        (v2gLabels(entry.sourceId) \ "overview_tooltip").asOpt[String],
+        (v2gLabels(entry.sourceId) \ "tab_subtitle").asOpt[String],
+        (v2gLabels(entry.sourceId) \ "pmid").asOpt[String],
+        entry.bioFeatureSet.map( str => Tissue(str)))
     }
+    def filterDefaultType(v: Vector[V2DStructure], f: List[String]) = v.filter( it => f.contains(it.typeId))
 
-    db.run(v2gStructures.result.asTry).map {
+    val plainSqlQuery =
+      sql"""
+        select type_id, source_id, flatten(groupArray(feature_set)) from v2g_structure
+group by (type_id, source_id)
+         """.as[V2DStructure]
+
+    // 1. Get raw schmema
+    val res = db.run(plainSqlQuery.asTry)
+    res.map{
       case Success(v) =>
-        val mappedRows =
-          v.groupBy(r => (r.typeId, r.sourceId)).mapValues(_.flatMap(_.bioFeatureSet))
-        val qtlElems = toSeqStruct(mappedRows.filterKeys(p => defaultQtlTypes.contains(p._1)))
-        val intervalElems =
-          toSeqStruct(mappedRows.filterKeys(p => defaultIntervalTypes.contains(p._1)))
-        val fpredElems = toSeqStruct(mappedRows.filterKeys(p => defaultFPredTypes.contains(p._1)))
-        val distanceElems =
-          toSeqStruct(mappedRows.filterKeys(p => defaultDistanceTypes.contains(p._1)))
-
-        G2VSchema(qtlElems, intervalElems, fpredElems, distanceElems)
+        // 2. Map to types
+        val distTypes = filterDefaultType(v, defaultDistanceTypes)
+        val intTypes = filterDefaultType(v, defaultIntervalTypes)
+        val fpredTypes = filterDefaultType(v, defaultFPredTypes)
+        val qltTypes = filterDefaultType(v, defaultQtlTypes)
+        // 3. Compose schema
+        G2VSchema(toSeqStruct(qltTypes), toSeqStruct(intTypes), toSeqStruct(fpredTypes), toSeqStruct(distTypes))
       case Failure(ex) =>
-        logger.error(ex.getMessage)
+        logger.error(s"Error creating G2V Schema: ${ex.getMessage} -- ${ex.toString}")
         G2VSchema(Seq.empty, Seq.empty, Seq.empty, Seq.empty)
     }
   }
@@ -404,12 +415,10 @@ class Backend @Inject()(
                                stid: String,
                                pageIndex: Option[Int] = Some(0),
                                pageSize: Option[Int] = Some(defaultTopOverlapStudiesSize))
-  : Future[Entities.OverlappedLociStudy] = {
-    val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
+  : Future[OverlappedLociStudy] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
     val tableName = "studies_overlap"
 
-    // TODO generate a vararg select expression for uniq instead a column expression
     val plainQ =
       sql"""
            |select
@@ -421,16 +430,6 @@ class Backend @Inject()(
            |order by num_overlaps desc
            |#$limitClause
          """.stripMargin.as[(String, Int)]
-
-//    val q = overlaps
-//      .filter(_.studyIdA === stid)
-//      .groupBy(_.studyIdB)
-//      .map(r => (r._1, r._2.map(l => l.variantA).distinct.length))
-//      .sortBy(_._2.desc)
-//      .drop(limitPair._1)
-//      .take(limitPair._2)
-//
-//    q.result.statements.foreach(println)
 
     db.run(plainQ.asTry).map {
       case Success(v) =>
@@ -685,7 +684,6 @@ class Backend @Inject()(
            |#$limitClause
          """.stripMargin.as[V2DByStudy]
 
-    // |#$limitClause
     // map to proper manhattan association with needed fields
     db.run(topLociEnrich.asTry).map {
       case Success(v) =>
