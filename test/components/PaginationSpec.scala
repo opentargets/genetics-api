@@ -1,24 +1,27 @@
 package components
 
+import common.OpenTargetsSpec
 import components.elasticsearch.Pagination
-import org.scalatest.FlatSpecLike
 
-class PaginationSpec extends FlatSpecLike {
+class PaginationSpec extends OpenTargetsSpec {
 
-  behavior of "Pagination for Elasticsearch"
-
-  it should "correctly create a default configuration" in {
+  it must "correctly create a default configuration" in {
     val defaultPage = Pagination.mkDefault
-    assert(defaultPage.index == Pagination.indexDefault)
-    assert(defaultPage.size == Pagination.sizeDefault)
+    all(
+      List(
+        defaultPage.index must be(Pagination.indexDefault),
+        defaultPage.size must be(Pagination.sizeDefault)
+      )
+    )
   }
 
-  it should "increment the counters on next to facilitate sequential query calls" in {
+  it must "increment the counters on next to facilitate sequential query calls" in {
     val incrementedPage = Pagination.mkDefault.next.toES
-    // offset
-    assert(incrementedPage._1 == Pagination.sizeDefault)
-    // size to collect
-    assert(incrementedPage._2 == Pagination.sizeDefault)
+    all(
+      List(
+        incrementedPage._1 must be(Pagination.sizeDefault),
+        incrementedPage._2 must be(Pagination.sizeDefault)
+      )
+    )
   }
-
 }
