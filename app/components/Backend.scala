@@ -328,8 +328,9 @@ class Backend @Inject()(
                                chromosome: String,
                                startPos: Long,
                                endPos: Long): Future[Seq[(SimpleVariant, Double)]] = {
+
     (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
-      case (Right(chr), Right((start, end))) =>
+      case (Right(chr), Right(_)) =>
         val q = sumstatsMolTraits
           .filter(
             r =>
@@ -341,7 +342,7 @@ class Backend @Inject()(
                 (r.studyId === studyId))
           .map(_.variantAndPVal)
 
-        dbSS.run(q.result.asTry).map {
+        db.run(q.result.asTry).map {
           case Success(xs) => xs
           case Failure(ex) =>
             logger.error(ex.getMessage)

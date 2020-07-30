@@ -11,7 +11,7 @@ import play.api.test._
  *
  * For more information, see https://www.playframework.com/documentation/latest/ScalaTestingWithScalaTest
  */
-class SeqRepSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
+class SeqRepSpec extends PlaySpec {
 
   "A Clickhouse Array(Int32) must be non-empty when 1 element present" in {
     ISeqRep("[1]").rep mustBe Seq(1)

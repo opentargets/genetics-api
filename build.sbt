@@ -26,6 +26,7 @@ libraryDependencies ++= Seq(
   "com.github.pathikrit" %% "better-files" % "3.8.0",
   "com.typesafe.slick" %% "slick" % "3.3.2",
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test,
+  "org.scalacheck" %% "scalacheck" % "1.14.1" % Test,
   "com.typesafe.play" %% "play" % playVersion,
   "com.typesafe.play" %% "play-logback" % playVersion,
   "com.typesafe.play" %% "play-json" % playVersion,
