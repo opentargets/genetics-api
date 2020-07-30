@@ -57,6 +57,20 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
         results.studyId must equal(studyWithKnownOverlaps)))
   }
 
+  "gwasRegionalFromSumstats" when {
+    "given valid inputs should return sequence of results" in {
+      // given
+      val studyId = "GCST005810"
+      val chromosome = "1"
+      val start = 10000
+      val end = start + 1000
+      // when
+      val results = backend.gwasRegionalFromSumstats(studyId, chromosome, start, end).futureValue
+      // then
+      results must not be empty
+    }
+  }
+
   "QtlRegionalFromSumstats" when {
     // given
     val badChromosome = "23"
@@ -82,7 +96,7 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
     "given two invalid inputs should return 2 violations" in {
       check(funUnderTest(badChromosome, badStartEnd._1, badStartEnd._2), 2)
     }
-    "given valid inputs should return ..." taggedAs IntegrationTestTag in {
+    "given valid inputs should return sequence of results" taggedAs IntegrationTestTag in {
       val results: Seq[(SimpleVariant, Double)] = backend.qtlRegionalFromSumstats("GEUVADIS", "LCL", "ENSG00000237491", "1", 5000, 15000).futureValue
       results must not be empty
     }

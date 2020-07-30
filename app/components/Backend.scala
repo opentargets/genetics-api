@@ -165,12 +165,7 @@ class Backend @Inject()(
         }
 
       case (chrEither, rangeEither) =>
-        Future.failed(
-          InputParameterCheckError(
-            Vector(chrEither, rangeEither)
-              .filter(_.isLeft)
-              .map(_.left.get)
-              .asInstanceOf[Vector[Violation]]))
+        Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
     }
   }
 
@@ -294,7 +289,7 @@ class Backend @Inject()(
                                 startPos: Long,
                                 endPos: Long): Future[Seq[(SimpleVariant, Double)]] = {
     (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
-      case (Right(chr), Right((start, end))) =>
+      case (Right(chr), Right(_)) =>
         val q = sumstatsGWAS
           .filter(
             r =>
@@ -304,7 +299,7 @@ class Backend @Inject()(
                 (r.studyId === studyId))
           .map(_.variantAndPVal)
 
-        dbSS.run(q.result.asTry).map {
+        db.run(q.result.asTry).map {
           case Success(xs) => xs
           case Failure(ex) =>
             logger.error(ex.getMessage)
@@ -349,12 +344,7 @@ class Backend @Inject()(
             Seq.empty
         }
       case (chrEither, rangeEither) =>
-        Future.failed(
-          InputParameterCheckError(
-            Vector(chrEither, rangeEither)
-              .filter(_.isLeft)
-              .map(_.left.get)
-              .asInstanceOf[Vector[Violation]]))
+        Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
     }
   }
 
@@ -387,7 +377,7 @@ group by (type_id, source_id)
 
     // 1. Get raw schmema
     val res = db.run(plainSqlQuery.asTry)
-    res.map{
+    res.map {
       case Success(v) =>
         // 2. Map to types
         val distTypes = filterDefaultType(v, defaultDistanceTypes)
@@ -395,7 +385,11 @@ group by (type_id, source_id)
         val fpredTypes = filterDefaultType(v, defaultFPredTypes)
         val qltTypes = filterDefaultType(v, defaultQtlTypes)
         // 3. Compose schema
-        G2VSchema(toSeqStruct(qltTypes), toSeqStruct(intTypes), toSeqStruct(fpredTypes), toSeqStruct(distTypes))
+        G2VSchema(
+          toSeqStruct(qltTypes),
+          toSeqStruct(intTypes),
+          toSeqStruct(fpredTypes),
+          toSeqStruct(distTypes))
       case Failure(ex) =>
         logger.error(s"Error creating G2V Schema: ${ex.getMessage} -- ${ex.toString}")
         G2VSchema(Seq.empty, Seq.empty, Seq.empty, Seq.empty)
@@ -418,14 +412,13 @@ group by (type_id, source_id)
                                pageSize: Option[Int] = Some(defaultTopOverlapStudiesSize))
   : Future[OverlappedLociStudy] = {
     val limitClause = parsePaginationTokens(pageIndex, pageSize)
-    val tableName = "studies_overlap"
 
     val plainQ =
       sql"""
            |select
            | B_study_id,
            | uniq(A_chrom, A_pos, A_ref, A_alt) as num_overlaps
-           |from #$tableName
+           |from studies_overlap
            |prewhere A_study_id = $stid
            |group by B_study_id
            |order by num_overlaps desc
@@ -606,12 +599,7 @@ group by (type_id, source_id)
         }
 
       case (chrEither, rangeEither) =>
-        Future.failed(
-          InputParameterCheckError(
-            Vector(chrEither, rangeEither)
-              .filter(_.isLeft)
-              .map(_.left.get)
-              .asInstanceOf[Vector[Violation]]))
+        Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
     }
   }
 
@@ -959,12 +947,7 @@ group by (type_id, source_id)
         }
 
       case (chrEither, rangeEither) =>
-        Future.failed(
-          InputParameterCheckError(
-            Vector(chrEither, rangeEither)
-              .filter(_.isLeft)
-              .map(_.left.get)
-              .asInstanceOf[Vector[Violation]]))
+        Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
     }
   }
 
@@ -1101,6 +1084,21 @@ group by (type_id, source_id)
         logger.error(ex.getMessage)
         Seq.empty
     }
+  }
+
+}
+
+object Backend {
+
+  /**
+    * Adds one or more violations to the InputParameterCheckError object.
+    * @param violations to add to IPCE
+    * @return InputParameterCheckError with violations
+    */
+  def inputParameterCheckErrorGenerator(
+    violations: Either[Violation, Any]*
+  ): InputParameterCheckError = {
+    InputParameterCheckError(violations.filter(_.isLeft).map(_.left.get).toVector)
   }
 
 }
