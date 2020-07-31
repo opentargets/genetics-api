@@ -8,6 +8,7 @@ import configuration.{Metadata, MetadataConfiguration}
 import javax.inject.{Inject, Singleton}
 import models.Functions._
 import models.database.FRM._
+import models.database.{GeneticsDbTables, Queries}
 import models.entities.DNA._
 import models.entities.Entities._
 import models.entities.Violations._
@@ -65,22 +66,6 @@ class Backend @Inject()(
 
   import dbConfig.profile.api._
 
-  lazy val genes = TableQuery[Genes]
-  lazy val variants = TableQuery[Variants]
-  lazy val studies = TableQuery[Studies]
-  lazy val overlaps = TableQuery[Overlaps]
-  lazy val v2gStructures = TableQuery[V2GStructure]
-  lazy val v2DsByChrPos = TableQuery[V2DsByChrPos]
-  lazy val v2DsByStudy = TableQuery[V2DsByStudy]
-  lazy val v2gs = TableQuery[V2G]
-  lazy val v2gScores = TableQuery[V2GOverallScore]
-  lazy val d2v2g = TableQuery[D2V2G]
-  lazy val d2v2gScored = TableQuery[D2V2GScored]
-  lazy val d2v2gScores = TableQuery[D2V2GOverallScore]
-  lazy val sumstatsGWAS = TableQuery[SumStatsGWAS]
-  lazy val sumstatsMolTraits = TableQuery[SumStatsMolTraits]
-  lazy val colocs = TableQuery[Coloc]
-  lazy val credsets = TableQuery[CredSet]
 
   def buildPhewFromSumstats(
                              variantID: String,
@@ -142,11 +127,12 @@ class Backend @Inject()(
   }
 
   def gwasColocalisationForRegion(
-                                   chromosome: String,
-                                   startPos: Long,
-                                   endPos: Long): Future[Seq[ColocRow]] = {
-    (parseChromosome(chromosome), parseRegion(startPos, endPos, 500000L)) match {
-      case (Right(chr), Right((start, end))) =>
+    chromosome: String,
+    startPos: Long,
+    endPos: Long
+  ): Future[Seq[ColocRow]] = {
+    (parseChromosome(chromosome), parseRegion(startPos, endPos, defaultMaxDistantFromTSS)) match {
+      case (Right(_), Right(_)) =>
         val q = colocs
           .filter(
             r =>
@@ -584,12 +570,8 @@ group by (type_id, source_id)
 
   def getGenesByRegion(chromosome: String, startPos: Long, endPos: Long): Future[Seq[Gene]] = {
     (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
-      case (Right(chr), Right((start, end))) =>
-        val q = genes
-          .filter(
-            r =>
-              (r.chromosome === chr) &&
-                ((r.start >= start && r.start <= end) || (r.end >= start && r.end <= end)))
+      case (Right(_), Right(_)) =>
+        val q = Queries.geneInRegion(chromosome, startPos, endPos)
 
         db.run(q.result.asTry).map {
           case Success(v) => v
