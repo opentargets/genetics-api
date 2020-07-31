@@ -24,7 +24,7 @@ import slick.dbio.{DBIO, DBIOAction}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class Backend @Inject()(
@@ -32,7 +32,8 @@ class Backend @Inject()(
                          @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
                          elasticsearch: ElasticsearchComponent,
                          config: Configuration,
-                         env: Environment) {
+  env: Environment
+) extends GeneticsDbTables {
 
   // Import config and settings files
   private val dbConfig = dbConfigProvider.get[ClickHouseProfile]
@@ -41,8 +42,22 @@ class Backend @Inject()(
   private val dbSS = dbConfigSumStats.db
   private val logger: Logger = Logger(this.getClass)
 
-  def executeQuery[T](query: DBIO[T]): Future[T] = {
-    db.run(query)
+  def executeQuery[T](query: DBIO[T], defaultOnFail: T): Future[T] = {
+    db.run(query.asTry).map {
+      case Success(s) => s
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        defaultOnFail
+  }
+  }
+
+  def executeQueryForSeq[T](query: DBIO[Seq[T]]): Future[Seq[T]] = {
+    db.run(query.asTry).map {
+      case Success(v) => v
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        Seq.empty
+    }
   }
 
   val denseRegionsPath: Path =
@@ -86,12 +101,7 @@ class Backend @Inject()(
           .drop(limitPair._1)
           .take(limitPair._2)
 
-        dbSS.run(q.result.asTry).map {
-          case Success(vec) => vec
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Seq.empty
-        }
+        executeQueryForSeq(q.result)
 
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
     }
@@ -118,13 +128,8 @@ class Backend @Inject()(
           DBIOAction.successful(Seq.empty)
       }
 
-    db.run(q1.asTry).map {
-      case Success(v) => v.seq
-      case Failure(ex) =>
-        logger.error(ex.getMessage)
-        Seq.empty
+    executeQueryForSeq(q1)
     }
-  }
 
   def gwasColocalisationForRegion(
     chromosome: String,
@@ -143,12 +148,7 @@ class Backend @Inject()(
                 (r.rPos <= endPos) &&
                 (r.rType === GWASLiteral))
 
-        db.run(q.result.asTry).map {
-          case Success(vec) => vec
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Seq.empty
-        }
+        executeQueryForSeq(q.result)
 
       case (chrEither, rangeEither) =>
         Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
@@ -169,13 +169,7 @@ class Backend @Inject()(
                 (r.lAlt === v.altAllele) &&
                 (r.lStudy === studyId) &&
                 (r.rType === GWASLiteral))
-
-        db.run(q.result.asTry).map {
-          case Success(vec) => vec
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Seq.empty
-        }
+        executeQueryForSeq(q.result)
 
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
     }
@@ -196,12 +190,7 @@ class Backend @Inject()(
                 (r.lStudy === studyId) &&
                 (r.rType =!= GWASLiteral))
 
-        db.run(q.result.asTry).map {
-          case Success(vec) => vec
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Seq.empty
-        }
+        executeQueryForSeq(q.result)
 
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
     }
@@ -225,12 +214,7 @@ class Backend @Inject()(
                 (r.dataType === GWASLiteral))
           .map(_.tagVariantWithStats)
 
-        db.run(q.result.asTry).map {
-          case Success(vec) => vec
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Seq.empty
-        }
+        executeQueryForSeq(q.result)
 
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
     }
@@ -258,12 +242,7 @@ class Backend @Inject()(
                 (r.bioFeature === bioFeatureId))
           .map(_.tagVariantWithStats)
 
-        db.run(q.result.asTry).map {
-          case Success(vec) => vec
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Seq.empty
-        }
+        executeQueryForSeq(q.result)
 
       case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
     }
@@ -285,12 +264,7 @@ class Backend @Inject()(
                 (r.studyId === studyId))
           .map(_.variantAndPVal)
 
-        db.run(q.result.asTry).map {
-          case Success(xs) => xs
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Seq.empty
-        }
+        executeQueryForSeq(q.result)
 
       case (chrEither, rangeEither) =>
         Future.failed(
@@ -323,12 +297,7 @@ class Backend @Inject()(
                 (r.studyId === studyId))
           .map(_.variantAndPVal)
 
-        db.run(q.result.asTry).map {
-          case Success(xs) => xs
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Seq.empty
-        }
+        executeQueryForSeq(q.result)
       case (chrEither, rangeEither) =>
         Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
     }
@@ -571,15 +540,8 @@ group by (type_id, source_id)
   def getGenesByRegion(chromosome: String, startPos: Long, endPos: Long): Future[Seq[Gene]] = {
     (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
       case (Right(_), Right(_)) =>
-        val q = Queries.geneInRegion(chromosome, startPos, endPos)
-
-        db.run(q.result.asTry).map {
-          case Success(v) => v
-          case Failure(ex) =>
-            logger.error(ex.getMessage)
-            Seq.empty
-        }
-
+        val geneQuery = Queries.geneInRegion(chromosome, startPos, endPos)
+        executeQueryForSeq(geneQuery.result)
       case (chrEither, rangeEither) =>
         Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
     }

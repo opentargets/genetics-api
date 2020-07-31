@@ -164,7 +164,7 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
   "Get G2VSchema returns schema including all elements in DB" taggedAs IntegrationTestTag in {
     // given
     val sizeOfSchema = backend.v2gStructures.length.result
-    val expectedSize = backend.executeQuery(sizeOfSchema).futureValue
+    val expectedSize = backend.executeQuery(sizeOfSchema, 0).futureValue
     // when
     val generatedSchema: Entities.G2VSchema = backend.getG2VSchema.futureValue
     val schemaElementSize = generatedSchema.distances.length +
