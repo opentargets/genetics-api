@@ -3,6 +3,7 @@ package components
 import configuration.IntegrationTestTag
 import models.entities.DNA.SimpleVariant
 import models.entities.Entities
+import models.entities.Entities.ColocRow
 import models.entities.Violations.InputParameterCheckError
 import org.scalatest.Assertion
 import org.scalatest.concurrent._
@@ -15,6 +16,20 @@ import play.api.Logging
 
 import scala.concurrent.Future
 
+/**
+ * Tests are predominantly running against the Clickhouse database, so need to have
+ * an available instance configured. All tests are blocking until they receive
+ * their results. Depending on the connection speed to the database it may be
+ * necessary to configure the `defaultPatience` field to allow Futures longer
+ * to complete.
+ *
+ * In some cases (see: `buildPhewFromSumstats` for example) a chromosome area is
+ * chosen as we know that it comtains results. Over time the number of results
+ * may change as database data is curated. The current workaround it to take the
+ * current approximate value (Aug 20) and include a range around that value to
+ * minimise the fragility of small database updates breaking the tests, but while
+ * being sensitive enough to detect if something goes wrong within the API.
+ */
 class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with ScalaFutures {
 
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
@@ -57,18 +72,60 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
         results.studyId must equal(studyWithKnownOverlaps)))
   }
 
-  "gwasRegionalFromSumstats" when {
-    "given valid inputs should return sequence of results" in {
-      // given
-      val studyId = "GCST005810"
-      val chromosome = "1"
-      val start = 10000
-      val end = start + 1000
-      // when
-      val results = backend.gwasRegionalFromSumstats(studyId, chromosome, start, end).futureValue
-      // then
-      results must not be empty
+  "getGenesByRegion: returns all genes in selected region" when {
+    "small region selected" taggedAs IntegrationTestTag in {
+      val result = backend.getGenesByRegion("X", 990000, 995000).futureValue
+      result must have length 1
+      result.head.id must equal("ENSG00000237531")
     }
+    "large region selected" taggedAs IntegrationTestTag in {
+      val result = backend.getGenesByRegion("X", 250000, 1000000).futureValue
+      result must not be empty
+      result.size must be (8 +- 2)
+    }
+  }
+
+  "buildPhewFromSumstats: given valid inputs should return sequence of results" taggedAs IntegrationTestTag in {
+    val variantWithKnownResults = "2_180335162_A_C"
+    val result = backend.buildPhewFromSumstats(variantWithKnownResults, None, None).futureValue
+
+    result must not be empty
+    result.size must be (100 +- 50)
+
+  }
+
+  "buildGecko: given valid inputs sohuld return Gecko" taggedAs IntegrationTestTag in {
+    // when
+    val results = backend.buildGecko("1", 100000, 500000).futureValue
+    // then
+    all(
+      List(
+        results.isDefined mustBe true,
+        results.get.geneIds.size must be (5 +- 2),
+        results.get.tagVariants.size must be (6 +- 2)
+      )
+    )
+  }
+
+  "gwasColocalisationForRegion: given valid chromosome and interval returns studies" taggedAs IntegrationTestTag in {
+
+    // when
+    val results: Seq[ColocRow] = backend.gwasColocalisationForRegion("19", 750000, 850000).futureValue
+    // then
+    results must not be empty
+    results.size must be (350 +- 50)
+  }
+
+  "gwasRegionalFromSumstats: given valid inputs should return sequence of results" taggedAs IntegrationTestTag in {
+    // given
+    val studyId = "GCST005810"
+    val chromosome = "1"
+    val start = 10000
+    val end = start + 1000
+    // when
+    val results = backend.gwasRegionalFromSumstats(studyId, chromosome, start, end).futureValue
+    // then
+    results must not be empty
   }
 
   "QtlRegionalFromSumstats" when {
@@ -90,14 +147,16 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
 
       val f1: Future[_] = funUnderTest(badChromosome, 10, 20)
       val f2: Future[_] = funUnderTest("1", badStartEnd._1, badStartEnd._2)
-      check(f1,1)
-      check(f2,1)
+      check(f1, 1)
+      check(f2, 1)
     }
     "given two invalid inputs should return 2 violations" in {
       check(funUnderTest(badChromosome, badStartEnd._1, badStartEnd._2), 2)
     }
     "given valid inputs should return sequence of results" taggedAs IntegrationTestTag in {
-      val results: Seq[(SimpleVariant, Double)] = backend.qtlRegionalFromSumstats("GEUVADIS", "LCL", "ENSG00000237491", "1", 5000, 15000).futureValue
+      val results: Seq[(SimpleVariant, Double)] = backend
+        .qtlRegionalFromSumstats("GEUVADIS", "LCL", "ENSG00000237491", "1", 5000, 15000)
+        .futureValue
       results must not be empty
     }
   }
