@@ -1,6 +1,7 @@
 package components
 
 import configuration.IntegrationTestTag
+import models.database.GeneticsDbTables
 import models.entities.DNA.SimpleVariant
 import models.entities.Entities
 import models.entities.Entities.ColocRow

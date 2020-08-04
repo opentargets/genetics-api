@@ -42,6 +42,8 @@ class Backend @Inject()(
   private val dbSS = dbConfigSumStats.db
   private val logger: Logger = Logger(this.getClass)
 
+  import dbConfig.profile.api._
+
   def executeQuery[T](query: DBIO[T], defaultOnFail: T): Future[T] = {
     db.run(query.asTry).map {
       case Success(s) => s
@@ -59,6 +61,25 @@ class Backend @Inject()(
         Seq.empty
     }
   }
+
+  def getSequenceAbstr[A, B >: Nothing](
+                                         chromosome: String,
+                                         start: Long,
+                                         end: Long,
+                                         q: => (String, Long, Long) => Query[A, B, Seq]
+                                       ): Future[Seq[B]] = {
+    // 0 validate
+    (parseChromosome(chromosome), parseRegion(start, end, defaultMaxRegionSize)) match {
+      // right - right: all good
+      case (Right(_), Right(_)) =>
+        val query = q(chromosome, start, end)
+        executeQueryForSeq(query.result)
+      // one or more left
+      case (chrEither, regionEither) =>
+        Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, regionEither))
+    }
+  }
+
 
   val denseRegionsPath: Path =
     Paths.get(env.rootPath.getAbsolutePath, "resources", "dense_regions.tsv")
@@ -79,13 +100,13 @@ class Backend @Inject()(
     loadJSONLinesIntoMap(v2gBiofeatureLabelsPath.toString)(l =>
       (l \ "biofeature_code").as[String] -> (l \ "label").as[String])
 
-  import dbConfig.profile.api._
 
 
   def buildPhewFromSumstats(
                              variantID: String,
                              pageIndex: Option[Int],
-                             pageSize: Option[Int]): Future[Seq[SumStatsGWASRow]] = {
+    pageSize: Option[Int]
+  ): Future[Seq[SumStatsGWASRow]] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
     val variant = Variant.fromString(variantID)
 
@@ -267,12 +288,7 @@ class Backend @Inject()(
         executeQueryForSeq(q.result)
 
       case (chrEither, rangeEither) =>
-        Future.failed(
-          InputParameterCheckError(
-            Vector(chrEither, rangeEither)
-              .filter(_.isLeft)
-              .map(_.left.get)
-              .asInstanceOf[Vector[Violation]]))
+        Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
     }
   }
 
@@ -537,26 +553,20 @@ group by (type_id, source_id)
     }
   }
 
-  def getGenesByRegion(chromosome: String, startPos: Long, endPos: Long): Future[Seq[Gene]] = {
-    (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
-      case (Right(_), Right(_)) =>
-        val geneQuery = Queries.geneInRegion(chromosome, startPos, endPos)
-        executeQueryForSeq(geneQuery.result)
-      case (chrEither, rangeEither) =>
-        Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
-    }
+  def getGenesByRegion(
+    chromosome: String,
+    startPos: Long,
+    endPos: Long,
+  ): Future[Seq[Gene]] = {
+    getSequenceAbstr(chromosome, startPos, endPos, Queries.geneInRegion)
   }
+
 
   def getGenes(geneIds: Seq[String]): Future[Seq[Gene]] = {
     if (geneIds.nonEmpty) {
       val q = genes.filter(r => r.id inSetBind geneIds)
 
-      db.run(q.result.asTry).map {
-        case Success(v) => v
-        case Failure(ex) =>
-          logger.error(ex.getMessage)
-          Seq.empty
-      }
+      executeQueryForSeq(q.result)
     } else {
       Future.successful(Seq.empty)
     }
