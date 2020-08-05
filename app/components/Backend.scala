@@ -59,12 +59,12 @@ class Backend @Inject() (
     executeQuery(query, Vector.empty).map(_.toVector)
   }
 
-  def getSequenceAbstr[A, B >: Nothing](
-                                         chromosome: String,
-                                         start: Long,
-                                         end: Long,
-                                         q: => (String, Long, Long) => Query[A, B, Seq]
-                                       ): Future[Seq[B]] = {
+  def getSequenceWithChromosomeAndRegionCheck[A, B >: Nothing](
+    chromosome: String,
+    start: Long,
+    end: Long,
+    q: => (String, Long, Long) => Query[A, B, Seq]
+  ): Future[Seq[B]] = {
     // 0 validate
     (parseChromosome(chromosome), parseRegion(start, end, defaultMaxRegionSize)) match {
       // right - right: all good
@@ -77,6 +77,16 @@ class Backend @Inject() (
     }
   }
 
+  def getSequenceWithVariantCheck[A, B >: Nothing](
+    variantID: String,
+    query: => Variant => Query[A, B, Seq]
+  ): Future[Seq[B]] = {
+    Variant.fromString(variantID) match {
+      case Right(v) =>
+        executeQueryForSeq(query(v).result)
+      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
+    }
+  }
 
   val denseRegionsPath: Path =
     Paths.get(env.rootPath.getAbsolutePath, "resources", "dense_regions.tsv")
@@ -97,35 +107,27 @@ class Backend @Inject() (
     loadJSONLinesIntoMap(v2gBiofeatureLabelsPath.toString)(l =>
       (l \ "biofeature_code").as[String] -> (l \ "label").as[String])
 
-
-
   def buildPhewFromSumstats(
-                             variantID: String,
-                             pageIndex: Option[Int],
+    variantID: String,
+    pageIndex: Option[Int],
     pageSize: Option[Int]
   ): Future[Seq[SumStatsGWASRow]] = {
     val limitPair = parsePaginationTokensForSlick(pageIndex, pageSize)
-    val variant = Variant.fromString(variantID)
-
-    variant match {
-      case Right(v) =>
-        val q = sumstatsGWAS
-          .filter(
-            r =>
-              (r.chrom === v.chromosome) &&
-                (r.pos === v.position) &&
-                (r.ref === v.refAllele) &&
-                (r.alt === v.altAllele))
-          .drop(limitPair._1)
-          .take(limitPair._2)
-
-        executeQueryForSeq(q.result)
-
-      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
-    }
+    val q = (v: Variant) =>
+      sumstatsGWAS
+        .filter(
+          r =>
+            (r.chrom === v.chromosome) &&
+              (r.pos === v.position) &&
+              (r.ref === v.refAllele) &&
+              (r.alt === v.altAllele))
+        .drop(limitPair._1)
+        .take(limitPair._2)
+    getSequenceWithVariantCheck(variantID, q)
   }
 
   def colocalisationsForGene(geneId: String): Future[Seq[ColocRow]] = {
+    // refactor query
     val q1 = genes
       .filter(_.id === geneId)
       .take(1)
@@ -165,49 +167,18 @@ class Backend @Inject() (
             (r.rPos <= endPos) &&
             (r.rType === GWASLiteral))
     }
-    getSequenceAbstr(chromosome, startPos, endPos, q)
+    getSequenceWithChromosomeAndRegionCheck(chromosome, startPos, endPos, q)
 
   }
 
   def gwasColocalisation(studyId: String, variantId: String): Future[Seq[ColocRow]] = {
-    val variant = Variant.fromString(variantId)
-
-    variant match {
-      case Right(v) =>
-        val q = colocs
-          .filter(
-            r =>
-              (r.lChrom === v.chromosome) &&
-                (r.lPos === v.position) &&
-                (r.lRef === v.refAllele) &&
-                (r.lAlt === v.altAllele) &&
-                (r.lStudy === studyId) &&
-                (r.rType === GWASLiteral))
-        executeQueryForSeq(q.result)
-
-      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
-    }
+    val q = (v: Variant) => Queries.colocOnVariantAndStudy(v, studyId).filter(r => r.rType === GWASLiteral)
+    getSequenceWithVariantCheck(variantId, q)
   }
 
   def qtlColocalisation(studyId: String, variantId: String): Future[Seq[ColocRow]] = {
-    val variant = Variant.fromString(variantId)
-
-    variant match {
-      case Right(v) =>
-        val q = colocs
-          .filter(
-            r =>
-              (r.lChrom === v.chromosome) &&
-                (r.lPos === v.position) &&
-                (r.lRef === v.refAllele) &&
-                (r.lAlt === v.altAllele) &&
-                (r.lStudy === studyId) &&
-                (r.rType =!= GWASLiteral))
-
-        executeQueryForSeq(q.result)
-
-      case Left(violation) => Future.failed(InputParameterCheckError(Vector(violation)))
-    }
+    val q = (v: Variant) => Queries.colocOnVariantAndStudy(v, studyId).filter(r => r.rType =!= GWASLiteral)
+    getSequenceWithVariantCheck(variantId, q)
   }
 
   def gwasCredibleSet(
@@ -269,16 +240,18 @@ class Backend @Inject() (
     endPos: Long
   ): Future[Seq[(SimpleVariant, Double)]] = {
 
-    val q = (chromosome: String, startPos: Long, endPos: Long) => { sumstatsGWAS
-      .filter(
-        r =>
-          (r.chrom === chromosome) &&
-            (r.pos >= startPos) &&
-            (r.pos <= endPos) &&
-            (r.studyId === studyId))
-      .map(_.variantAndPVal) }
+    val q = (chromosome: String, startPos: Long, endPos: Long) => {
+      sumstatsGWAS
+        .filter(
+          r =>
+            (r.chrom === chromosome) &&
+              (r.pos >= startPos) &&
+              (r.pos <= endPos) &&
+              (r.studyId === studyId))
+        .map(_.variantAndPVal)
+    }
 
-    getSequenceAbstr(chromosome, startPos, endPos, q )
+    getSequenceWithChromosomeAndRegionCheck(chromosome, startPos, endPos, q)
 
   }
 
@@ -291,18 +264,19 @@ class Backend @Inject() (
     endPos: Long
   ): Future[Seq[(SimpleVariant, Double)]] = {
 
-    val q = (chr: String, startPos: Long, endPos: Long) => sumstatsMolTraits
-      .filter(
-        r =>
-          (r.chrom === chr) &&
-            (r.pos >= startPos) &&
-            (r.pos <= endPos) &&
-            (r.bioFeature === bioFeature) &&
-            (r.phenotypeId === phenotypeId) &&
-            (r.studyId === studyId))
-      .map(_.variantAndPVal)
+    val q = (chr: String, startPos: Long, endPos: Long) =>
+      sumstatsMolTraits
+        .filter(
+          r =>
+            (r.chrom === chr) &&
+              (r.pos >= startPos) &&
+              (r.pos <= endPos) &&
+              (r.bioFeature === bioFeature) &&
+              (r.phenotypeId === phenotypeId) &&
+              (r.studyId === studyId))
+        .map(_.variantAndPVal)
 
-    getSequenceAbstr(chromosome, startPos, endPos, q)
+    getSequenceWithChromosomeAndRegionCheck(chromosome, startPos, endPos, q)
   }
 
   def getMetadata: Future[Metadata] = {
@@ -524,14 +498,9 @@ group by (type_id, source_id)
     executeQueryForVec(topLociEnrich)
   }
 
-  def getGenesByRegion(
-    chromosome: String,
-    startPos: Long,
-    endPos: Long,
-  ): Future[Seq[Gene]] = {
-    getSequenceAbstr(chromosome, startPos, endPos, Queries.geneInRegion)
+  def getGenesByRegion(chromosome: String, startPos: Long, endPos: Long): Future[Seq[Gene]] = {
+    getSequenceWithChromosomeAndRegionCheck(chromosome, startPos, endPos, Queries.geneInRegion)
   }
-
 
   def getGenes(geneIds: Seq[String]): Future[Seq[Gene]] = {
     if (geneIds.nonEmpty) {

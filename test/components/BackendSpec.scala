@@ -133,7 +133,16 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
     val results: Seq[ColocRow] = backend.gwasColocalisationForRegion("19", 750000, 850000).futureValue
     // then
     results must not be empty
-    results.size must be (350 +- 50)
+    results.size must be(350 +- 50)
+  }
+
+  "gwasColocalisationForStudy: given ..." taggedAs IntegrationTestTag in {
+    // given
+    val variant = "19_10359299_A_C"
+    val study = "GCST004131"
+    val results = backend.gwasColocalisation(study, variant).futureValue
+    results must not be empty
+    results.size must be(7 +- 2)
   }
 
   "gwasRegionalFromSumstats: given valid inputs should return sequence of results" taggedAs IntegrationTestTag in {
