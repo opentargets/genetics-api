@@ -31,7 +31,7 @@ import scala.concurrent.Future
  * minimise the fragility of small database updates breaking the tests, but while
  * being sensitive enough to detect if something goes wrong within the API.
  */
-class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with ScalaFutures {
+class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with ScalaFutures with GeneticsDbTables {
 
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 

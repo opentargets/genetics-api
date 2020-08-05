@@ -20,7 +20,7 @@ import play.api.libs.json._
 import play.api.{Configuration, Environment, Logger}
 import play.db.NamedDatabase
 import sangria.validation.Violation
-import slick.dbio.{DBIO, DBIOAction}
+import slick.dbio.DBIOAction
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
@@ -50,16 +50,15 @@ class Backend @Inject()(
       case Failure(ex) =>
         logger.error(ex.getMessage)
         defaultOnFail
-  }
+    }
   }
 
   def executeQueryForSeq[T](query: DBIO[Seq[T]]): Future[Seq[T]] = {
-    db.run(query.asTry).map {
-      case Success(v) => v
-      case Failure(ex) =>
-        logger.error(ex.getMessage)
-        Seq.empty
-    }
+    executeQuery(query, Seq.empty)
+  }
+
+  def executeQueryForVec[T](query: DBIO[Vector[T]]): Future[Vector[T]] = {
+    executeQuery(query, Vector.empty).map(_.toVector)
   }
 
   def getSequenceAbstr[A, B >: Nothing](
@@ -150,24 +149,26 @@ class Backend @Inject()(
       }
 
     executeQueryForSeq(q1)
-    }
-
+  }
+  // refactor to use abstract get sequence
   def gwasColocalisationForRegion(
     chromosome: String,
     startPos: Long,
     endPos: Long
   ): Future[Seq[ColocRow]] = {
+
+    val q = colocs
+      .filter(
+        r =>
+          (r.lChrom === chromosome) &&
+            (r.lPos >= startPos) &&
+            (r.lPos <= endPos) &&
+            (r.rPos >= startPos) &&
+            (r.rPos <= endPos) &&
+            (r.rType === GWASLiteral))
+
     (parseChromosome(chromosome), parseRegion(startPos, endPos, defaultMaxDistantFromTSS)) match {
       case (Right(_), Right(_)) =>
-        val q = colocs
-          .filter(
-            r =>
-              (r.lChrom === chromosome) &&
-                (r.lPos >= startPos) &&
-                (r.lPos <= endPos) &&
-                (r.rPos >= startPos) &&
-                (r.rPos <= endPos) &&
-                (r.rType === GWASLiteral))
 
         executeQueryForSeq(q.result)
 
@@ -477,12 +478,7 @@ group by (type_id, source_id)
 
   def getGeneChromosome(geneId: String): Future[String] = {
     val geneQ = genes.filter(_.id === geneId).map(g => g.chromosome)
-    db.run(geneQ.result.head.asTry).map {
-      case Success(s) => s
-      case Failure(ex) =>
-        logger.error(ex.getMessage)
-        ""
-    }
+    executeQuery(geneQ.result.head, "")
   }
 
   def getStudiesForGene(geneId: String): Future[Vector[String]] = {
@@ -494,12 +490,7 @@ group by (type_id, source_id)
           .groupBy(_.studyId)
           .map(_._1)
 
-      db.run(studiesQ.result.asTry).map {
-        case Success(v) => v.toVector
-        case Failure(ex) =>
-          logger.error(ex.getMessage)
-          Vector.empty
-      }
+      executeQuery(studiesQ.result, Vector.empty).map(_.toVector)
     }
   }.flatten
 
@@ -545,12 +536,7 @@ group by (type_id, source_id)
            |#$limitClause
          """.stripMargin.as[V2DL2GRowByGene]
 
-    db.run(topLociEnrich.asTry).map {
-      case Success(v) => v
-      case Failure(ex) =>
-        logger.error(ex.getMessage)
-        Vector.empty
-    }
+    executeQueryForVec(topLociEnrich)
   }
 
   def getGenesByRegion(
@@ -1032,12 +1018,7 @@ group by (type_id, source_id)
           DBIOAction.successful(Seq.empty)
       }
 
-    db.run(q1.asTry).map {
-      case Success(v) => v
-      case Failure(ex) =>
-        logger.error(ex.getMessage)
-        Seq.empty
-    }
+    executeQueryForSeq(q1)
   }
 
 }
