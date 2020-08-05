@@ -22,24 +22,22 @@ import play.db.NamedDatabase
 import sangria.validation.Violation
 import slick.dbio.DBIOAction
 
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 @Singleton
-class Backend @Inject()(
-                         @NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
-                         @NamedDatabase("sumstats") protected val dbConfigProviderSumStats: DatabaseConfigProvider,
-                         elasticsearch: ElasticsearchComponent,
-                         config: Configuration,
+class Backend @Inject() (
+  @NamedDatabase("default") protected val dbConfigProvider: DatabaseConfigProvider,
+  elasticsearch: ElasticsearchComponent,
+  config: Configuration,
   env: Environment
 ) extends GeneticsDbTables {
 
   // Import config and settings files
   private val dbConfig = dbConfigProvider.get[ClickHouseProfile]
-  private val dbConfigSumStats = dbConfigProviderSumStats.get[ClickHouseProfile]
   private val db = dbConfig.db
-  private val dbSS = dbConfigSumStats.db
   private val logger: Logger = Logger(this.getClass)
 
   import dbConfig.profile.api._

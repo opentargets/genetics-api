@@ -54,6 +54,25 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
     // when
     backend.getStudiesForGene(brca1gene).futureValue must not have size(0)
   }
+  "getOverlappedVariantsForStudies returns variants"  when {
+    "two studies provided with intersection" taggedAs IntegrationTestTag in {
+      // given
+      val studyIdA = "GCST004988"
+      val studyIdB = "GCST003845"
+      // when
+      val results = backend.getOverlapVariantsIntersectionForStudies(studyIdA, Seq(studyIdB)).futureValue
+      results.size must be(8)
+    }
+    "two studies provided with no intersection" taggedAs IntegrationTestTag in {
+      // given
+      val studyIdA = "GCST004988"
+      val studyIds = Seq("GCST007080", "GCST003845")
+      // when
+      val results = backend.getOverlapVariantsIntersectionForStudies(studyIdA, studyIds).futureValue
+      results.size must be(0)
+    }
+
+  }
 
   "topOverlappedStudies returns overlaps" taggedAs IntegrationTestTag in {
     // given
