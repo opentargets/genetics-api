@@ -150,14 +150,14 @@ class Backend @Inject()(
 
     executeQueryForSeq(q1)
   }
-  // refactor to use abstract get sequence
+
   def gwasColocalisationForRegion(
     chromosome: String,
     startPos: Long,
     endPos: Long
   ): Future[Seq[ColocRow]] = {
 
-    val q = colocs
+    val q = (chromosome: String, startPos: Long, endPos: Long) => { colocs
       .filter(
         r =>
           (r.lChrom === chromosome) &&
@@ -166,15 +166,9 @@ class Backend @Inject()(
             (r.rPos >= startPos) &&
             (r.rPos <= endPos) &&
             (r.rType === GWASLiteral))
-
-    (parseChromosome(chromosome), parseRegion(startPos, endPos, defaultMaxDistantFromTSS)) match {
-      case (Right(_), Right(_)) =>
-
-        executeQueryForSeq(q.result)
-
-      case (chrEither, rangeEither) =>
-        Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
     }
+    getSequenceAbstr(chromosome, startPos, endPos, q)
+
   }
 
   def gwasColocalisation(studyId: String, variantId: String): Future[Seq[ColocRow]] = {
@@ -271,53 +265,46 @@ class Backend @Inject()(
   }
 
   def gwasRegionalFromSumstats(
-                                studyId: String,
-                                chromosome: String,
-                                startPos: Long,
-                                endPos: Long): Future[Seq[(SimpleVariant, Double)]] = {
-    (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
-      case (Right(chr), Right(_)) =>
-        val q = sumstatsGWAS
-          .filter(
-            r =>
-              (r.chrom === chr) &&
-                (r.pos >= startPos) &&
-                (r.pos <= endPos) &&
-                (r.studyId === studyId))
-          .map(_.variantAndPVal)
+    studyId: String,
+    chromosome: String,
+    startPos: Long,
+    endPos: Long
+  ): Future[Seq[(SimpleVariant, Double)]] = {
 
-        executeQueryForSeq(q.result)
+    val q = (chromosome: String, startPos: Long, endPos: Long) => { sumstatsGWAS
+      .filter(
+        r =>
+          (r.chrom === chromosome) &&
+            (r.pos >= startPos) &&
+            (r.pos <= endPos) &&
+            (r.studyId === studyId))
+      .map(_.variantAndPVal) }
 
-      case (chrEither, rangeEither) =>
-        Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
-    }
+    getSequenceAbstr(chromosome, startPos, endPos, q )
+
   }
 
   def qtlRegionalFromSumstats(
-                               studyId: String,
-                               bioFeature: String,
-                               phenotypeId: String,
-                               chromosome: String,
-                               startPos: Long,
-                               endPos: Long): Future[Seq[(SimpleVariant, Double)]] = {
+    studyId: String,
+    bioFeature: String,
+    phenotypeId: String,
+    chromosome: String,
+    startPos: Long,
+    endPos: Long
+  ): Future[Seq[(SimpleVariant, Double)]] = {
 
-    (parseChromosome(chromosome), parseRegion(startPos, endPos)) match {
-      case (Right(chr), Right(_)) =>
-        val q = sumstatsMolTraits
-          .filter(
-            r =>
-              (r.chrom === chr) &&
-                (r.pos >= startPos) &&
-                (r.pos <= endPos) &&
-                (r.bioFeature === bioFeature) &&
-                (r.phenotypeId === phenotypeId) &&
-                (r.studyId === studyId))
-          .map(_.variantAndPVal)
+    val q = (chr: String, startPos: Long, endPos: Long) => sumstatsMolTraits
+      .filter(
+        r =>
+          (r.chrom === chr) &&
+            (r.pos >= startPos) &&
+            (r.pos <= endPos) &&
+            (r.bioFeature === bioFeature) &&
+            (r.phenotypeId === phenotypeId) &&
+            (r.studyId === studyId))
+      .map(_.variantAndPVal)
 
-        executeQueryForSeq(q.result)
-      case (chrEither, rangeEither) =>
-        Future.failed(Backend.inputParameterCheckErrorGenerator(chrEither, rangeEither))
-    }
+    getSequenceAbstr(chromosome, startPos, endPos, q)
   }
 
   def getMetadata: Future[Metadata] = {
