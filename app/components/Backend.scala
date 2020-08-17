@@ -127,7 +127,6 @@ class Backend @Inject() (
   }
 
   def colocalisationsForGene(geneId: String): Future[Seq[ColocRow]] = {
-    // refactor query
     val q1 = genes
       .filter(_.id === geneId)
       .take(1)
@@ -157,7 +156,8 @@ class Backend @Inject() (
     endPos: Long
   ): Future[Seq[ColocRow]] = {
 
-    val q = (chromosome: String, startPos: Long, endPos: Long) => { colocs
+    val q = (chromosome: String, startPos: Long, endPos: Long) => {
+      colocs
       .filter(
         r =>
           (r.lChrom === chromosome) &&
@@ -542,12 +542,7 @@ group by (type_id, source_id)
     if (stids.nonEmpty) {
       val q = studies.filter(_.studyId inSetBind stids)
 
-      db.run(q.result.asTry).map {
-        case Success(v) => v
-        case Failure(ex) =>
-          logger.error(ex.getMessage)
-          Seq.empty
-      }
+      executeQueryForSeq(q.result)
     } else {
       Future.successful(Seq.empty)
     }

@@ -114,7 +114,7 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
 
   }
 
-  "buildGecko: given valid inputs sohuld return Gecko" taggedAs IntegrationTestTag in {
+  "buildGecko: given valid inputs should return Gecko" taggedAs IntegrationTestTag in {
     // when
     val results = backend.buildGecko("1", 100000, 500000).futureValue
     // then
