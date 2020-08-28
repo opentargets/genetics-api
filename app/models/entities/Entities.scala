@@ -1,14 +1,10 @@
-package models
+package models.entities
 
-import clickhouse.rep.SeqRep.Implicits._
-import clickhouse.rep.SeqRep._
-import models.DNA._
-import models.Functions._
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import slick.jdbc.GetResult
+import models.Functions.{defaultDistanceTypes, defaultFPredTypes, defaultIntervalTypes, defaultQtlTypes}
+import models.entities.DNA.{Gene, SimpleVariant, Variant}
+import models.implicits.ElasticSearchEntity
 
-import scala.collection.{SeqView, breakOut}
+import scala.collection.SeqView
 
 object Entities {
 
@@ -216,7 +212,7 @@ object Entities {
                     nCases: Option[Long],
                     traitCategory: Option[String],
                     numAssocLoci: Option[Long]
-                  )
+                  ) extends ElasticSearchEntity
 
   case class GeneTagVariant(geneId: String, tagVariantId: String, overallScore: Double)
 
@@ -283,7 +279,7 @@ object Entities {
         })
 
         // breakOut could be a good way to map virtually to a other collection of a different type
-        // https://stackoverflow.com/questions/46509951/how-do-i-efficiently-count-distinct-fields-in-a-collection
+        /* https://stackoverflow.com/questions/46509951/how-do-i-efficiently-count-distinct-fields-in-a-collection */
         // val genes = geckoLines.map(_.gene)(breakOut).toSet.toSeq
         Some(
           Gecko(
@@ -302,13 +298,24 @@ object Entities {
   case class VariantSearchResult(variant: Variant)
 
   case class SearchResultSet(
-                              totalGenes: Long,
-                              genes: Seq[Gene],
-                              totalVariants: Long,
-                              variants: Seq[Variant],
-                              totalStudies: Long,
-                              studies: Seq[Study]
-                            )
+                              totalGenes: Long = 0,
+                              genes: Seq[Gene] = Seq(),
+                              totalVariants: Long = 0,
+                              variants: Seq[Variant] = Seq(),
+                              totalStudies: Long = 0,
+                              studies: Seq[Study] = Seq()
+                            ) {
+    def combine(that: SearchResultSet): SearchResultSet = {
+      SearchResultSet(
+        totalGenes + that.totalGenes,
+        genes ++ that.genes,
+        totalVariants + that.totalVariants,
+        variants ++ that.variants,
+        totalStudies + that.totalStudies,
+        studies ++ that.studies
+      )
+    }
+  }
 
   case class Tissue(id: String) {
     lazy val name: String = id.replace("_", " ").toLowerCase.capitalize
@@ -344,19 +351,16 @@ object Entities {
   object G2VAssociation {
     def toQtlTissues(scoreds: Seq[ScoredG2VLine]): Seq[QTLTissue] =
       scoreds.map(el =>
-        QTLTissue(Tissue(el.feature), el.qtlScoreQ.getOrElse(0d), el.qtlBeta, el.qtlPval)
-      )
+        QTLTissue(Tissue(el.feature), el.qtlScoreQ.getOrElse(0d), el.qtlBeta, el.qtlPval))
 
     def toIntervalTissues(scoreds: Seq[ScoredG2VLine]): Seq[IntervalTissue] =
       scoreds.map(el =>
         Entities
-          .IntervalTissue(Tissue(el.feature), el.intervalScoreQ.getOrElse(0d), el.intervalScore)
-      )
+          .IntervalTissue(Tissue(el.feature), el.intervalScoreQ.getOrElse(0d), el.intervalScore))
 
     def toFPredTissues(scoreds: Seq[ScoredG2VLine]): Seq[FPredTissue] =
       scoreds.map(el =>
-        Entities.FPredTissue(Tissue(el.feature), el.fpredMaxLabel, el.fpredMaxScore)
-      )
+        Entities.FPredTissue(Tissue(el.feature), el.fpredMaxLabel, el.fpredMaxScore))
 
     def toDistanceTissues(scoreds: Seq[ScoredG2VLine]): Seq[DistancelTissue] =
       scoreds.map(el =>
@@ -365,8 +369,7 @@ object Entities {
           el.distanceScoreQ.getOrElse(0d),
           el.distance,
           el.distanceScore
-        )
-      )
+        ))
 
     def apply(groupedGene: SeqView[ScoredG2VLine, Seq[_]]): G2VAssociation = {
       val geneId = groupedGene.head.geneId
@@ -624,190 +627,4 @@ object Entities {
                          dataType: String
                        )
 
-  object ESImplicits {
-    implicit val geneHitReader: Reads[Gene] = (
-      (JsPath \ "gene_id").read[String] and
-        (JsPath \ "gene_name").readNullable[String] and
-        (JsPath \ "biotype").readNullable[String] and
-        (JsPath \ "description").readNullable[String] and
-        (JsPath \ "chr").readNullable[String] and
-        (JsPath \ "tss").readNullable[Long] and
-        (JsPath \ "start").readNullable[Long] and
-        (JsPath \ "end").readNullable[Long] and
-        (JsPath \ "fwdstrand")
-          .readNullable[Int]
-          .map(_.map {
-            case 0 => false
-            case 1 => true
-            case _ => false
-          }) and
-        (JsPath \ "exons").readNullable[String].map(r => LSeqRep(r.getOrElse("")).rep)
-      ) (Gene.apply _)
-
-    implicit val annotation: Reads[Annotation] = (
-      (JsPath \ "gene_id_any").readNullable[String] and
-        (JsPath \ "gene_id_distance").readNullable[Long] and
-        (JsPath \ "gene_id_prot_coding").readNullable[String] and
-        (JsPath \ "gene_id_prot_coding_distance").readNullable[Long] and
-        (JsPath \ "most_severe_consequence").readNullable[String]
-      ) (Annotation.apply _)
-
-    implicit val caddAnnotation: Reads[CaddAnnotation] = (
-      (JsPath \ "raw").readNullable[Double] and
-        (JsPath \ "phred").readNullable[Double]
-      ) (CaddAnnotation.apply _)
-
-    implicit val gnomadAnnotation: Reads[GnomadAnnotation] = (
-      (JsPath \ "gnomad_afr").readNullable[Double] and
-        (JsPath \ "gnomad_seu").readNullable[Double] and
-        (JsPath \ "gnomad_amr").readNullable[Double] and
-        (JsPath \ "gnomad_asj").readNullable[Double] and
-        (JsPath \ "gnomad_eas").readNullable[Double] and
-        (JsPath \ "gnomad_fin").readNullable[Double] and
-        (JsPath \ "gnomad_nfe").readNullable[Double] and
-        (JsPath \ "gnomad_nfe_est").readNullable[Double] and
-        (JsPath \ "gnomad_nfe_seu").readNullable[Double] and
-        (JsPath \ "gnomad_nfe_onf").readNullable[Double] and
-        (JsPath \ "gnomad_nfe_nwe").readNullable[Double] and
-        (JsPath \ "gnomad_oth").readNullable[Double]
-      ) (GnomadAnnotation.apply _)
-
-    // implicit val variantHitReader: Reads[Variant] = Json.reads[Variant]
-    implicit val variantHitReader: Reads[Variant] = (
-      (JsPath \ "chr_id").read[String] and
-        (JsPath \ "position").read[Long] and
-        (JsPath \ "ref_allele").read[String] and
-        (JsPath \ "alt_allele").read[String] and
-        (JsPath \ "rs_id").readNullable[String] and
-        annotation and
-        caddAnnotation and
-        gnomadAnnotation and
-        (JsPath \ "chr_id_b37").readNullable[String] and
-        (JsPath \ "position_b37").readNullable[Long]
-      ) (Variant.apply _)
-
-    // implicit val studyHitReader: Reads[Study] = Json.reads[Study]
-    implicit val studyHitReader: Reads[Study] = (
-      (JsPath \ "study_id").read[String] and
-        (JsPath \ "trait_reported").read[String] and
-        (JsPath \ "trait_efos").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
-        (JsPath \ "pmid").readNullable[String] and
-        (JsPath \ "pub_date").readNullable[String] and
-        (JsPath \ "pub_journal").readNullable[String] and
-        (JsPath \ "pub_title").readNullable[String] and
-        (JsPath \ "pub_author").readNullable[String] and
-        (JsPath \ "has_sumstats")
-          .readNullable[Int]
-          .map(_.map {
-            case 1 => true
-            case _ => false
-          }) and
-        (JsPath \ "ancestry_initial").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
-        (JsPath \ "ancestry_replication").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
-        (JsPath \ "n_initial").readNullable[Long] and
-        (JsPath \ "n_replication").readNullable[Long] and
-        (JsPath \ "n_cases").readNullable[Long] and
-        (JsPath \ "trait_category").readNullable[String] and
-        (JsPath \ "num_assoc_loci").readNullable[Long]
-      ) (Study.apply _)
-  }
-
-  object DBImplicits {
-    implicit val getSLGRow: GetResult[SLGRow] = {
-      GetResult(r => SLGRow(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
-    }
-
-    implicit val getV2DL2GRowByGene: GetResult[V2DL2GRowByGene] = {
-      GetResult(r => {
-        val studyId: String = r.<<
-        val svID: String = SimpleVariant(r.<<, r.<<, r.<<, r.<<).id
-
-        val yProbaLogiDistance: Double = r.<<
-        val yProbaLogiInteraction: Double = r.<<
-        val yProbaLogiMolecularQTL: Double = r.<<
-        val yProbaLogiPathogenicity: Double = r.<<
-        val yProbaFullModel: Double = r.<<
-
-        val odds = V2DOdds(r.<<?, r.<<?, r.<<?)
-        val beta = V2DBeta(r.<<?, r.<<?, r.<<?, r.<<?)
-        val pval: Double = r.<<
-        val pvalExponent: Long = r.<<
-        val pvalMantissa: Double = r.<<
-
-        V2DL2GRowByGene(
-          studyId,
-          svID,
-          odds,
-          beta,
-          pval,
-          pvalExponent,
-          pvalMantissa,
-          yProbaLogiDistance,
-          yProbaLogiInteraction,
-          yProbaLogiMolecularQTL,
-          yProbaLogiPathogenicity,
-          yProbaFullModel
-        )
-
-      })
-    }
-
-    implicit val getV2DByStudy: GetResult[V2DByStudy] = {
-      def toGeneScoreTupleWithDuplicates(
-                                          geneIds: Seq[String],
-                                          geneScores: Seq[Double]
-                                        ): Seq[(String, Double)] = {
-        val ordScored = geneIds zip geneScores
-
-        if (ordScored.isEmpty)
-          ordScored
-        else
-          ordScored.takeWhile(_._2 == ordScored.head._2)
-      }
-
-      def toGeneScoreTuple(geneIds: Seq[String], geneScores: Seq[Double]): Seq[(String, Double)] = {
-        val ordScored = geneIds zip geneScores
-
-        if (ordScored.isEmpty)
-          ordScored
-        else
-          ordScored.groupBy(_._1).map(_._2.head)(breakOut).sortBy(_._2)(Ordering[Double].reverse)
-      }
-
-      GetResult(r => {
-        val studyId: String = r.<<
-        val svID: String = SimpleVariant(r.<<, r.<<, r.<<, r.<<).id
-        val pval: Double = r.<<
-        val pvalMantissa: Double = r.<<
-        val pvalExponent: Long = r.<<
-        val odds = V2DOdds(r.<<?, r.<<?, r.<<?)
-        val beta = V2DBeta(r.<<?, r.<<?, r.<<?, r.<<?)
-        val credSetSize: Option[Long] = r.<<?
-        val ldSetSize: Option[Long] = r.<<?
-        val totalSize: Long = r.<<
-        val aggTop10RawIds = StrSeqRep(r.<<)
-        val aggTop10RawScores = DSeqRep(r.<<)
-        val aggTop10ColocIds = StrSeqRep(r.<<)
-        val aggTop10ColocScores = DSeqRep(r.<<)
-        val aggTop10L2GIds = StrSeqRep(r.<<)
-        val aggTop10L2GScores = DSeqRep(r.<<)
-
-        V2DByStudy(
-          studyId,
-          svID,
-          pval,
-          pvalMantissa,
-          pvalExponent,
-          odds,
-          beta,
-          credSetSize,
-          ldSetSize,
-          totalSize,
-          toGeneScoreTupleWithDuplicates(aggTop10RawIds, aggTop10RawScores),
-          toGeneScoreTuple(aggTop10ColocIds, aggTop10ColocScores),
-          toGeneScoreTuple(aggTop10L2GIds, aggTop10L2GScores)
-        )
-      })
-    }
-  }
 }

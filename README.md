@@ -7,18 +7,42 @@ This repo contains the application code for the GraphQL of [Open Targets Genetic
 
 It is one component of several and the overarching project is described [here](https://github.com/opentargets/genetics), which is also where issues can be raised.
 
-## To set up development
+## User guide
+
+The API is a GraphQL implementation and can be queried at the following [endpoint](http://genetics-api.opentargets.io/graphql/browser)
+
+The data used by the service is updated regularly; to see which version is currently in use you can use the following query in the browser linked to above:
+
+```graqhql
+query metadataQ {
+  meta{
+    dataVersion {
+      major
+      minor
+      patch
+    }
+  }
+}
+``` 
+The `dataVersion` can be typically interpreted as the major version being the year, the minor version the month, and the patch number indicating iterative releases. Older data can be found on the [Genetics Portal's data mirror](ftp://ftp.ebi.ac.uk/pub/databases/opentargets/genetics/).
+
+## To set up developer environment
+
 You can use an IDE such as IntelliJ IDEA, which is recommended, but it's also sufficient to have `sbt` installed.
+
+### Testing
+
+Testing relies on external databases and Elasticsearch, if you only want to run the tests which can be run locally
+use the following `sbt` command: `sbt testOnly * -- -l configuration.IntegrationTestTag` . This excludes any test tagged
+as an integration test.  
 
 ### Connect to development databases
 The current development database configuration contains the following nodes:
 * **default**: runs clickhouse and elasticsearch instances covering most queries
-* **sumstats**: runs clickhouse instance for summary statistics, which drives the phewas plot
 
 You can forward the needed ports to the remote databases defined in conf/application.conf.
 ```
 gcloud --project=<gcloud-project> compute ssh <default> -- -L 8123:localhost:8123 -L 9200:localhost:9200
-gcloud --project=<gcloud-project> compute ssh <sumstats> -- -L 8124:localhost:8123
 ```
 
 ### Run the API
@@ -54,16 +78,6 @@ slick.dbs {
       queueSize = 128
     }
   }
-  sumstats {
-    profile = "clickhouse.ClickHouseProfile$"
-    db {
-      driver = "ru.yandex.clickhouse.ClickHouseDriver"
-      url = "jdbc:clickhouse://machine2.internal:8123/sumstats"
-      url = ${?SLICK_CLICKHOUSE_URL_SS}
-      numThreads = 4
-      queueSize = 128
-    }
-  }
 }
 
 ot.elasticsearch {
@@ -71,15 +85,21 @@ ot.elasticsearch {
   host = ${?ELASTICSEARCH_HOST}
   port = 9200
 }
+```
 
+## Docker
+
+If using Docker set the following variables:
+
+```
 # env vars to pass to docker image or `-D`
 # http.port=${?PLAY_PORT}
 # play.http.secret.key=${?PLAY_SECRET}
 # slick.dbs.default.db.url=${?SLICK_CLICKHOUSE_URL}
 # ot.elasticsearch.host=${?ELASTICSEARCH_HOST}
 # slick.dbs.default.db.url=${?SLICK_CLICKHOUSE_URL_SS}
+``` 
 
-```
 
 # Copyright
 Copyright 2014-2018 Biogen, Celgene Corporation, EMBL - European Bioinformatics Institute, GlaxoSmithKline, Takeda Pharmaceutical Company and Wellcome Sanger Institute

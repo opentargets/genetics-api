@@ -1,8 +1,9 @@
 package controllers
 
+import components.Backend
 import javax.inject._
-import models.Violations._
-import models.{Backend, GQLSchema}
+import models.entities.Violations._
+import models.gql.GQLSchema
 import play.api.libs.json._
 import play.api.mvc._
 import sangria.execution._
@@ -19,17 +20,17 @@ class GraphQLController @Inject()(implicit
                                   cc: ControllerComponents
                                  ) extends AbstractController(cc) {
 
-  def options =
+  def options: Action[AnyContent] =
     Action {
       NoContent
     }
 
-  def gql(query: String, variables: Option[String], operation: Option[String]) =
+  def gql(query: String, variables: Option[String], operation: Option[String]): Action[AnyContent] =
     Action.async {
       executeQuery(query, variables map parseVariables, operation)
     }
 
-  def gqlBody() =
+  def gqlBody(): Action[JsValue] =
     Action.async(parse.json) { request =>
       val query = (request.body \ "query").as[String]
       val operation = (request.body \ "operationName").asOpt[String]
@@ -92,7 +93,7 @@ class GraphQLController @Inject()(implicit
         throw error
     }
 
-  lazy val exceptionHandler = ExceptionHandler {
+  lazy val exceptionHandler: ExceptionHandler = ExceptionHandler {
     case (_, error@TooComplexQueryError) => HandledException(error.getMessage)
     case (_, error@MaxQueryDepthReachedError(_)) => HandledException(error.getMessage)
     case (_, error@InputParameterCheckError(_)) => HandledException(error.getMessage)

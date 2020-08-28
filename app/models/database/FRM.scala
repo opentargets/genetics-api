@@ -1,30 +1,13 @@
-package models
+package models.database
 
-import clickhouse.ClickHouseProfile
-import clickhouse.rep.SeqRep.{DSeqRep, ISeqRep, LSeqRep, StrSeqRep}
-import clickhouse.rep.SeqRep.Implicits._
-import models.DNA._
-import models.Entities._
-
+import models.entities.DNA._
+import models.entities.Entities._
+import components.clickhouse.rep.SeqRep.Implicits._
+import slick.lifted.MappedProjection
 
 object FRM {
 
-  import clickhouse.ClickHouseProfile.api._
-
-  /** ClickHouse driver allows us to get serialised Arrays of all scalar types. But
-   * jdbc does not allow to map to a seq of a scalar so these columns are defined here to
-   * be able to interpret them implicitly. It is worth noting these functions can be
-   * moved into the slick driver for clickhouse
-   */
-  implicit val seqIntType: ClickHouseProfile.BaseColumnType[Seq[Int]] =
-    MappedColumnType.base[Seq[Int], String](_.mkString("[", ",", "]"), ISeqRep(_))
-  implicit val seqLongType: ClickHouseProfile.BaseColumnType[Seq[Long]] =
-    MappedColumnType.base[Seq[Long], String](_.mkString("[", ",", "]"), LSeqRep(_))
-  implicit val seqDoubleType: ClickHouseProfile.BaseColumnType[Seq[Double]] =
-    MappedColumnType.base[Seq[Double], String](_.mkString("[", ",", "]"), DSeqRep(_))
-  implicit val seqStringType: ClickHouseProfile.BaseColumnType[Seq[String]] =
-    MappedColumnType
-      .base[Seq[String], String](_.map("'" + _ + "'").mkString("[", ",", "]"), StrSeqRep(_))
+  import components.clickhouse.ClickHouseProfile.api._
 
   class Overlaps(tag: Tag) extends Table[VariantStudyOverlapsRow](tag, "studies_overlap") {
     def chromA = column[String]("A_chrom")
@@ -54,6 +37,7 @@ object FRM {
     def distinctB = column[Long]("B_distinct")
 
     def variantA = (chromA, posA, refA, altA).mapTo[SimpleVariant]
+
     def variantB = (chromB, posB, refB, altB).mapTo[SimpleVariant]
 
     def * =
@@ -76,15 +60,25 @@ object FRM {
 
   class Genes(tag: Tag) extends Table[Gene](tag, "genes") {
     def id = column[String]("gene_id")
+
     def symbol = column[String]("gene_name")
+
     def bioType = column[String]("biotype")
+
     def description = column[String]("description")
+
     def chromosome = column[String]("chr")
+
     def tss = column[Long]("tss")
+
     def start = column[Long]("start")
+
     def end = column[Long]("end")
+
     def fwd = column[Boolean]("fwdstrand")
+
     def exons = column[Seq[Long]]("exons")
+
     def * =
       (id, symbol.?, bioType.?, description.?, chromosome.?, tss.?, start.?, end.?, fwd.?, exons)
         .mapTo[Gene]
@@ -92,31 +86,57 @@ object FRM {
 
   class Variants(tag: Tag) extends Table[Variant](tag, "variants") {
     def id = column[String]("variant_id")
+
     def chromosome = column[String]("chr_id")
+
     def chromosomeB37 = column[Option[String]]("chr_id_b37")
+
     def position = column[Long]("position")
+
     def positionB37 = column[Option[Long]]("position_b37")
+
     def refAllele = column[String]("ref_allele")
+
     def altAllele = column[String]("alt_allele")
+
     def rsId = column[Option[String]]("rs_id")
+
     def nearestGeneId = column[Option[String]]("gene_id_any")
+
     def nearestCodingGeneId = column[Option[String]]("gene_id_prot_coding")
+
     def nearestGeneDistance = column[Option[Long]]("gene_id_any_distance")
+
     def nearestCodingGeneDistance = column[Option[Long]]("gene_id_prot_coding_distance")
+
     def mostSevereConsequence = column[Option[String]]("most_severe_consequence")
+
     def caddRaw = column[Option[Double]]("raw")
+
     def caddPhred = column[Option[Double]]("phred")
+
     def gnomadAFR = column[Option[Double]]("gnomad_afr")
+
     def gnomadSEU = column[Option[Double]]("gnomad_seu")
+
     def gnomadAMR = column[Option[Double]]("gnomad_amr")
+
     def gnomadASJ = column[Option[Double]]("gnomad_asj")
+
     def gnomadEAS = column[Option[Double]]("gnomad_eas")
+
     def gnomadFIN = column[Option[Double]]("gnomad_fin")
+
     def gnomadNFE = column[Option[Double]]("gnomad_nfe")
+
     def gnomadNFEEST = column[Option[Double]]("gnomad_nfe_est")
+
     def gnomadNFESEU = column[Option[Double]]("gnomad_nfe_seu")
+
     def gnomadNFEONF = column[Option[Double]]("gnomad_nfe_onf")
+
     def gnomadNFENWE = column[Option[Double]]("gnomad_nfe_nwe")
+
     def gnomadOTH = column[Option[Double]]("gnomad_oth")
 
     def annotations =
@@ -164,10 +184,15 @@ object FRM {
 
   class Studies(tag: Tag) extends Table[Study](tag, "studies") {
     def studyId = column[String]("study_id")
+
     def traitReported = column[String]("trait_reported")
+
     def traitEfos = column[Seq[String]]("trait_efos")
+
     def pubId = column[Option[String]]("pmid")
+
     def pubDate = column[Option[String]]("pub_date")
+
     def pubJournal = column[Option[String]]("pub_journal")
 
     def pubTitle = column[Option[String]]("pub_title")
@@ -213,7 +238,9 @@ object FRM {
 
   class V2GStructure(tag: Tag) extends Table[V2DStructure](tag, "v2g_structure") {
     def typeId = column[String]("type_id")
+
     def sourceId = column[String]("source_id")
+
     def bioFeatureSet = column[Seq[String]]("feature_set")
 
     def * = (typeId, sourceId, bioFeatureSet).mapTo[V2DStructure]
@@ -221,10 +248,15 @@ object FRM {
 
   class V2DsByStudy(tag: Tag) extends Table[V2DRow](tag, "v2d_by_stchr") {
     def studyId = column[String]("study_id")
+
     def traitReported = column[String]("trait_reported")
+
     def traitEfos = column[Seq[String]]("trait_efos")
+
     def pubId = column[Option[String]]("pmid")
+
     def pubDate = column[Option[String]]("pub_date")
+
     def pubJournal = column[Option[String]]("pub_journal")
 
     def pubTitle = column[Option[String]]("pub_title")
@@ -281,35 +313,54 @@ object FRM {
     def leadChromosome = column[String]("lead_chrom")
 
     def leadPosition = column[Long]("lead_pos")
+
     def leadRefAllele = column[String]("lead_ref")
+
     def leadAltAllele = column[String]("lead_alt")
+
     def leadVariant =
       (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
 
     def direction = column[Option[String]]("direction")
+
     def betaCI = column[Option[Double]]("beta")
+
     def betaCILower = column[Option[Double]]("beta_ci_lower")
+
     def betaCIUpper = column[Option[Double]]("beta_ci_upper")
+
     def beta =
       (direction, betaCI, betaCILower, betaCIUpper).mapTo[V2DBeta]
 
     def oddsCI = column[Option[Double]]("odds_ratio")
+
     def oddsCILower = column[Option[Double]]("oddsr_ci_lower")
+
     def oddsCIUpper = column[Option[Double]]("oddsr_ci_upper")
+
     def odds =
       (oddsCI, oddsCILower, oddsCIUpper).mapTo[V2DOdds]
 
     def pval = column[Double]("pval")
+
     def pvalMantissa = column[Double]("pval_mantissa")
+
     def pvalExponent = column[Long]("pval_exponent")
+
     def r2 = column[Option[Double]]("overall_r2")
+
     def log10Abf = column[Option[Double]]("log10_ABF")
+
     def posteriorProbability = column[Option[Double]]("posterior_prob")
 
     def afr1000GProp = column[Option[Double]]("AFR_1000G_prop")
+
     def amr1000GProp = column[Option[Double]]("AMR_1000G_prop")
+
     def eas1000GProp = column[Option[Double]]("EAS_1000G_prop")
+
     def eur1000GProp = column[Option[Double]]("EUR_1000G_prop")
+
     def sas1000GProp = column[Option[Double]]("SAS_1000G_prop")
 
     def association =
@@ -335,10 +386,15 @@ object FRM {
 
   class V2DsByChrPos(tag: Tag) extends Table[V2DRow](tag, "v2d_by_chrpos") {
     def studyId = column[String]("study_id")
+
     def traitReported = column[String]("trait_reported")
+
     def traitEfos = column[Seq[String]]("trait_efos")
+
     def pubId = column[Option[String]]("pmid")
+
     def pubDate = column[Option[String]]("pub_date")
+
     def pubJournal = column[Option[String]]("pub_journal")
 
     def pubTitle = column[Option[String]]("pub_title")
@@ -395,35 +451,54 @@ object FRM {
     def leadChromosome = column[String]("lead_chrom")
 
     def leadPosition = column[Long]("lead_pos")
+
     def leadRefAllele = column[String]("lead_ref")
+
     def leadAltAllele = column[String]("lead_alt")
+
     def leadVariant =
       (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
 
     def direction = column[Option[String]]("direction")
+
     def betaCI = column[Option[Double]]("beta")
+
     def betaCILower = column[Option[Double]]("beta_ci_lower")
+
     def betaCIUpper = column[Option[Double]]("beta_ci_upper")
+
     def beta =
       (direction, betaCI, betaCILower, betaCIUpper).mapTo[V2DBeta]
 
     def oddsCI = column[Option[Double]]("odds_ratio")
+
     def oddsCILower = column[Option[Double]]("oddsr_ci_lower")
+
     def oddsCIUpper = column[Option[Double]]("oddsr_ci_upper")
+
     def odds =
       (oddsCI, oddsCILower, oddsCIUpper).mapTo[V2DOdds]
 
     def pval = column[Double]("pval")
+
     def pvalMantissa = column[Double]("pval_mantissa")
+
     def pvalExponent = column[Long]("pval_exponent")
+
     def r2 = column[Option[Double]]("overall_r2")
+
     def log10Abf = column[Option[Double]]("log10_ABF")
+
     def posteriorProbability = column[Option[Double]]("posterior_prob")
 
     def afr1000GProp = column[Option[Double]]("AFR_1000G_prop")
+
     def amr1000GProp = column[Option[Double]]("AMR_1000G_prop")
+
     def eas1000GProp = column[Option[Double]]("EAS_1000G_prop")
+
     def eur1000GProp = column[Option[Double]]("EUR_1000G_prop")
+
     def sas1000GProp = column[Option[Double]]("SAS_1000G_prop")
 
     def association =
@@ -446,32 +521,45 @@ object FRM {
 
   trait PureV2GTableFields extends Table[PureV2GRow] {
     def geneId = column[String]("gene_id")
+
     def typeId = column[String]("type_id")
+
     def sourceId = column[String]("source_id")
+
     def feature = column[String]("feature")
 
     def fpredLabels = column[Seq[String]]("fpred_labels")
+
     def fpredScores = column[Seq[Double]]("fpred_scores")
+
     def fpredMaxLabel = column[Option[String]]("fpred_max_label")
+
     def fpredMaxScore = column[Option[Double]]("fpred_max_score")
 
     def fpredSection = (fpredLabels, fpredScores, fpredMaxLabel, fpredMaxScore).mapTo[FPredSection]
 
     def qtlBeta = column[Option[Double]]("qtl_beta")
+
     def qtlSE = column[Option[Double]]("qtl_se")
+
     def qtlPVal = column[Option[Double]]("qtl_pval")
+
     def qtlScore = column[Option[Double]]("qtl_score")
+
     def qtlScoreQ = column[Option[Double]]("qtl_score_q")
 
     def qtlSection = (qtlBeta, qtlSE, qtlPVal, qtlScore, qtlScoreQ).mapTo[QTLSection]
 
     def intervalScore = column[Option[Double]]("interval_score")
+
     def intervalScoreQ = column[Option[Double]]("interval_score_q")
 
     def intervalSection = (intervalScore, intervalScoreQ).mapTo[IntervalSection]
 
     def distance = column[Option[Long]]("d")
+
     def distanceScore = column[Option[Double]]("distance_score")
+
     def distanceScoreQ = column[Option[Double]]("distance_score_q")
 
     def distanceSection = (distance, distanceScore, distanceScoreQ).mapTo[DistanceSection]
@@ -491,39 +579,55 @@ object FRM {
 
   class V2G(tag: Tag) extends Table[V2GRow](tag, "v2g") {
     def chromosome = column[String]("chr_id")
+
     def position = column[Long]("position")
+
     def refAllele = column[String]("ref_allele")
+
     def altAllele = column[String]("alt_allele")
 
     def variant = (chromosome, position, refAllele, altAllele).mapTo[SimpleVariant]
 
     def geneId = column[String]("gene_id")
+
     def typeId = column[String]("type_id")
+
     def sourceId = column[String]("source_id")
+
     def feature = column[String]("feature")
 
     def fpredLabels = column[Seq[String]]("fpred_labels")
+
     def fpredScores = column[Seq[Double]]("fpred_scores")
+
     def fpredMaxLabel = column[Option[String]]("fpred_max_label")
+
     def fpredMaxScore = column[Option[Double]]("fpred_max_score")
 
     def fpredSection = (fpredLabels, fpredScores, fpredMaxLabel, fpredMaxScore).mapTo[FPredSection]
 
     def qtlBeta = column[Option[Double]]("qtl_beta")
+
     def qtlSE = column[Option[Double]]("qtl_se")
+
     def qtlPVal = column[Option[Double]]("qtl_pval")
+
     def qtlScore = column[Option[Double]]("qtl_score")
+
     def qtlScoreQ = column[Option[Double]]("qtl_score_q")
 
     def qtlSection = (qtlBeta, qtlSE, qtlPVal, qtlScore, qtlScoreQ).mapTo[QTLSection]
 
     def intervalScore = column[Option[Double]]("interval_score")
+
     def intervalScoreQ = column[Option[Double]]("interval_score_q")
 
     def intervalSection = (intervalScore, intervalScoreQ).mapTo[IntervalSection]
 
     def distance = column[Option[Long]]("d")
+
     def distanceScore = column[Option[Double]]("distance_score")
+
     def distanceScoreQ = column[Option[Double]]("distance_score_q")
 
     def distanceSection = (distance, distanceScore, distanceScoreQ).mapTo[DistanceSection]
@@ -556,16 +660,23 @@ object FRM {
 
   class V2GOverallScore(tag: Tag) extends Table[OverallScoreRow](tag, "v2g_score_by_overall") {
     def chromosome = column[String]("chr_id")
+
     def position = column[Long]("position")
+
     def refAllele = column[String]("ref_allele")
+
     def altAllele = column[String]("alt_allele")
 
     def variant = (chromosome, position, refAllele, altAllele).mapTo[SimpleVariant]
 
     def geneId = column[String]("gene_id")
+
     def sources = column[Seq[String]]("source_list")
+
     def sourceScores = column[Seq[Double]]("source_score_list")
+
     def overallScore = column[Double]("overall_score")
+
     def pureOverallScoreRow =
       (sources, sourceScores, overallScore).mapTo[PureOverallScoreRow]
 
@@ -575,10 +686,15 @@ object FRM {
 
   class D2V2G(tag: Tag) extends Table[D2V2GRow](tag, "d2v2g") {
     def studyId = column[String]("study_id")
+
     def traitReported = column[String]("trait_reported")
+
     def traitEfos = column[Seq[String]]("trait_efos")
+
     def pubId = column[Option[String]]("pmid")
+
     def pubDate = column[Option[String]]("pub_date")
+
     def pubJournal = column[Option[String]]("pub_journal")
 
     def pubTitle = column[Option[String]]("pub_title")
@@ -635,35 +751,54 @@ object FRM {
     def leadChromosome = column[String]("lead_chrom")
 
     def leadPosition = column[Long]("lead_pos")
+
     def leadRefAllele = column[String]("lead_ref")
+
     def leadAltAllele = column[String]("lead_alt")
+
     def leadVariant =
       (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
 
     def direction = column[Option[String]]("direction")
+
     def betaCI = column[Option[Double]]("beta")
+
     def betaCILower = column[Option[Double]]("beta_ci_lower")
+
     def betaCIUpper = column[Option[Double]]("beta_ci_upper")
+
     def beta =
       (direction, betaCI, betaCILower, betaCIUpper).mapTo[V2DBeta]
 
     def oddsCI = column[Option[Double]]("odds_ratio")
+
     def oddsCILower = column[Option[Double]]("oddsr_ci_lower")
+
     def oddsCIUpper = column[Option[Double]]("oddsr_ci_upper")
+
     def odds =
       (oddsCI, oddsCILower, oddsCIUpper).mapTo[V2DOdds]
 
     def pval = column[Double]("pval")
+
     def pvalMantissa = column[Double]("pval_mantissa")
+
     def pvalExponent = column[Long]("pval_exponent")
+
     def r2 = column[Option[Double]]("overall_r2")
+
     def log10Abf = column[Option[Double]]("log10_ABF")
+
     def posteriorProbability = column[Option[Double]]("posterior_prob")
 
     def afr1000GProp = column[Option[Double]]("AFR_1000G_prop")
+
     def amr1000GProp = column[Option[Double]]("AMR_1000G_prop")
+
     def eas1000GProp = column[Option[Double]]("EAS_1000G_prop")
+
     def eur1000GProp = column[Option[Double]]("EUR_1000G_prop")
+
     def sas1000GProp = column[Option[Double]]("SAS_1000G_prop")
 
     def association =
@@ -684,32 +819,45 @@ object FRM {
     def v2dRow = (tagVariant, leadVariant, study, association, odds, beta).mapTo[V2DRow]
 
     def geneId = column[String]("gene_id")
+
     def typeId = column[String]("type_id")
+
     def sourceId = column[String]("source_id")
+
     def feature = column[String]("feature")
 
     def fpredLabels = column[Seq[String]]("fpred_labels")
+
     def fpredScores = column[Seq[Double]]("fpred_scores")
+
     def fpredMaxLabel = column[Option[String]]("fpred_max_label")
+
     def fpredMaxScore = column[Option[Double]]("fpred_max_score")
 
     def fpredSection = (fpredLabels, fpredScores, fpredMaxLabel, fpredMaxScore).mapTo[FPredSection]
 
     def qtlBeta = column[Option[Double]]("qtl_beta")
+
     def qtlSE = column[Option[Double]]("qtl_se")
+
     def qtlPVal = column[Option[Double]]("qtl_pval")
+
     def qtlScore = column[Option[Double]]("qtl_score")
+
     def qtlScoreQ = column[Option[Double]]("qtl_score_q")
 
     def qtlSection = (qtlBeta, qtlSE, qtlPVal, qtlScore, qtlScoreQ).mapTo[QTLSection]
 
     def intervalScore = column[Option[Double]]("interval_score")
+
     def intervalScoreQ = column[Option[Double]]("interval_score_q")
 
     def intervalSection = (intervalScore, intervalScoreQ).mapTo[IntervalSection]
 
     def distance = column[Option[Long]]("d")
+
     def distanceScore = column[Option[Double]]("distance_score")
+
     def distanceScoreQ = column[Option[Double]]("distance_score_q")
 
     def distanceSection = (distance, distanceScore, distanceScoreQ).mapTo[DistanceSection]
@@ -732,10 +880,15 @@ object FRM {
 
   class D2V2GScored(tag: Tag) extends Table[D2V2GScoreRow](tag, "d2v2g_scored") {
     def studyId = column[String]("study_id")
+
     def traitReported = column[String]("trait_reported")
+
     def traitEfos = column[Seq[String]]("trait_efos")
+
     def pubId = column[Option[String]]("pmid")
+
     def pubDate = column[Option[String]]("pub_date")
+
     def pubJournal = column[Option[String]]("pub_journal")
 
     def pubTitle = column[Option[String]]("pub_title")
@@ -792,35 +945,54 @@ object FRM {
     def leadChromosome = column[String]("lead_chrom")
 
     def leadPosition = column[Long]("lead_pos")
+
     def leadRefAllele = column[String]("lead_ref")
+
     def leadAltAllele = column[String]("lead_alt")
+
     def leadVariant =
       (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
 
     def direction = column[Option[String]]("direction")
+
     def betaCI = column[Option[Double]]("beta")
+
     def betaCILower = column[Option[Double]]("beta_ci_lower")
+
     def betaCIUpper = column[Option[Double]]("beta_ci_upper")
+
     def beta =
       (direction, betaCI, betaCILower, betaCIUpper).mapTo[V2DBeta]
 
     def oddsCI = column[Option[Double]]("odds_ratio")
+
     def oddsCILower = column[Option[Double]]("oddsr_ci_lower")
+
     def oddsCIUpper = column[Option[Double]]("oddsr_ci_upper")
+
     def odds =
       (oddsCI, oddsCILower, oddsCIUpper).mapTo[V2DOdds]
 
     def pval = column[Double]("pval")
+
     def pvalMantissa = column[Double]("pval_mantissa")
+
     def pvalExponent = column[Long]("pval_exponent")
+
     def r2 = column[Option[Double]]("overall_r2")
+
     def log10Abf = column[Option[Double]]("log10_ABF")
+
     def posteriorProbability = column[Option[Double]]("posterior_prob")
 
     def afr1000GProp = column[Option[Double]]("AFR_1000G_prop")
+
     def amr1000GProp = column[Option[Double]]("AMR_1000G_prop")
+
     def eas1000GProp = column[Option[Double]]("EAS_1000G_prop")
+
     def eur1000GProp = column[Option[Double]]("EUR_1000G_prop")
+
     def sas1000GProp = column[Option[Double]]("SAS_1000G_prop")
 
     def association =
@@ -839,8 +1011,11 @@ object FRM {
         ).mapTo[V2DAssociation]
 
     def sources = column[Seq[String]]("source_list")
+
     def sourceScores = column[Seq[Double]]("source_score_list")
+
     def overallScore = column[Double]("overall_score")
+
     def pureOverallScoreRow =
       (sources, sourceScores, overallScore).mapTo[PureOverallScoreRow]
 
@@ -854,32 +1029,45 @@ object FRM {
         .mapTo[GeckoRow]
 
     def geneId = column[String]("gene_id")
+
     def typeId = column[String]("type_id")
+
     def sourceId = column[String]("source_id")
+
     def feature = column[String]("feature")
 
     def fpredLabels = column[Seq[String]]("fpred_labels")
+
     def fpredScores = column[Seq[Double]]("fpred_scores")
+
     def fpredMaxLabel = column[Option[String]]("fpred_max_label")
+
     def fpredMaxScore = column[Option[Double]]("fpred_max_score")
 
     def fpredSection = (fpredLabels, fpredScores, fpredMaxLabel, fpredMaxScore).mapTo[FPredSection]
 
     def qtlBeta = column[Option[Double]]("qtl_beta")
+
     def qtlSE = column[Option[Double]]("qtl_se")
+
     def qtlPVal = column[Option[Double]]("qtl_pval")
+
     def qtlScore = column[Option[Double]]("qtl_score")
+
     def qtlScoreQ = column[Option[Double]]("qtl_score_q")
 
     def qtlSection = (qtlBeta, qtlSE, qtlPVal, qtlScore, qtlScoreQ).mapTo[QTLSection]
 
     def intervalScore = column[Option[Double]]("interval_score")
+
     def intervalScoreQ = column[Option[Double]]("interval_score_q")
 
     def intervalSection = (intervalScore, intervalScoreQ).mapTo[IntervalSection]
 
     def distance = column[Option[Long]]("d")
+
     def distanceScore = column[Option[Double]]("distance_score")
+
     def distanceScoreQ = column[Option[Double]]("distance_score_q")
 
     def distanceSection = (distance, distanceScore, distanceScoreQ).mapTo[DistanceSection]
@@ -902,8 +1090,11 @@ object FRM {
 
   class D2V2GOverallScore(tag: Tag) extends Table[OverallScoreRow](tag, "d2v2g_score_by_overall") {
     def tagChrom = column[String]("tag_chrom")
+
     def tagPos = column[Long]("tag_pos")
+
     def tagRef = column[String]("tag_ref")
+
     def tagAlt = column[String]("tag_alt")
 
     def variant = (tagChrom, tagPos, tagRef, tagAlt).mapTo[SimpleVariant]
@@ -911,8 +1102,11 @@ object FRM {
     def geneId = column[String]("gene_id")
 
     def sources = column[Seq[String]]("source_list")
+
     def sourceScores = column[Seq[Double]]("source_score_list")
+
     def overallScore = column[Double]("overall_score")
+
     def pureOverallScoreRow =
       (sources, sourceScores, overallScore).mapTo[PureOverallScoreRow]
 
@@ -922,7 +1116,9 @@ object FRM {
 
   class Coloc(tag: Tag) extends Table[ColocRow](tag, "v2d_coloc") {
     def h0 = column[Double]("coloc_h0")
+
     def h1 = column[Double]("coloc_h1")
+
     def h2 = column[Double]("coloc_h2")
 
     def h3 = column[Double]("coloc_h3")
@@ -976,7 +1172,9 @@ object FRM {
     def lVariant = (lChrom, lPos, lRef, lAlt).mapTo[SimpleVariant]
 
     def rStudy = column[String]("right_study")
+
     def rType = column[String]("right_type")
+
     def rChrom = column[String]("right_chrom")
 
     def rPos = column[Long]("right_pos")
@@ -1019,21 +1217,32 @@ object FRM {
 
   class CredSet(tag: Tag) extends Table[CredSetRow](tag, "v2d_credset") {
     def studyId = column[String]("study_id")
+
     def bioFeature = column[Option[String]]("bio_feature")
+
     def phenotypeId = column[Option[String]]("phenotype_id")
+
     def dataType = column[String]("data_type")
 
     def tagChromosome = column[String]("tag_chrom")
+
     def tagPosition = column[Long]("tag_pos")
+
     def tagRefAllele = column[String]("tag_ref")
+
     def tagAltAllele = column[String]("tag_alt")
+
     def tagVariant =
       (tagChromosome, tagPosition, tagRefAllele, tagAltAllele).mapTo[SimpleVariant]
 
     def leadChromosome = column[String]("lead_chrom")
+
     def leadPosition = column[Long]("lead_pos")
+
     def leadRefAllele = column[String]("lead_ref")
+
     def leadAltAllele = column[String]("lead_alt")
+
     def leadVariant =
       (leadChromosome, leadPosition, leadRefAllele, leadAltAllele).mapTo[SimpleVariant]
 
@@ -1057,7 +1266,7 @@ object FRM {
       (postProb, tagBeta, tagPval, tagSE, is95, is99, logABF, multiSignalMethod)
         .mapTo[CredSetRowStats]
 
-    def tagVariantWithStats = (tagVariant, stats)
+    def tagVariantWithStats: (MappedProjection[SimpleVariant, (String, Long, String, String)], MappedProjection[CredSetRowStats, (Double, Double, Double, Double, Boolean, Boolean, Double, String)]) = (tagVariant, stats)
 
     def * =
       (studyId, leadVariant, tagVariant, stats, bioFeature, phenotypeId, dataType).mapTo[CredSetRow]
@@ -1065,15 +1274,25 @@ object FRM {
 
   class SumStatsGWAS(tag: Tag) extends Table[SumStatsGWASRow](tag, "v2d_sa_gwas") {
     def typeId = column[String]("type_id")
+
     def studyId = column[String]("study_id")
+
     def chrom = column[String]("chrom")
+
     def pos = column[Long]("pos")
+
     def ref = column[String]("ref")
+
     def alt = column[String]("alt")
+
     def eaf = column[Option[Double]]("eaf")
+
     def mac = column[Option[Double]]("mac")
+
     def macCases = column[Option[Double]]("mac_cases")
+
     def info = column[Option[Double]]("info")
+
     def beta = column[Option[Double]]("beta")
 
     def se = column[Option[Double]]("se")
@@ -1088,7 +1307,7 @@ object FRM {
 
     def variant = (chrom, pos, ref, alt).mapTo[SimpleVariant]
 
-    def variantAndPVal = (variant, pval)
+    def variantAndPVal: (MappedProjection[SimpleVariant, (String, Long, String, String)], Rep[Double]) = (variant, pval)
 
     def * =
       (typeId, studyId, variant, eaf, mac, macCases, info, beta, se, pval, nTotal, nCases, isCC)
@@ -1116,8 +1335,11 @@ object FRM {
     def numTests = column[Option[Double]]("num_tests")
 
     def info = column[Option[Double]]("info")
+
     def beta = column[Option[Double]]("beta")
+
     def se = column[Option[Double]]("se")
+
     def pval = column[Double]("pval")
 
     def nTotal = column[Option[Long]]("n_total")
@@ -1132,7 +1354,7 @@ object FRM {
 
     def variant = (chrom, pos, ref, alt).mapTo[SimpleVariant]
 
-    def variantAndPVal = (variant, pval)
+    def variantAndPVal: (MappedProjection[SimpleVariant, (String, Long, String, String)], Rep[Double]) = (variant, pval)
 
     def * =
       (
@@ -1153,4 +1375,5 @@ object FRM {
         bioFeature
         ).mapTo[SumStatsMolTraitsRow]
   }
+
 }

@@ -1,7 +1,7 @@
 sudo: required
 language: scala
 scala:
-  - 2.12.8
+  - 2.12.10
 dist: xenial
 jdk:
   - openjdk11
@@ -12,7 +12,7 @@ env:
   - QUAY_REPO="quay.io/opentargets/genetics-api"
 script:
   - sbt ++$TRAVIS_SCALA_VERSION clean compile
-  - sbt ++$TRAVIS_SCALA_VERSION coverage test coverageReport
+  - sbt ++$TRAVIS_SCALA_VERSION coverage "testOnly * -- -l configuration.IntegrationTestTag" coverageReport
   - sbt ++$TRAVIS_SCALA_VERSION dist
 deploy:
   provider: releases
