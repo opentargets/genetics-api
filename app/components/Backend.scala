@@ -302,11 +302,12 @@ class Backend @Inject() (
 
     val plainSqlQuery =
       sql"""
-        select type_id, source_id, flatten(groupArray(feature_set)) from v2g_structure
-group by (type_id, source_id)
-         """.as[V2DStructure]
+           |select type_id, source_id, flatten(groupArray(feature_set)) from v2g_structure
+           |group by (type_id, source_id)
+           |
+        """.stripMargin.as[V2DStructure]
 
-    // 1. Get raw schmema
+    // 1. Get raw schema
     val res = db.run(plainSqlQuery.asTry)
     res.map {
       case Success(v) =>
