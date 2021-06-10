@@ -77,6 +77,7 @@ object EsImplicits {
   implicit val studyHitReader: Reads[Study] = (
     (JsPath \ "study_id").read[String] and
       (JsPath \ "trait_reported").read[String] and
+      (JsPath \ "source").readNullable[String] and
       (JsPath \ "trait_efos").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
       (JsPath \ "pmid").readNullable[String] and
       (JsPath \ "pub_date").readNullable[String] and
