@@ -13,7 +13,7 @@ trait ElasticSearchEntity
 
 object EsHitReader extends HitReader[ElasticSearchEntity] with Logging {
 
-  def convertHit[T](hit: Hit)(implicit r: Reads[T]) =
+  def convertHit[T](hit: Hit)(implicit r: Reads[T]): Try[T] =
     Json.parse(hit.sourceAsString).validate[T] match {
       case JsSuccess(value, _) => Success(value)
       case JsError(errors) =>
