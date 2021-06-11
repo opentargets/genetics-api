@@ -77,18 +77,14 @@ object EsImplicits {
   implicit val studyHitReader: Reads[Study] = (
     (JsPath \ "study_id").read[String] and
       (JsPath \ "trait_reported").read[String] and
-      (JsPath \ "source").readNullable[String] and
+      (JsPath \ "source").readNullableWithDefault[String](None) and
       (JsPath \ "trait_efos").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
       (JsPath \ "pmid").readNullable[String] and
       (JsPath \ "pub_date").readNullable[String] and
       (JsPath \ "pub_journal").readNullable[String] and
       (JsPath \ "pub_title").readNullable[String] and
       (JsPath \ "pub_author").readNullable[String] and
-      (JsPath \ "has_sumstats")
-        .readNullable[Int]
-        .map(_.map {
-          nullableIntToBoolean
-        }) and
+      (JsPath \ "has_sumstats").readNullable[Boolean] and
       (JsPath \ "ancestry_initial").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
       (JsPath \ "ancestry_replication").readNullable[Seq[String]].map(_.getOrElse(Seq.empty)) and
       (JsPath \ "n_initial").readNullable[Long] and
