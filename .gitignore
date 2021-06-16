@@ -54,3 +54,4 @@ project/plugins/project/
 .idea/
 .lib/
 out/
+.bsp/

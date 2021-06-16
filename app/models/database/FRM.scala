@@ -187,6 +187,8 @@ object FRM {
 
     def traitReported = column[String]("trait_reported")
 
+    def source = column[Option[String]]("source")
+
     def traitEfos = column[Seq[String]]("trait_efos")
 
     def pubId = column[Option[String]]("pmid")
@@ -219,6 +221,7 @@ object FRM {
       (
         studyId,
         traitReported,
+        source,
         traitEfos,
         pubId,
         pubDate,
@@ -283,6 +286,7 @@ object FRM {
       (
         studyId,
         traitReported,
+        Rep.None[String],
         traitEfos,
         pubId,
         pubDate,
@@ -421,6 +425,7 @@ object FRM {
       (
         studyId,
         traitReported,
+        Rep.None[String],
         traitEfos,
         pubId,
         pubDate,
@@ -721,6 +726,7 @@ object FRM {
       (
         studyId,
         traitReported,
+        Rep.None[String],
         traitEfos,
         pubId,
         pubDate,
@@ -915,6 +921,7 @@ object FRM {
       (
         studyId,
         traitReported,
+        Rep.None[String],
         traitEfos,
         pubId,
         pubDate,

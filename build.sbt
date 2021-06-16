@@ -7,7 +7,7 @@ version := "latest"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.12.10"
+scalaVersion := "2.12.12"
 maintainer := "ops@opentargets.org"
 
 javacOptions ++= Seq("-encoding", "UTF-8")
@@ -19,24 +19,33 @@ mappings in Universal ++= directory(baseDirectory.value / "resources")
 
 resolvers += Resolver.sonatypeRepo("releases")
 
-val playVersion = "2.8.1"
-val elastic4scalaVersion = "7.7.0"
 libraryDependencies ++= Seq(
   guice,
-  "com.github.pathikrit" %% "better-files" % "3.8.0",
-  "com.typesafe.slick" %% "slick" % "3.3.2",
+  "com.github.pathikrit" %% "better-files" % "3.9.1",
+  "com.typesafe.slick" %% "slick" % "3.3.3",
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test,
-  "org.scalacheck" %% "scalacheck" % "1.14.1" % Test,
-  "com.typesafe.play" %% "play" % playVersion,
-  "com.typesafe.play" %% "play-logback" % playVersion,
-  "com.typesafe.play" %% "play-json" % playVersion,
-  "com.typesafe.play" %% "play-slick" % "5.0.0",
-  "ru.yandex.clickhouse" % "clickhouse-jdbc" % "0.2.4",
-  "org.sangria-graphql" %% "sangria" % "2.0.0",
-  "org.sangria-graphql" %% "sangria-play-json" % "2.0.1",
+  "org.scalatestplus" %% "scalacheck-1-15" % "3.2.8.0" % Test,
   "com.nrinaudo" %% "kantan.csv" % "0.4.0",
   "com.nrinaudo" %% "kantan.csv-generic" % "0.4.0",
-  "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4scalaVersion,
-  "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % elastic4scalaVersion,
-  "com.sksamuel.elastic4s" %% "elastic4s-http-streams" % elastic4scalaVersion,
-  "com.sksamuel.elastic4s" %% "elastic4s-json-play" % elastic4scalaVersion)
+)
+
+val playVersion = "2.8.8"
+libraryDependencies += "com.typesafe.play" %% "play" % playVersion
+libraryDependencies += "com.typesafe.play" %% "filters-helpers" % playVersion
+libraryDependencies += "com.typesafe.play" %% "play-logback" % playVersion
+libraryDependencies += "com.typesafe.play" %% "play-json" % "2.9.2"
+libraryDependencies += "com.typesafe.play" %% "play-streams" % playVersion
+libraryDependencies += "com.typesafe.play" %% "play-slick" % "5.0.0"
+
+val sangriaVersion = "2.1.3"
+libraryDependencies += "ru.yandex.clickhouse" % "clickhouse-jdbc" % "0.3.1"
+libraryDependencies += "org.sangria-graphql" %% "sangria" % sangriaVersion
+libraryDependencies += "org.sangria-graphql" %% "sangria-play-json" % "2.0.1"
+
+val s4sVersion = "7.12.2"
+libraryDependencies ++= Seq(
+  "com.sksamuel.elastic4s" %% "elastic4s-core" % s4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % s4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-http-streams" % s4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-json-play" % s4sVersion
+)

@@ -198,6 +198,7 @@ object Entities {
   case class Study(
                     studyId: String,
                     traitReported: String,
+                    source: Option[String],
                     traitEfos: Seq[String],
                     pubId: Option[String],
                     pubDate: Option[String],

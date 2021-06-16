@@ -18,6 +18,7 @@ trait GQLStudy {
 
   val study: ObjectType[Backend, Study] = deriveObjectType[Backend, Study](
     DocumentField("traitReported", "Trait Label as reported on the publication"),
+    DocumentField("source", "Database or BioBank providing the study"),
     DocumentField("traitEfos", "A list of curated efo codes"),
     DocumentField("pubId", "PubMed ID for the corresponding publication"),
     RenameField("pubId", "pmid"),
