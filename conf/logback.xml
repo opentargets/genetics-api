@@ -13,22 +13,22 @@
     </appender>
 
     <logger name="play" level="INFO"/>
-    <logger name="components" level="INFO"/>
-    <logger name="configuration" level="INFO"/>
-    <logger name="controllers" level="INFO"/>
-    <logger name="models" level="INFO"/>
+    <logger name="components" level="DEBUG"/>
+    <logger name="configuration" level="DEBUG"/>
+    <logger name="controllers" level="DEBUG"/>
+    <logger name="models" level="DEBUG"/>
     <logger name="org.apache" level="WARN"/>
     <logger name="httpclient" level="WARN"/>
-    <logger name="slick.jdbc.JdbcBackend.statement" level="DEBUG"/>
+    <logger name="slick.jdbc.JdbcBackend.statement" level="WARN"/>
 
     <!-- Off these ones as they are annoying, and anyway we manage configuration ourselves -->
     <logger name="com.avaje.ebean.config.PropertyMapLoader" level="OFF"/>
     <logger name="com.avaje.ebeaninternal.server.core.XmlConfigLoader" level="OFF"/>
     <logger name="com.avaje.ebeaninternal.server.lib.BackgroundThread" level="OFF"/>
     <logger name="com.gargoylesoftware.htmlunit.javascript" level="OFF"/>
-    <logger name="ru.yandex.components.clickhouse.ClickHouseDriver" level="OFF"/>
+    <logger name="ru.yandex.components.clickhouse.ClickHouseDriver" level="DEBUG"/>
     <logger name="com.zaxxer.hikari.pool.HikariPool" level="OFF"/>
-    <logger name="com.sksamuel.elastic4s.http.ResponseHandler" level="OFF"/>
+    <logger name="com.sksamuel.elastic4s.http.ResponseHandler" level="DEBUG"/>
     <!-- Set logging for all Akka library classes to INFO -->
     <logger name="akka" level="ERROR"/>
 
