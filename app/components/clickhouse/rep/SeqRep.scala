@@ -1,6 +1,7 @@
 package components.clickhouse.rep
 
 import components.clickhouse.ClickHouseProfile
+import play.api.Logging
 
 /** Clickhouse supports Array of elements from different types and this is an approximation
   * to it.
@@ -20,7 +21,7 @@ object SeqRep {
   def parseFastString(str: String) = str.slice(1, str.length - 1)
 
   sealed abstract class NumSeqRep[T](override val from: String, val f: String => T)
-    extends SeqRep[T, Seq](from) {
+    extends SeqRep[T, Seq](from) with Logging {
     override protected def parse(from: String): SeqT = {
       if (from.nonEmpty) {
         from.length match {
@@ -37,7 +38,7 @@ object SeqRep {
   case class ISeqRep(override val from: String) extends NumSeqRep[Int](from, _.toInt)
   case class LSeqRep(override val from: String) extends NumSeqRep[Long](from, _.toLong)
 
-  case class StrSeqRep(override val from: String) extends SeqRep[String, Seq](from) {
+  case class StrSeqRep(override val from: String) extends SeqRep[String, Seq](from) with Logging {
     override protected def parse(from: String): SeqT = {
       if (from.nonEmpty) {
         from.length match {

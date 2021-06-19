@@ -357,7 +357,6 @@ class Backend @Inject() (
            |#$limitClause
          """.stripMargin.as[(String, Int)]
 
-    logger.debug(s"getTopOverlappedStudies query: ${plainQ.statements.mkString("\n")}")
     db.run(plainQ.asTry).map {
       case Success(v) =>
         if (v.nonEmpty) {
@@ -543,8 +542,6 @@ class Backend @Inject() (
   def getStudies(stids: Seq[String]): Future[Seq[Study]] = {
     if (stids.nonEmpty) {
       val q = studies.filter(_.studyId inSetBind stids)
-
-      logger.debug(s"getStudies (${stids.mkString("('", "', '", "')")}) q: " + q.result.statements.mkString("\n"))
       executeQueryForSeq(q.result)
     } else {
       Future.successful(Seq.empty)
