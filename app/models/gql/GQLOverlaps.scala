@@ -17,10 +17,15 @@ trait GQLOverlaps {
     "This element represent a overlap between two stduies",
     fields[Backend, OverlapRow](
       Field(
-        "study",
-        study,
+        "studyId",
+        StringType,
         Some("A study object"),
-        resolve = rsl => studiesFetcher.defer(rsl.value.stid)),
+        resolve = rsl => rsl.value.stid),
+      Field(
+        "study",
+        OptionType(study),
+        Some("A study object"),
+        resolve = rsl => studiesFetcher.deferOpt(rsl.value.stid)),
       Field(
         "numOverlapLoci",
         IntType,

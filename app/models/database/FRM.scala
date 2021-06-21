@@ -2,7 +2,9 @@ package models.database
 
 import models.entities.DNA._
 import models.entities.Entities._
+import components.clickhouse.rep.SeqRep._
 import components.clickhouse.rep.SeqRep.Implicits._
+
 import slick.lifted.MappedProjection
 
 object FRM {

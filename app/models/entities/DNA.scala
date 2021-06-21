@@ -1,7 +1,6 @@
 package models.entities
 
 import java.io.FileNotFoundException
-
 import kantan.csv._
 import kantan.csv.ops._
 import Violations.{GeneViolation, VariantViolation}
@@ -9,6 +8,7 @@ import models.implicits.ElasticSearchEntity
 import play.api.Logger
 
 import scala.io.Source
+import scala.util.control.Exception.catching
 
 object DNA {
 
@@ -161,7 +161,9 @@ object DNA {
       def _parseVariant(variantId: String, rsId: Option[String], sep: String): Option[Variant] =
         variantId.toUpperCase.split(sep).toList.filter(_.nonEmpty) match {
           case List(chr: String, pos: String, ref: String, alt: String) =>
-            Some(Variant.fromSimpleVariant(chr, pos.toLong, ref, alt))
+            catching(classOf[java.lang.NumberFormatException]) opt {
+              Variant.fromSimpleVariant(chr, pos.toLong, ref, alt)
+            }
           case _ => None
         }
 

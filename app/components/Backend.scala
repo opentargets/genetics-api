@@ -46,7 +46,7 @@ class Backend @Inject() (
     db.run(query.asTry).map {
       case Success(s) => s
       case Failure(ex) =>
-        logger.error(ex.getMessage)
+        logger.error(s"executeQuery error: " + ex.getMessage)
         defaultOnFail
     }
   }
@@ -365,7 +365,7 @@ class Backend @Inject() (
           OverlappedLociStudy(stid, Vector.empty)
         }
       case Failure(ex) =>
-        logger.error(ex.getMessage)
+        logger.error(s"getTopOverlappedStudies failed with " + ex.getMessage)
         OverlappedLociStudy(stid, Vector.empty)
     }
   }
@@ -542,7 +542,6 @@ class Backend @Inject() (
   def getStudies(stids: Seq[String]): Future[Seq[Study]] = {
     if (stids.nonEmpty) {
       val q = studies.filter(_.studyId inSetBind stids)
-
       executeQueryForSeq(q.result)
     } else {
       Future.successful(Seq.empty)

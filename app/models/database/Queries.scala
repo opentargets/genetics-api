@@ -1,9 +1,7 @@
 package models.database
 
-import models.Functions.GWASLiteral
 import models.entities.{DNA, Entities}
 import models.entities.DNA.Variant
-import models.gql.GQLSchema.studyId
 
 object Queries extends GeneticsDbTables {
 

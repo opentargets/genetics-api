@@ -1,17 +1,17 @@
 package models.gql
 
-import GQLSchema.{studiesFetcher, study}
 import components.Backend
 import models.entities.Entities.Study
-import sangria.execution.deferred.{Fetcher, FetcherConfig, HasId}
+import sangria.execution.deferred.{Fetcher, FetcherCache, FetcherConfig, HasId, SimpleFetcherCache}
 import sangria.macros.derive.{AddFields, DocumentField, RenameField, deriveObjectType}
 import sangria.schema.{Field, LongType, ObjectType, fields}
 
 trait GQLStudy {
   implicit val studyHasId: HasId[Study, String] = HasId[Study, String](_.studyId)
 
+  val studiesFetcherCache: SimpleFetcherCache = FetcherCache.simple
   val studiesFetcher: Fetcher[Backend, Study, Study, String] = Fetcher(
-    config = FetcherConfig.maxBatchSize(100),
+    config = FetcherConfig.maxBatchSize(100).caching(studiesFetcherCache),
     fetch = (ctx: Backend, stids: Seq[String]) => {
       ctx.getStudies(stids)
     })
