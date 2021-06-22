@@ -143,7 +143,6 @@ class ElasticsearchComponent @Inject() (configuration: Configuration) extends El
     results
   }
 
-  @scala.annotation.tailrec
   private def getSearchResultSet(
     query: Pagination => SearchRequest,
     page: Pagination,
@@ -151,11 +150,7 @@ class ElasticsearchComponent @Inject() (configuration: Configuration) extends El
 
     val result = queryAndExtract(query(page)).await
     val summaryResult = result.copy(hits = result.hits ++ acc)
-    summaryResult match {
-      case i if summaryResult.allResultsReturned => summaryResult
-      case j                                     => getSearchResultSet(query, page.next, summaryResult.hits)
-    }
-
+    summaryResult
   }
 
   private def queryAndExtract[T <: ElasticSearchEntity](

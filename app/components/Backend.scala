@@ -241,7 +241,7 @@ class Backend @Inject() (
   ): Future[Seq[(SimpleVariant, Double)]] = {
 
     val q = (chromosome: String, startPos: Long, endPos: Long) => {
-      sumstatsGWAS
+      val q = sumstatsGWAS
         .filter(
           r =>
             (r.chrom === chromosome) &&
@@ -249,6 +249,10 @@ class Backend @Inject() (
               (r.pos <= endPos) &&
               (r.studyId === studyId))
         .map(_.variantAndPVal)
+
+      logger.debug("gwasRegionalFromSumstats " + q.result.statements.mkString("\n"))
+
+      q
     }
 
     getSequenceWithChromosomeAndRegionCheck(chromosome, startPos, endPos, q)
