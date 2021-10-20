@@ -140,6 +140,7 @@ object DNA {
             .mkString("_"))
       case _ => None
     }
+    def toSimpleVariant = SimpleVariant(chromosome, position, refAllele, altAllele)
 
   }
 

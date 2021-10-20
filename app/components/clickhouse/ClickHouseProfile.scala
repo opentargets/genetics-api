@@ -1,6 +1,6 @@
 package components.clickhouse
 
-import slick.ast.Library.SqlAggregateFunction
+import slick.ast.Library.{SqlAggregateFunction, SqlFunction}
 import slick.ast.ScalaBaseType._
 import slick.ast._
 import slick.basic.Capability
@@ -19,10 +19,12 @@ import scala.language.{higherKinds, implicitConversions}
 object CHLibrary {
   val Uniq = new SqlAggregateFunction("uniq")
   val Any = new SqlAggregateFunction("any")
+  val ToString = new SqlFunction("toString")
 }
 
 trait CHColumnExtensionMethods[B1, P1] extends Any with ExtensionMethods[B1, P1] {
   def uniq = CHLibrary.Uniq.column[Long](n)
+  def fToString: Rep[String] = CHLibrary.ToString.column[String](n)
 }
 
 final class BaseCHColumnExtensionMethods[P1](val c: Rep[P1])
@@ -43,6 +45,7 @@ final class CHSingleColumnQueryExtensionMethods[B1, P1, C[_]](val q: Query[Rep[P
   def uniq(implicit tm: OptionTM): Rep[Option[Long]] = CHLibrary.Uniq.column[Option[Long]](q.toNode)
 
   def any(implicit tm: OptionTM): Rep[Option[B1]] = CHLibrary.Any.column[Option[B1]](q.toNode)
+  def fToString(implicit tm: OptionTM): Rep[Option[String]] = CHLibrary.ToString.column[Option[String]](q.toNode)
 }
 
 trait ClickHouseProfile extends JdbcProfile {

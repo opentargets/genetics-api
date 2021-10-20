@@ -13,6 +13,17 @@ trait GQLArguments {
   val studyId: Argument[String] =
     Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
 
+  val studyIdOpt =
+    Argument("optionalStudyId", OptionInputType(StringType), description = "Study ID which links a top loci with a trait")
+
+  val geneIdOpt =
+    Argument("optionalGeneId", OptionInputType(StringType), description = "Gene ID using Ensembl identifier")
+
+  val variantIdOpt = Argument(
+    "optionalVariantId",
+    OptionInputType(StringType),
+    description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
+
   val studyIds: Argument[Seq[String @@ FromInput.CoercedScalaResult]] =
     Argument("studyIds", ListInputType(StringType), description = "List of study IDs")
 

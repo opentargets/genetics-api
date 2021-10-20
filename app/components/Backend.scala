@@ -1,13 +1,14 @@
 package components
 
 import java.nio.file.{Path, Paths}
-
 import components.clickhouse.ClickHouseProfile
 import components.elasticsearch.{ElasticsearchComponent, Pagination}
 import configuration.{Metadata, MetadataConfiguration}
+
 import javax.inject.{Inject, Singleton}
 import models.Functions._
 import models.database.FRM._
+import models.database.Queries.geneIdByRegion
 import models.database.{GeneticsDbTables, Queries}
 import models.entities.DNA._
 import models.entities.Entities._
@@ -19,9 +20,8 @@ import play.api.libs.json.Reads._
 import play.api.libs.json._
 import play.api.{Configuration, Environment, Logger}
 import play.db.NamedDatabase
-import sangria.validation.Violation
+import sangria.validation.{BaseViolation, Violation}
 import slick.dbio.DBIOAction
-
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
@@ -445,18 +445,25 @@ class Backend @Inject() (
     executeQuery(geneQ.result.head, "")
   }
 
-  def getStudiesForGene(geneId: String): Future[Vector[String]] = {
-    val geneChr: Future[String] = getGeneChromosome(geneId)
-    for (chr <- geneChr) yield {
-      val studiesQ =
-        d2v2g
-          .filter(r => (r.geneId === geneId) && (r.tagChromosome === chr))
+  def getStudiesForGene(geneId: String): Future[Seq[String]] = {
+    val studiesQ = genes
+      .filter(_.id === geneId)
+      .map(_.chromosome)
+      .result
+      .headOption
+      .flatMap {
+      case Some(chr) =>
+        d2v2gScored
+          .filter(r => (r.geneId === geneId) && (r.leadChromosome === chr))
           .groupBy(_.studyId)
           .map(_._1)
-
-      executeQuery(studiesQ.result, Vector.empty).map(_.toVector)
+          .result
+      case None =>
+        DBIOAction.successful(Seq.empty)
     }
-  }.flatten
+
+    executeQueryForSeq(studiesQ)
+  }
 
   def getStudiesAndLeadVariantsForGeneByL2G(
                                              geneId: String,
@@ -755,6 +762,101 @@ class Backend @Inject() (
     }
   }
 
+  def buildRegionPlot(
+                  studyId: Option[String],
+                  variantId: Option[String],
+                  geneId: Option[String]): Future[Option[Entities.Gecko]] = {
+
+    (studyId, variantId, geneId) match {
+      case (None, None, None) =>
+        Future.failed(InputParameterCheckError(
+          Vector(new BaseViolation("At least one argument is needed"){}))
+        )
+      case (Some(_), None, _) =>
+        Future.failed(InputParameterCheckError(
+          Vector(new BaseViolation("A study ID needs a lead variant too"){}))
+        )
+      case triple =>
+        val v  = (r: D2V2GScored) =>  triple._2.flatMap(o => Variant
+          .fromString(o)
+          .toOption
+          .map{
+            iv =>
+              val sv = iv.toSimpleVariant
+              (r.leadChromosome === sv.chromosome
+                && r.leadPosition === sv.position
+                && r.leadRefAllele === sv.refAllele
+                && r.leadAltAllele === sv.altAllele)
+          })
+
+        val gchr = (gid: String) => genes.filter(_.id === gid).map(_.chromosome)
+        val g = (r: D2V2GScored) =>  triple._3.map(gid => r.geneId === gid
+          && r.leadChromosome.fToString.in(gchr(gid)))
+        val s = (r : D2V2GScored) => triple._1.map(sid => r.studyId === sid)
+        val qExpr = v :: g :: s :: Nil
+
+        val assocsQ =
+          d2v2gScored
+            .filter(
+              r => qExpr
+                .map(_.apply(r))
+                .withFilter(_.isDefined)
+                .map(_.get)
+                .reduce((a, b) => a && b)
+            )
+            .groupBy(r => (r.studyId, r.leadVariant, r.tagVariant, r.geneId))
+            .map {
+              case (g, q) =>
+                g -> (q.map(_.r2).any,
+                  q.map(_.log10Abf).any,
+                  q.map(_.posteriorProbability).any,
+                  q.map(_.pval).any,
+                  q.map(_.pvalExponent).any,
+                  q.map(_.pvalMantissa).any,
+                  q.map(_.overallScore).any,
+                  q.map(_.oddsCI).any,
+                  q.map(_.oddsCILower).any,
+                  q.map(_.oddsCIUpper).any,
+                  q.map(_.direction).any,
+                  q.map(_.betaCI).any,
+                  q.map(_.betaCILower).any,
+                  q.map(_.betaCIUpper).any)
+            }.result
+
+        db.run(assocsQ.asTry).map {
+          case Success(assocs) =>
+            val geckoRows = assocs.view
+              .map(
+                r =>
+                  GeckoRow(
+                    r._1._4,
+                    r._1._3,
+                    r._1._2,
+                    r._1._1,
+                    V2DAssociation(
+                      r._2._4.get,
+                      r._2._5.get,
+                      r._2._6.get,
+                      r._2._1,
+                      r._2._2,
+                      r._2._3,
+                      None,
+                      None,
+                      None,
+                      None,
+                      None),
+                    r._2._7.getOrElse(0d),
+                    V2DOdds(r._2._8, r._2._9, r._2._10),
+                    V2DBeta(r._2._11, r._2._12, r._2._13, r._2._14)))
+            Entities.Gecko(geckoRows, assocs.view.map(_._1._4).toSet)
+
+          case Failure(asscsEx) =>
+            logger.error(asscsEx.getMessage)
+            Entities.Gecko(Seq.empty.view, Set.empty)
+        }
+    }
+  }
+
   def buildGecko(
                   chromosome: String,
                   posStart: Long,
@@ -765,13 +867,7 @@ class Backend @Inject() (
         if (denseRegionChecker.matchRegion(inRegion)) {
           Future.failed(InputParameterCheckError(Vector(RegionViolation(inRegion))))
         } else {
-          val geneIdsInLoci = genes
-            .filter(
-              r =>
-                (r.chromosome === chr) &&
-                  ((r.start >= start && r.start <= end) ||
-                    (r.end >= start && r.end <= end)))
-            .map(_.id)
+          val geneIdsInLoci = geneIdByRegion(chr, start, end)
 
           val assocsQ = d2v2gScored
             .filter(
@@ -947,8 +1043,6 @@ class Backend @Inject() (
   }
 
   def getStudiesAndLeadVariantsForGene(geneId: String): Future[Seq[LeadRow]] = {
-    val lociRange: Long = 5000000
-
     val q1 = genes
       .filter(_.id === geneId)
       .take(1)
@@ -959,9 +1053,7 @@ class Backend @Inject() (
           d2v2gScored
             .filter(
               l =>
-                (l.tagChromosome === g.chromosome) &&
-                  (l.tagPosition <= (g.tss.get + lociRange)) &&
-                  (l.tagPosition >= (g.tss.get - lociRange)) &&
+                (l.leadChromosome === g.chromosome) &&
                   (l.geneId === g.id))
             .map(r => r.leadRow)
             .distinct

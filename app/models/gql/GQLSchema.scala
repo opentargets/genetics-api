@@ -505,6 +505,14 @@ object GQLSchema
         resolve =
           ctx => ctx.ctx.buildGecko(ctx.arg(chromosome), ctx.arg(dnaPosStart), ctx.arg(dnaPosEnd))),
       Field(
+        "regionPlot",
+        OptionType(gecko),
+        arguments = studyIdOpt :: variantIdOpt :: geneIdOpt :: Nil,
+        resolve =
+          ctx => ctx.ctx.buildRegionPlot(ctx.arg(studyIdOpt),
+            ctx.arg(variantIdOpt),
+            ctx.arg(geneIdOpt))),
+      Field(
         "genesForVariantSchema",
         v2gSchema,
         arguments = Nil,
