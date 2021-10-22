@@ -162,7 +162,7 @@ object Entities {
                                    totalSetSize: Long
                                  )
 
-  case class V2DStructure(typeId: String, sourceId: String, bioFeatureSet: Seq[String])
+  case class V2GStructureRow(typeId: String, sourceId: String, bioFeatureSet: Seq[String])
 
   case class SLGRow(
                      geneId: String,
@@ -537,6 +537,8 @@ object Entities {
                      interval: IntervalSection,
                      distance: DistanceSection
                    )
+
+  case class V2GScoreRow(v2g: V2GRow, pureOverallScoreRow: PureOverallScoreRow)
 
   case class D2V2GRow(v2d: V2DRow, pureV2g: PureV2GRow)
 

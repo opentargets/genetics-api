@@ -241,14 +241,14 @@ object FRM {
         ).mapTo[Study]
   }
 
-  class V2GStructure(tag: Tag) extends Table[V2DStructure](tag, "v2g_structure") {
+  class V2GStructure(tag: Tag) extends Table[V2GStructureRow](tag, "v2g_structure") {
     def typeId = column[String]("type_id")
 
     def sourceId = column[String]("source_id")
 
     def bioFeatureSet = column[Seq[String]]("feature_set")
 
-    def * = (typeId, sourceId, bioFeatureSet).mapTo[V2DStructure]
+    def * = (typeId, sourceId, bioFeatureSet).mapTo[V2GStructureRow]
   }
 
   class V2DsByStudy(tag: Tag) extends Table[V2DRow](tag, "v2d_by_stchr") {
@@ -584,7 +584,7 @@ object FRM {
         ).mapTo[PureV2GRow]
   }
 
-  class V2G(tag: Tag) extends Table[V2GRow](tag, "v2g") {
+  class V2GScored(tag: Tag) extends Table[V2GScoreRow](tag, "v2g_scored") {
     def chromosome = column[String]("chr_id")
 
     def position = column[Long]("position")
@@ -651,7 +651,16 @@ object FRM {
         distanceSection
         ).mapTo[PureV2GRow]
 
-    def * =
+    def sources = column[Seq[String]]("source_list")
+
+    def sourceScores = column[Seq[Double]]("source_score_list")
+
+    def overallScore = column[Double]("overall_score")
+
+    def pureOverallScoreRow =
+      (sources, sourceScores, overallScore).mapTo[PureOverallScoreRow]
+
+    def v2g =
       (
         variant,
         geneId,
@@ -663,6 +672,8 @@ object FRM {
         intervalSection,
         distanceSection
         ).mapTo[V2GRow]
+
+    def * = (v2g, pureOverallScoreRow).mapTo[V2GScoreRow]
   }
 
   class V2GOverallScore(tag: Tag) extends Table[OverallScoreRow](tag, "v2g_score_by_overall") {
@@ -902,32 +913,6 @@ object FRM {
 
     def * = (v2dRow, pureV2gRow, pureOverallScoreRow).mapTo[D2V2GScoreRow]
 
-  }
-
-  class D2V2GOverallScore(tag: Tag) extends Table[OverallScoreRow](tag, "d2v2g_score_by_overall") {
-    def tagChrom = column[String]("tag_chrom")
-
-    def tagPos = column[Long]("tag_pos")
-
-    def tagRef = column[String]("tag_ref")
-
-    def tagAlt = column[String]("tag_alt")
-
-    def variant = (tagChrom, tagPos, tagRef, tagAlt).mapTo[SimpleVariant]
-
-    def geneId = column[String]("gene_id")
-
-    def sources = column[Seq[String]]("source_list")
-
-    def sourceScores = column[Seq[Double]]("source_score_list")
-
-    def overallScore = column[Double]("overall_score")
-
-    def pureOverallScoreRow =
-      (sources, sourceScores, overallScore).mapTo[PureOverallScoreRow]
-
-    def * =
-      (variant, geneId, sources, sourceScores, overallScore).mapTo[OverallScoreRow]
   }
 
   class Coloc(tag: Tag) extends Table[ColocRow](tag, "v2d_coloc") {

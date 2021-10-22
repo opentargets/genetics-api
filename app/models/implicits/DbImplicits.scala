@@ -108,7 +108,7 @@ object DbImplicits {
     })
   }
 
-  implicit val GetV2DStructure: Any with GetResult[V2DStructure] = GetResult(
-    r => V2DStructure(typeId = r.<<, sourceId = r.<<, bioFeatureSet = StrSeqRep(r.<<)))
+  implicit val GetV2DStructure: Any with GetResult[V2GStructureRow] = GetResult(
+    r => V2GStructureRow(typeId = r.<<, sourceId = r.<<, bioFeatureSet = StrSeqRep(r.<<)))
 
 }

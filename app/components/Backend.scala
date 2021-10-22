@@ -290,7 +290,7 @@ class Backend @Inject() (
 
   def getG2VSchema: Future[Entities.G2VSchema] = {
     // converts V2DStructure to G2VSchemaElement
-    def toSeqStruct(elems: Seq[V2DStructure]): Seq[G2VSchemaElement] = {
+    def toSeqStruct(elems: Seq[V2GStructureRow]): Seq[G2VSchemaElement] = {
       for {
         entry <- elems
       } yield Entities.G2VSchemaElement(
@@ -302,14 +302,14 @@ class Backend @Inject() (
         (v2gLabels(entry.sourceId) \ "pmid").asOpt[String],
         entry.bioFeatureSet.map( str => Tissue(str)))
     }
-    def filterDefaultType(v: Vector[V2DStructure], f: List[String]) = v.filter( it => f.contains(it.typeId))
+    def filterDefaultType(v: Vector[V2GStructureRow], f: List[String]) = v.filter(it => f.contains(it.typeId))
 
     val plainSqlQuery =
       sql"""
            |select type_id, source_id, flatten(groupArray(feature_set)) from v2g_structure
            |group by (type_id, source_id)
            |
-        """.stripMargin.as[V2DStructure]
+        """.stripMargin.as[V2GStructureRow]
 
     // 1. Get raw schema
     val res = db.run(plainSqlQuery.asTry)
@@ -674,7 +674,7 @@ class Backend @Inject() (
                |        alt_allele AS alt,
                |        gene_id,
                |        d
-               |    FROM ot.v2g
+               |    FROM ot.v2g_scored
                |    PREWHERE (type_id = 'distance') AND
                |    (source_id = 'canonical_tss') AND
                |    (chrom = ${v.chromosome}) AND
@@ -949,7 +949,7 @@ class Backend @Inject() (
           .filter(r => r.chromosome === v.chromosome)
           .map(_.id)
 
-        val filteredV2Gs = v2gs.filter(
+        val filteredV2Gs = v2gsScored.filter(
           r =>
             (r.chromosome === v.chromosome) &&
               (r.position === v.position) &&
@@ -957,25 +957,13 @@ class Backend @Inject() (
               (r.altAllele === v.altAllele) &&
               (r.geneId in geneIdsInLoci))
 
-        val filteredV2GScores = v2gScores.filter(
-          r =>
-            (r.chromosome === v.chromosome) &&
-              (r.position === v.position) &&
-              (r.refAllele === v.refAllele) &&
-              (r.altAllele === v.altAllele) &&
-              (r.geneId in geneIdsInLoci))
 
-        val q = filteredV2Gs
-          .joinFull(filteredV2GScores)
-          .on((l, r) => l.geneId === r.geneId)
-          .map(p => (p._1, p._2))
-
-        db.run(q.result.asTry).map {
+        db.run(filteredV2Gs.result.asTry).map {
           case Success(r) =>
             r.view
-              .filter(p => p._1.isDefined && p._2.isDefined)
               .map(p => {
-                val (Some(v2g), Some(score)) = p
+                val v2g = p.v2g
+                val score = p.pureOverallScoreRow
 
                 ScoredG2VLine(
                   v2g.geneId,
