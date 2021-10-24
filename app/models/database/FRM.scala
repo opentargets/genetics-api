@@ -676,30 +676,43 @@ object FRM {
     def * = (v2g, pureOverallScoreRow).mapTo[V2GScoreRow]
   }
 
-  class V2GOverallScore(tag: Tag) extends Table[OverallScoreRow](tag, "v2g_score_by_overall") {
-    def chromosome = column[String]("chr_id")
-
-    def position = column[Long]("position")
-
-    def refAllele = column[String]("ref_allele")
-
-    def altAllele = column[String]("alt_allele")
-
+  class Manhattan(tag: Tag) extends Table[ManhattanRow](tag, "manhattan") {
+    def studyId = column[String]("study")
+    def chromosome = column[String]("chrom")
+    def position = column[Long]("pos")
+    def refAllele = column[String]("ref")
+    def altAllele = column[String]("alt")
+    def pValue = column[Double]("pval")
+    def pValueMantissa = column[Double]("pval_mantissa")
+    def pValueExponent = column[Long]("pval_exponent")
+    def odds = column[Option[Double]]("odds")
+    def oddsL = column[Option[Double]]("oddsL")
+    def oddsU = column[Option[Double]]("oddsU")
+    def direction = column[Option[String]]("direction")
+    def beta = column[Option[Double]]("beta")
+    def betaL = column[Option[Double]]("betaL")
+    def betaU = column[Option[Double]]("betaU")
+    def credibleSetSize = column[Long]("credibleSetSize")
+    def ldSetSize = column[Long]("ldSetSize")
+    def uniqVariants = column[Long]("uniq_variants")
+    def top10GenesRawIds = column[Seq[String]]("top10_genes_raw_ids")
+    def top10GenesRawScores = column[Seq[Double]]("top10_genes_raw_score")
+    def top10GenesColocIds = column[Seq[String]]("top10_genes_coloc_ids")
+    def top10GenesColocScores = column[Seq[Double]]("top10_genes_coloc_score")
+    def top10GenesL2GIds = column[Seq[String]]("top10_genes_l2g_ids")
+    def top10GenesL2GScores = column[Seq[Double]]("top10_genes_l2g_score")
     def variant = (chromosome, position, refAllele, altAllele).mapTo[SimpleVariant]
+    def v2dOdds = (odds, oddsL, oddsU).mapTo[V2DOdds]
+    def v2dBeta = (direction, beta, betaL, betaU).mapTo[V2DBeta]
 
-    def geneId = column[String]("gene_id")
-
-    def sources = column[Seq[String]]("source_list")
-
-    def sourceScores = column[Seq[Double]]("source_score_list")
-
-    def overallScore = column[Double]("overall_score")
-
-    def pureOverallScoreRow =
-      (sources, sourceScores, overallScore).mapTo[PureOverallScoreRow]
-
-    def * =
-      (variant, geneId, sources, sourceScores, overallScore).mapTo[OverallScoreRow]
+    def * = (studyId, variant, pValue, pValueMantissa, pValueExponent,
+      v2dOdds, v2dBeta,
+      credibleSetSize,
+      ldSetSize,
+      uniqVariants,
+      top10GenesRawIds.zip(top10GenesRawScores),
+      top10GenesColocIds.zip(top10GenesColocScores),
+      top10GenesL2GIds.zip(top10GenesL2GScores)).mapTo[ManhattanRow]
   }
 
   class D2V2GScored(tag: Tag) extends Table[D2V2GScoreRow](tag, "d2v2g_scored_region") {

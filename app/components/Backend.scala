@@ -563,36 +563,32 @@ class Backend @Inject() (
                            studyId: String,
                            pageIndex: Option[Int],
                            pageSize: Option[Int]): Future[Entities.ManhattanTable] = {
-    val limitClause = parsePaginationTokens(pageIndex, pageSize)
+    val limitClause = parsePaginationTokensForSlick(pageIndex, pageSize)
 
-    val topLociEnrich =
-      sql"""
-           |SELECT *
-           |FROM ot.manhattan_with_l2g
-           |WHERE study = $studyId
-           |#$limitClause
-         """.stripMargin.as[V2DByStudy]
+    val topLociEnrichQ = manhattan
+      .filter(_.studyId === studyId)
+      .drop(limitClause._1)
+      .take(limitClause._2)
 
-    // map to proper manhattan association with needed fields
-    db.run(topLociEnrich.asTry).map {
+    db.run(topLociEnrichQ.result.asTry).map {
       case Success(v) =>
         ManhattanTable(
           studyId,
           v.map(el => {
             ManhattanAssociation(
-              el.variantId,
+              el.variant.id,
               el.pval,
-              el.pval_mantissa,
-              el.pval_exponent,
+              el.pvalMantissa,
+              el.pvalExponent,
               el.v2dOdds,
               el.v2dBeta,
-              el.topGenes,
-              el.topColocGenes,
-              el.topL2Genes,
+              el.bestGenes,
+              el.bestColocGenes,
+              el.bestL2Genes,
               el.credibleSetSize,
               el.ldSetSize,
               el.totalSetSize)
-          }))
+          }).toVector)
       case Failure(ex) =>
         logger.error(ex.getMessage)
         ManhattanTable(studyId, associations = Vector.empty)

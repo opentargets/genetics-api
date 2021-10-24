@@ -50,64 +50,6 @@ object DbImplicits {
     })
   }
 
-  implicit val getV2DByStudy: GetResult[V2DByStudy] = {
-    def toGeneScoreTupleWithDuplicates(
-                                        geneIds: Seq[String],
-                                        geneScores: Seq[Double]
-                                      ): Seq[(String, Double)] = {
-      val ordScored = geneIds zip geneScores
-
-      if (ordScored.isEmpty)
-        ordScored
-      else
-        ordScored.takeWhile(_._2 == ordScored.head._2)
-    }
-
-    def toGeneScoreTuple(geneIds: Seq[String], geneScores: Seq[Double]): Seq[(String, Double)] = {
-      val ordScored = geneIds zip geneScores
-
-      if (ordScored.isEmpty)
-        ordScored
-      else
-        ordScored.groupBy(_._1).map(_._2.head)(breakOut).sortBy(_._2)(Ordering[Double].reverse)
-    }
-
-    GetResult(r => {
-      val studyId: String = r.<<
-      val svID: String = SimpleVariant(r.<<, r.<<, r.<<, r.<<).id
-      val pval: Double = r.<<
-      val pvalMantissa: Double = r.<<
-      val pvalExponent: Long = r.<<
-      val odds = V2DOdds(r.<<?, r.<<?, r.<<?)
-      val beta = V2DBeta(r.<<?, r.<<?, r.<<?, r.<<?)
-      val credSetSize: Option[Long] = r.<<?
-      val ldSetSize: Option[Long] = r.<<?
-      val totalSize: Long = r.<<
-      val aggTop10RawIds = StrSeqRep(r.<<)
-      val aggTop10RawScores = DSeqRep(r.<<)
-      val aggTop10ColocIds = StrSeqRep(r.<<)
-      val aggTop10ColocScores = DSeqRep(r.<<)
-      val aggTop10L2GIds = StrSeqRep(r.<<)
-      val aggTop10L2GScores = DSeqRep(r.<<)
-
-      V2DByStudy(
-        studyId,
-        svID,
-        pval,
-        pvalMantissa,
-        pvalExponent,
-        odds,
-        beta,
-        credSetSize,
-        ldSetSize,
-        totalSize,
-        toGeneScoreTupleWithDuplicates(aggTop10RawIds, aggTop10RawScores),
-        toGeneScoreTuple(aggTop10ColocIds, aggTop10ColocScores),
-        toGeneScoreTuple(aggTop10L2GIds, aggTop10L2GScores)
-      )
-    })
-  }
-
   implicit val GetV2DStructure: Any with GetResult[V2GStructureRow] = GetResult(
     r => V2GStructureRow(typeId = r.<<, sourceId = r.<<, bioFeatureSet = StrSeqRep(r.<<)))
 

@@ -145,6 +145,18 @@ object Entities {
 
   case class VariantToDiseaseTable(associations: Seq[V2DRow])
 
+  case class ManhattanRow(studyId: String, variant: SimpleVariant, pval: Double,
+                          pvalMantissa: Double,
+                          pvalExponent: Long,
+                          v2dOdds: V2DOdds,
+                          v2dBeta: V2DBeta,
+                          credibleSetSize: Option[Long],
+                          ldSetSize: Option[Long],
+                          totalSetSize: Long,
+                          bestGenes: Seq[(String, Double)],
+                          bestColocGenes: Seq[(String, Double)],
+                          bestL2Genes: Seq[(String, Double)])
+
   case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
 
   case class ManhattanAssociation(
@@ -176,22 +188,6 @@ object Entities {
                    )
 
   case class SLGTable(studyId: String, variantId: String, rows: Seq[SLGRow])
-
-  case class V2DByStudy(
-                         studyId: String,
-                         variantId: String,
-                         pval: Double,
-                         pval_mantissa: Double,
-                         pval_exponent: Long,
-                         v2dOdds: V2DOdds,
-                         v2dBeta: V2DBeta,
-                         credibleSetSize: Option[Long],
-                         ldSetSize: Option[Long],
-                         totalSetSize: Long,
-                         topGenes: Seq[(String, Double)],
-                         topColocGenes: Seq[(String, Double)],
-                         topL2Genes: Seq[(String, Double)]
-                       )
 
   case class StudyInfo(study: Option[Study])
 
