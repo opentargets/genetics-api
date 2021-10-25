@@ -692,8 +692,8 @@ object FRM {
     def beta = column[Option[Double]]("beta")
     def betaL = column[Option[Double]]("betaL")
     def betaU = column[Option[Double]]("betaU")
-    def credibleSetSize = column[Long]("credibleSetSize")
-    def ldSetSize = column[Long]("ldSetSize")
+    def credibleSetSize = column[Option[Long]]("credibleSetSize")
+    def ldSetSize = column[Option[Long]]("ldSetSize")
     def uniqVariants = column[Long]("uniq_variants")
     def top10GenesRawIds = column[Seq[String]]("top10_genes_raw_ids")
     def top10GenesRawScores = column[Seq[Double]]("top10_genes_raw_score")
@@ -710,9 +710,12 @@ object FRM {
       credibleSetSize,
       ldSetSize,
       uniqVariants,
-      top10GenesRawIds.zip(top10GenesRawScores),
-      top10GenesColocIds.zip(top10GenesColocScores),
-      top10GenesL2GIds.zip(top10GenesL2GScores)).mapTo[ManhattanRow]
+      top10GenesRawIds,
+      top10GenesRawScores,
+      top10GenesColocIds,
+      top10GenesColocScores,
+      top10GenesL2GIds,
+      top10GenesL2GScores).mapTo[ManhattanRow]
   }
 
   class D2V2GScored(tag: Tag) extends Table[D2V2GScoreRow](tag, "d2v2g_scored_region") {

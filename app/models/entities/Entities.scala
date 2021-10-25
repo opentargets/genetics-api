@@ -153,9 +153,12 @@ object Entities {
                           credibleSetSize: Option[Long],
                           ldSetSize: Option[Long],
                           totalSetSize: Long,
-                          bestGenes: Seq[(String, Double)],
-                          bestColocGenes: Seq[(String, Double)],
-                          bestL2Genes: Seq[(String, Double)])
+                          bestRawGeneIds: Seq[String],
+                          bestRawGeneScores: Seq[Double],
+                          bestColocGeneIds: Seq[String],
+                          bestColocGeneScores: Seq[Double],
+                          bestL2GeneIds: Seq[String],
+                          bestL2GeneScores: Seq[Double])
 
   case class ManhattanTable(studyId: String, associations: Vector[ManhattanAssociation])
 

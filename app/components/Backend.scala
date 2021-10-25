@@ -582,9 +582,9 @@ class Backend @Inject() (
               el.pvalExponent,
               el.v2dOdds,
               el.v2dBeta,
-              el.bestGenes,
-              el.bestColocGenes,
-              el.bestL2Genes,
+              el.bestRawGeneIds zip el.bestRawGeneScores,
+              el.bestColocGeneIds zip el.bestColocGeneScores,
+              el.bestL2GeneIds zip el.bestL2GeneScores,
               el.credibleSetSize,
               el.ldSetSize,
               el.totalSetSize)
