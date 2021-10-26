@@ -718,7 +718,7 @@ object FRM {
       top10GenesL2GScores).mapTo[ManhattanRow]
   }
 
-  class D2V2GScored(tag: Tag) extends Table[D2V2GScoreRow](tag, "d2v2g_scored_region") {
+  class D2V2GScored(tag: Tag) extends Table[D2V2GScoreRow](tag, "d2v2g_scored") {
     def studyId = column[String]("study_id")
 
     def traitReported = column[String]("trait_reported")
