@@ -7,15 +7,15 @@ version := "latest"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.12.12"
+scalaVersion := "2.12.15"
 maintainer := "ops@opentargets.org"
 
 javacOptions ++= Seq("-encoding", "UTF-8")
 
-scalacOptions in ThisBuild ++= Seq("-language:_", "-Ypartial-unification", "-Xfatal-warnings")
+ThisBuild / scalacOptions ++= Seq("-language:_", "-Ypartial-unification", "-Xfatal-warnings")
 
 // include resources into the unversal zipped package
-mappings in Universal ++= directory(baseDirectory.value / "resources")
+Universal / mappings ++= directory(baseDirectory.value / "resources")
 
 resolvers += Resolver.sonatypeRepo("releases")
 
