@@ -33,10 +33,10 @@ trait GQLArguments {
              description = "Gene ID using Ensembl identifier"
     )
 
-  val variantIdOpt: Argument[Option[String]] = Argument("optionalVariantId",
-                              OptionInputType(StringType),
-                              description =
-                                "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE"
+  val variantIdOpt: Argument[Option[String]] = Argument(
+    "optionalVariantId",
+    OptionInputType(StringType),
+    description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE"
   )
 
   val studyIds: Argument[Seq[String @@ FromInput.CoercedScalaResult]] =
