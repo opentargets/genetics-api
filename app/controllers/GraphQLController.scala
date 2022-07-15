@@ -14,11 +14,11 @@ import scala.concurrent._
 import scala.util.{Failure, Success}
 
 @Singleton
-class GraphQLController @Inject()(implicit
-                                  ec: ExecutionContext,
-                                  dbTables: Backend,
-                                  cc: ControllerComponents
-                                 ) extends AbstractController(cc) {
+class GraphQLController @Inject() (implicit
+    ec: ExecutionContext,
+    dbTables: Backend,
+    cc: ControllerComponents
+) extends AbstractController(cc) {
 
   def options: Action[AnyContent] =
     Action {
@@ -37,8 +37,8 @@ class GraphQLController @Inject()(implicit
 
       val variables = (request.body \ "variables").toOption.flatMap {
         case JsString(vars) => Some(parseVariables(vars))
-        case obj: JsObject => Some(obj)
-        case _ => None
+        case obj: JsObject  => Some(obj)
+        case _              => None
       }
 
       executeQuery(query, variables, operation)
@@ -70,7 +70,7 @@ class GraphQLController @Inject()(implicit
           .map(Ok(_))
           .recover {
             case error: QueryAnalysisError => BadRequest(error.resolveError)
-            case error: ErrorWithResolver => InternalServerError(error.resolveError)
+            case error: ErrorWithResolver  => InternalServerError(error.resolveError)
           }
 
       // can't parse GraphQL query, return error
@@ -94,9 +94,9 @@ class GraphQLController @Inject()(implicit
     }
 
   lazy val exceptionHandler: ExceptionHandler = ExceptionHandler {
-    case (_, error@TooComplexQueryError) => HandledException(error.getMessage)
-    case (_, error@MaxQueryDepthReachedError(_)) => HandledException(error.getMessage)
-    case (_, error@InputParameterCheckError(_)) => HandledException(error.getMessage)
+    case (_, error @ TooComplexQueryError)         => HandledException(error.getMessage)
+    case (_, error @ MaxQueryDepthReachedError(_)) => HandledException(error.getMessage)
+    case (_, error @ InputParameterCheckError(_))  => HandledException(error.getMessage)
   }
 
   case object TooComplexQueryError extends Exception("Query is too expensive.")

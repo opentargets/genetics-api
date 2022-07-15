@@ -4,10 +4,9 @@ import com.typesafe.config.Config
 import play.api.ConfigLoader
 import play.api.libs.json.{JsValue, Json, Writes}
 
-/**
- * Metadata regarding the application version. This information is made
- * available through the GraphQL API.
- */
+/** Metadata regarding the application version. This information is made available through the
+  * GraphQL API.
+  */
 case class Metadata(name: String, apiVersion: Version, dataVersion: Version)
 
 case class Version(major: Int, minor: Int, patch: Int) {
@@ -40,9 +39,10 @@ object MetadataConfiguration {
     )
   }
 
-  implicit val metadataWriter: Writes[Metadata] = (md: Metadata) => Json.obj(
-    "name" -> md.name,
-    "api_version" -> md.apiVersion.toString,
-    "data_version" -> md.dataVersion.toString
-  )
+  implicit val metadataWriter: Writes[Metadata] = (md: Metadata) =>
+    Json.obj(
+      "name" -> md.name,
+      "api_version" -> md.apiVersion.toString,
+      "data_version" -> md.dataVersion.toString
+    )
 }

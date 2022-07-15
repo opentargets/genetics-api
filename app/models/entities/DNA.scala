@@ -37,66 +37,69 @@ object DNA {
           .filter(_.isRight)
           .map(_.right.get)
           .toList
-          .groupBy(_.chrId))
+          .groupBy(_.chrId)
+      )
 
     /** build a `DenseRegionChecker` implementation based o list of regions in a DNA
       *
-      * @param filename name of a TSV file containing a list of regions
-      * @return a `DenseRegionChecker` implementation based on the already
-      *         specified list of dense regions
+      * @param filename
+      *   name of a TSV file containing a list of regions
+      * @return
+      *   a `DenseRegionChecker` implementation based on the already specified list of dense regions
       */
-    def apply(filename: String): DenseRegionChecker = {
+    def apply(filename: String): DenseRegionChecker =
       parseTSV2Map(loadDenseRegionFromTSV(filename)) match {
         case Some(regs) =>
           new DenseRegionChecker {
             override val denseRegions: Map[String, List[Region]] =
               regs
 
-            /** match a region (chr:start-end) in a list of highly dense regions true if overlaps false otherwise
-             *
-             * @param region the region to match against dense regions
-             * @return matched or not
-             */
-            override def matchRegion(region: Region): Boolean = {
+            /** match a region (chr:start-end) in a list of highly dense regions true if overlaps
+              * false otherwise
+              *
+              * @param region
+              *   the region to match against dense regions
+              * @return
+              *   matched or not
+              */
+            override def matchRegion(region: Region): Boolean =
               denseRegions.get(region.chrId) match {
                 case Some(r) =>
-                  r.exists(p => {
+                  r.exists { p =>
                     logger.debug(s"dense region found at $region")
                     ((region.start >= p.start) && (region.start <= p.end)) ||
-                      ((region.end >= p.start) && (region.end <= p.end))
-                  })
+                    ((region.end >= p.start) && (region.end <= p.end))
+                  }
                 case None => false
               }
-            }
           }
         case None =>
           throw new FileNotFoundException("Failed to load dense region file")
       }
-    }
 
   }
 
-  case class Annotation(
-                         nearestGeneId: Option[String] = None,
-                         nearestGeneDistance: Option[Long] = None,
-                         nearestCodingGeneId: Option[String] = None,
-                         nearestCodingGeneDistance: Option[Long] = None,
-                         mostSevereConsequence: Option[String] = None)
+  case class Annotation(nearestGeneId: Option[String] = None,
+                        nearestGeneDistance: Option[Long] = None,
+                        nearestCodingGeneId: Option[String] = None,
+                        nearestCodingGeneDistance: Option[Long] = None,
+                        mostSevereConsequence: Option[String] = None
+  )
 
   case class CaddAnnotation(raw: Option[Double] = None, phred: Option[Double] = None)
 
-  case class GnomadAnnotation(
-                               afr: Option[Double] = None,
-                               amr: Option[Double] = None,
-                               asj: Option[Double] = None,
-                               eas: Option[Double] = None,
-                               fin: Option[Double] = None,
-                               nfe: Option[Double] = None,
-                               nfeEST: Option[Double] = None,
-                               nfeSEU: Option[Double] = None,
-                               nfeONF: Option[Double] = None,
-                               nfeNWE: Option[Double] = None,
-                               oth: Option[Double] = None)
+  case class GnomadAnnotation(afr: Option[Double] = None,
+                              amr: Option[Double] = None,
+                              asj: Option[Double] = None,
+                              eas: Option[Double] = None,
+                              fin: Option[Double] = None,
+                              nfe: Option[Double] = None,
+                              nfeEST: Option[Double] = None,
+                              nfeSEU: Option[Double] = None,
+                              nfeONF: Option[Double] = None,
+                              nfeNWE: Option[Double] = None,
+                              oth: Option[Double] = None
+  )
 
   sealed trait SkelVariant {
     val chromosome: String
@@ -110,25 +113,23 @@ object DNA {
 
   }
 
-  case class SimpleVariant(
-                            override val chromosome: String,
-                            override val position: Long,
-                            override val refAllele: String,
-                            override val altAllele: String)
-    extends SkelVariant
+  case class SimpleVariant(override val chromosome: String,
+                           override val position: Long,
+                           override val refAllele: String,
+                           override val altAllele: String
+  ) extends SkelVariant
 
-  case class Variant(
-                      override val chromosome: String,
-                      override val position: Long,
-                      override val refAllele: String,
-                      override val altAllele: String,
-                      rsId: Option[String],
-                      annotation: Annotation,
-                      caddAnnotation: CaddAnnotation,
-                      gnomadAnnotation: GnomadAnnotation,
-                      chromosomeB37: Option[String],
-                      positionB37: Option[Long])
-    extends ElasticSearchEntity
+  case class Variant(override val chromosome: String,
+                     override val position: Long,
+                     override val refAllele: String,
+                     override val altAllele: String,
+                     rsId: Option[String],
+                     annotation: Annotation,
+                     caddAnnotation: CaddAnnotation,
+                     gnomadAnnotation: GnomadAnnotation,
+                     chromosomeB37: Option[String],
+                     positionB37: Option[Long]
+  ) extends ElasticSearchEntity
       with SkelVariant {
 
     lazy val idB37: Option[String] = (chromosomeB37, positionB37) match {
@@ -136,26 +137,27 @@ object DNA {
         Some(
           List(c, p.toString, refAllele, altAllele)
             .map(_.toUpperCase)
-            .mkString("_"))
+            .mkString("_")
+        )
       case _ => None
     }
-    def toSimpleVariant = SimpleVariant(chromosome, position, refAllele, altAllele)
+    def toSimpleVariant: SimpleVariant = SimpleVariant(chromosome, position, refAllele, altAllele)
 
   }
 
   object Variant
-    extends (
-      (
-        String,
-          Long,
-          String,
-          String,
-          Option[String],
-          Annotation,
-          CaddAnnotation,
-          GnomadAnnotation,
-          Option[String],
-          Option[Long]) => Variant) {
+      extends ((String,
+                Long,
+                String,
+                String,
+                Option[String],
+                Annotation,
+                CaddAnnotation,
+                GnomadAnnotation,
+                Option[String],
+                Option[Long]
+               ) => Variant
+      ) {
 
     private[this] def parseVariant(variantId: String, rsId: Option[String]): Option[Variant] = {
       def _parseVariant(variantId: String, rsId: Option[String], sep: String): Option[Variant] =
@@ -172,44 +174,44 @@ object DNA {
         .withFilter(_.isDefined)
         .headOption match {
         case Some(Some(variant)) => Some(variant)
-        case _ => None
+        case _                   => None
       }
     }
 
-    def fromSimpleVariant(
-                           chromosome: String,
-                           position: Long,
-                           refAllele: String,
-                           altAllele: String): Variant =
-      Variant(
-        chromosome,
-        position,
-        refAllele,
-        altAllele,
-        None,
-        Annotation(),
-        CaddAnnotation(),
-        GnomadAnnotation(),
-        None,
-        None)
+    def fromSimpleVariant(chromosome: String,
+                          position: Long,
+                          refAllele: String,
+                          altAllele: String
+    ): Variant =
+      Variant(chromosome,
+              position,
+              refAllele,
+              altAllele,
+              None,
+              Annotation(),
+              CaddAnnotation(),
+              GnomadAnnotation(),
+              None,
+              None
+      )
 
-    def fromSimpleVariant(
-                           chromosome: String,
-                           position: Long,
-                           refAllele: String,
-                           altAllele: String,
-                           rsId: Option[String]): Variant =
-      Variant(
-        chromosome,
-        position,
-        refAllele,
-        altAllele,
-        rsId,
-        Annotation(),
-        CaddAnnotation(),
-        GnomadAnnotation(),
-        None,
-        None)
+    def fromSimpleVariant(chromosome: String,
+                          position: Long,
+                          refAllele: String,
+                          altAllele: String,
+                          rsId: Option[String]
+    ): Variant =
+      Variant(chromosome,
+              position,
+              refAllele,
+              altAllele,
+              rsId,
+              Annotation(),
+              CaddAnnotation(),
+              GnomadAnnotation(),
+              None,
+              None
+      )
 
     def fromString(variantId: String): Either[VariantViolation, Variant] =
       fromString(variantId, None)
@@ -219,98 +221,102 @@ object DNA {
       Either.cond(pv.isDefined, pv.get, VariantViolation(variantId))
     }
 
-    def unapply(v: Variant): Option[(
-      String,
-        Long,
-        String,
-        String,
-        Option[String],
-        Annotation,
-        CaddAnnotation,
-        GnomadAnnotation,
-        Option[String],
-        Option[Long])] =
-      Some(
-        v.chromosome,
-        v.position,
-        v.refAllele,
-        v.altAllele,
-        v.rsId,
-        v.annotation,
-        v.caddAnnotation,
-        v.gnomadAnnotation,
-        v.chromosomeB37,
-        v.positionB37)
+    def unapply(v: Variant): Option[
+      (String,
+       Long,
+       String,
+       String,
+       Option[String],
+       Annotation,
+       CaddAnnotation,
+       GnomadAnnotation,
+       Option[String],
+       Option[Long]
+      )
+    ] =
+      Some(v.chromosome,
+           v.position,
+           v.refAllele,
+           v.altAllele,
+           v.rsId,
+           v.annotation,
+           v.caddAnnotation,
+           v.gnomadAnnotation,
+           v.chromosomeB37,
+           v.positionB37
+      )
 
   }
 
-  case class Gene(
-                   id: String,
-                   symbol: Option[String],
-                   bioType: Option[String],
-                   description: Option[String],
-                   chromosome: Option[String],
-                   tss: Option[Long],
-                   start: Option[Long],
-                   end: Option[Long],
-                   fwd: Option[Boolean],
-                   exons: Seq[Long])
-    extends ElasticSearchEntity
+  case class Gene(id: String,
+                  symbol: Option[String],
+                  bioType: Option[String],
+                  description: Option[String],
+                  chromosome: Option[String],
+                  tss: Option[Long],
+                  start: Option[Long],
+                  end: Option[Long],
+                  fwd: Option[Boolean],
+                  exons: Seq[Long]
+  ) extends ElasticSearchEntity
 
   object Gene
-    extends (
-      (
-        String,
-          Option[String],
-          Option[String],
-          Option[String],
-          Option[String],
-          Option[Long],
-          Option[Long],
-          Option[Long],
-          Option[Boolean],
-          Seq[Long]) => Gene) {
+      extends ((String,
+                Option[String],
+                Option[String],
+                Option[String],
+                Option[String],
+                Option[Long],
+                Option[Long],
+                Option[Long],
+                Option[Boolean],
+                Seq[Long]
+               ) => Gene
+      ) {
 
-    private[this] def parseGene(geneId: String, symbol: Option[String]): Option[Gene] = {
+    private[this] def parseGene(geneId: String, symbol: Option[String]): Option[Gene] =
       geneId.toUpperCase.split("\\.").toList.filter(_.nonEmpty) match {
         case ensemblId :: _ =>
           Some(Gene(ensemblId, symbol, None, None, None, None, None, None, None, Seq.empty))
         case Nil => None
       }
-    }
 
     /** construct a gene from a gene id symbol. It only supports Ensembl ID at the moment
-     *
-     * @param geneId Ensembl Gene ID as "ENSG000000[.123]" and it will strip the version
-     * @return Either a Gene or a GeneViolation as the gene was not properly specified
-     */
+      *
+      * @param geneId
+      *   Ensembl Gene ID as "ENSG000000[.123]" and it will strip the version
+      * @return
+      *   Either a Gene or a GeneViolation as the gene was not properly specified
+      */
     def fromString(geneId: String, symbol: Option[String]): Either[GeneViolation, Gene] = {
       val pg = parseGene(geneId, symbol)
       Either.cond(pg.isDefined, pg.get, GeneViolation(geneId))
     }
 
-    def unapply(gene: Gene): Option[(
-      String,
-        Option[String],
-        Option[String],
-        Option[String],
-        Option[String],
-        Option[Long],
-        Option[Long],
-        Option[Long],
-        Option[Boolean],
-        Seq[Long])] =
-      Some(
-        gene.id,
-        gene.symbol,
-        gene.bioType,
-        gene.description,
-        gene.chromosome,
-        gene.tss,
-        gene.start,
-        gene.end,
-        gene.fwd,
-        gene.exons)
+    def unapply(gene: Gene): Option[
+      (String,
+       Option[String],
+       Option[String],
+       Option[String],
+       Option[String],
+       Option[Long],
+       Option[Long],
+       Option[Long],
+       Option[Boolean],
+       Seq[Long]
+      )
+    ] =
+      Some(gene.id,
+           gene.symbol,
+           gene.bioType,
+           gene.description,
+           gene.chromosome,
+           gene.tss,
+           gene.start,
+           gene.end,
+           gene.fwd,
+           gene.exons
+      )
 
   }
 

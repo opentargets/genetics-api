@@ -29,7 +29,7 @@ object EsImplicits {
           nullableIntToBoolean
         }) and
       (JsPath \ "exons").readNullable[String].map(r => LSeqRep(r.getOrElse("")).rep)
-    ) (Gene.apply _)
+  )(Gene.apply _)
 
   implicit val annotation: Reads[Annotation] = (
     (JsPath \ "gene_id_any").readNullable[String] and
@@ -37,12 +37,12 @@ object EsImplicits {
       (JsPath \ "gene_id_prot_coding").readNullable[String] and
       (JsPath \ "gene_id_prot_coding_distance").readNullable[Long] and
       (JsPath \ "most_severe_consequence").readNullable[String]
-    ) (Annotation.apply _)
+  )(Annotation.apply _)
 
   implicit val caddAnnotation: Reads[CaddAnnotation] = (
     (JsPath \ "raw").readNullable[Double] and
       (JsPath \ "phred").readNullable[Double]
-    ) (CaddAnnotation.apply _)
+  )(CaddAnnotation.apply _)
 
   implicit val gnomadAnnotation: Reads[GnomadAnnotation] = (
     (JsPath \ "gnomad_afr").readNullable[Double] and
@@ -56,7 +56,7 @@ object EsImplicits {
       (JsPath \ "gnomad_nfe_onf").readNullable[Double] and
       (JsPath \ "gnomad_nfe_nwe").readNullable[Double] and
       (JsPath \ "gnomad_oth").readNullable[Double]
-    ) (GnomadAnnotation.apply _)
+  )(GnomadAnnotation.apply _)
 
   // implicit val variantHitReader: Reads[Variant] = Json.reads[Variant]
   implicit val variantHitReader: Reads[Variant] = (
@@ -70,7 +70,7 @@ object EsImplicits {
       gnomadAnnotation and
       (JsPath \ "chr_id_b37").readNullable[String] and
       (JsPath \ "position_b37").readNullable[Long]
-    ) (Variant.apply _)
+  )(Variant.apply _)
 
   // implicit val studyHitReader: Reads[Study] = Json.reads[Study]
   implicit val studyHitReader: Reads[Study] = (
@@ -91,6 +91,6 @@ object EsImplicits {
       (JsPath \ "n_cases").readNullable[Long] and
       (JsPath \ "trait_category").readNullable[String] and
       (JsPath \ "num_assoc_loci").readNullable[Long]
-    ) (Study.apply _)
+  )(Study.apply _)
 
 }

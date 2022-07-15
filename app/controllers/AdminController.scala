@@ -9,12 +9,12 @@ import configuration.{Metadata, MetadataConfiguration}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class AdminController @Inject()(implicit
-                                ec: ExecutionContext,
-                                cc: ControllerComponents,
-                                configuration: Configuration,
-                                environment: Environment)
-  extends AbstractController(cc) {
+class AdminController @Inject() (implicit
+    ec: ExecutionContext,
+    cc: ControllerComponents,
+    configuration: Configuration,
+    environment: Environment
+) extends AbstractController(cc) {
 
   import MetadataConfiguration._
 

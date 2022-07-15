@@ -38,7 +38,8 @@ object GeneticsApiQueries {
         .maxExpansions(20)
         .prefixLength(2)
         .operator("AND")
-        .analyzer("autocomplete_search")) start p._1 limit p._2 trackTotalHits true
+        .analyzer("autocomplete_search")
+    ) start p._1 limit p._2 trackTotalHits true
   }
 
   def variantQ(term: String, page: Pagination): SearchRequest = {
@@ -47,9 +48,9 @@ object GeneticsApiQueries {
       case Right(v) => v.id
       case _        => term
     }
-    search("variant_*") query boolQuery.should(
-      termQuery("variant_id.keyword", vToken),
-      termQuery("rs_id.keyword", term.toLowerCase)) start p._1 limit p._2 trackTotalHits true
+    search("variant_*") query boolQuery.should(termQuery("variant_id.keyword", vToken),
+                                               termQuery("rs_id.keyword", term.toLowerCase)
+    ) start p._1 limit p._2 trackTotalHits true
   }
 
   def studyQ(term: String, page: Pagination): SearchRequest = {
@@ -63,12 +64,14 @@ object GeneticsApiQueries {
           .maxExpansions(20)
           .prefixLength(2)
           .operator("AND")
-          .analyzer("autocomplete_search")).functions(
+          .analyzer("autocomplete_search")
+      ).functions(
         fieldFactorScore("num_assoc_loci")
           .factor(1.1)
           .missing(1d)
-          .modifier(
-            FieldValueFactorFunctionModifier.LOG2P))) start p._1 limit p._2 trackTotalHits true
+          .modifier(FieldValueFactorFunctionModifier.LOG2P)
+      )
+    ) start p._1 limit p._2 trackTotalHits true
   }
 
 }
@@ -77,10 +80,10 @@ case class ElasticSearchSummaryResult(totalHits: Long, hits: Seq[ElasticSearchEn
   def allResultsReturned: Boolean = hits.length == totalHits
 }
 
-/**
-  * Class to hold reference to ES Client and manage interactions with external ES.
+/** Class to hold reference to ES Client and manage interactions with external ES.
   *
-  * @param configuration to extract ES configuration
+  * @param configuration
+  *   to extract ES configuration
   */
 @Singleton
 class ElasticsearchComponent @Inject() (configuration: Configuration) extends ElasticDsl {
@@ -93,17 +96,21 @@ class ElasticsearchComponent @Inject() (configuration: Configuration) extends El
     configuration.get[ElasticsearchConfiguration]("ot.elasticsearch")
 
   log.info(
-    s"Initialising ElasticsearchComponent with configuration: ${elasticsearchConfiguration.toString}")
+    s"Initialising ElasticsearchComponent with configuration: ${elasticsearchConfiguration.toString}"
+  )
 
   private val client: ElasticClient = ElasticClient(
-    JavaClient(elasticsearchConfiguration.asElasticProperties))
+    JavaClient(elasticsearchConfiguration.asElasticProperties)
+  )
 
-  /**
-    * Single method to interact with Elasticsearch, since we're only using it for searching and
+  /** Single method to interact with Elasticsearch, since we're only using it for searching and
     * everything else should run through the Clickhouse database.
-    * @param query to search for
-    * @param page of results
-    * @return all results matching the query.
+    * @param query
+    *   to search for
+    * @param page
+    *   of results
+    * @return
+    *   all results matching the query.
     */
   def search(query: String, page: Pagination = Pagination.mkDefault): Future[SearchResultSet] = {
 
@@ -127,9 +134,11 @@ class ElasticsearchComponent @Inject() (configuration: Configuration) extends El
           // log results
           log.debug(s"Gene -- total hits: ${gene.totalHits} -- hits collected: ${gene.hits.size}")
           log.debug(
-            s"Variant -- total hits: ${variant.totalHits} -- hits collected: ${variant.hits.size}")
+            s"Variant -- total hits: ${variant.totalHits} -- hits collected: ${variant.hits.size}"
+          )
           log.debug(
-            s"Study -- total hits: ${study.totalHits} -- hits collected: ${study.hits.size}")
+            s"Study -- total hits: ${study.totalHits} -- hits collected: ${study.hits.size}"
+          )
           // build output
           SearchResultSet(
             gene.totalHits,
@@ -137,16 +146,17 @@ class ElasticsearchComponent @Inject() (configuration: Configuration) extends El
             variant.totalHits,
             variant.hits.asInstanceOf[Seq[Variant]],
             study.totalHits,
-            study.hits.asInstanceOf[Seq[Study]])
+            study.hits.asInstanceOf[Seq[Study]]
+          )
         }
     }
     results
   }
 
-  private def getSearchResultSet(
-    query: Pagination => SearchRequest,
-    page: Pagination,
-    acc: Seq[ElasticSearchEntity] = Seq()): ElasticSearchSummaryResult = {
+  private def getSearchResultSet(query: Pagination => SearchRequest,
+                                 page: Pagination,
+                                 acc: Seq[ElasticSearchEntity] = Seq()
+  ): ElasticSearchSummaryResult = {
 
     val result = queryAndExtract(query(page)).await
     val summaryResult = result.copy(hits = result.hits ++ acc)
@@ -154,27 +164,25 @@ class ElasticsearchComponent @Inject() (configuration: Configuration) extends El
   }
 
   private def queryAndExtract[T <: ElasticSearchEntity](
-    searchRequest: SearchRequest): Future[ElasticSearchSummaryResult] = {
-
+      searchRequest: SearchRequest
+  ): Future[ElasticSearchSummaryResult] =
     client
       .execute {
         log.debug(client.show(searchRequest))
         searchRequest
       }
       .map(extractSearchResponse)
-      .map(sr => {
+      .map { sr =>
         implicit val reader: EsHitReader.type = EsHitReader
         ElasticSearchSummaryResult(sr.totalHits, sr.to[ElasticSearchEntity])
-      })
-  }
+      }
 
-  private def extractSearchResponse(resp: Response[SearchResponse]): SearchResponse = {
+  private def extractSearchResponse(resp: Response[SearchResponse]): SearchResponse =
     resp match {
       case failure: RequestFailure =>
         logger.error(s"Error querying elasticsearch: ${failure.error}")
         failure.result
       case success: RequestSuccess[SearchResponse] => success.result
     }
-  }
 
 }

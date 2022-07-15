@@ -28,24 +28,25 @@ trait CHColumnExtensionMethods[B1, P1] extends Any with ExtensionMethods[B1, P1]
 }
 
 final class BaseCHColumnExtensionMethods[P1](val c: Rep[P1])
-  extends AnyVal
+    extends AnyVal
     with CHColumnExtensionMethods[P1, P1]
     with BaseExtensionMethods[P1]
 
 final class OptionCHColumnExtensionMethods[B1](val c: Rep[Option[B1]])
-  extends AnyVal
+    extends AnyVal
     with CHColumnExtensionMethods[B1, Option[B1]]
     with OptionExtensionMethods[B1]
 
 /** Extension methods for Queries of a single column */
 final class CHSingleColumnQueryExtensionMethods[B1, P1, C[_]](val q: Query[Rep[P1], _, C])
-  extends AnyVal {
+    extends AnyVal {
   type OptionTM = TypedType[Option[B1]]
 
   def uniq(implicit tm: OptionTM): Rep[Option[Long]] = CHLibrary.Uniq.column[Option[Long]](q.toNode)
 
   def any(implicit tm: OptionTM): Rep[Option[B1]] = CHLibrary.Any.column[Option[B1]](q.toNode)
-  def fToString(implicit tm: OptionTM): Rep[Option[String]] = CHLibrary.ToString.column[Option[String]](q.toNode)
+  def fToString(implicit tm: OptionTM): Rep[Option[String]] =
+    CHLibrary.ToString.column[Option[String]](q.toNode)
 }
 
 trait ClickHouseProfile extends JdbcProfile {
@@ -67,7 +68,7 @@ trait ClickHouseProfile extends JdbcProfile {
       - JdbcCapabilities.supportsByte)
 
   class ModelBuilder(mTables: Seq[MTable], ignoreInvalidDefaults: Boolean)(implicit
-                                                                           ec: ExecutionContext
+      ec: ExecutionContext
   ) extends JdbcModelBuilder(mTables, ignoreInvalidDefaults)
 
   override val columnTypes = new JdbcTypes
@@ -85,8 +86,8 @@ trait ClickHouseProfile extends JdbcProfile {
     new ColumnDDLBuilder(column)
 
   override def createInsertActionExtensionMethods[T](
-                                                      compiled: CompiledInsert
-                                                    ): InsertActionExtensionMethods[T] =
+      compiled: CompiledInsert
+  ): InsertActionExtensionMethods[T] =
     new CountingInsertActionComposerImpl[T](compiled)
 
   class QueryBuilder(tree: Node, state: CompilerState) extends super.QueryBuilder(tree, state) {
@@ -96,24 +97,23 @@ trait ClickHouseProfile extends JdbcProfile {
     override protected val quotedJdbcFns: Option[Nil.type] = Some(Nil)
 
     override protected def buildFetchOffsetClause(
-                                                   fetch: Option[Node],
-                                                   offset: Option[Node]
-                                                 ): Unit = {
+        fetch: Option[Node],
+        offset: Option[Node]
+    ): Unit =
       (fetch, offset) match {
         case (Some(t), Some(d)) => b"\nlimit $d , $t"
-        case (Some(t), None) => b"\nlimit $t"
-        case (None, Some(d)) =>
-        case _ =>
+        case (Some(t), None)    => b"\nlimit $t"
+        case (None, Some(d))    =>
+        case _                  =>
       }
-    }
 
     override def expr(c: Node, skipParens: Boolean = false): Unit =
       c match {
-        case Library.UCase(ch) => b"upper($ch)"
-        case Library.LCase(ch) => b"lower($ch)"
-        case Library.User() => b"''"
+        case Library.UCase(ch)  => b"upper($ch)"
+        case Library.LCase(ch)  => b"lower($ch)"
+        case Library.User()     => b"''"
         case Library.Database() => b"currentDatabase()"
-        case _ => super.expr(c, skipParens)
+        case _                  => super.expr(c, skipParens)
       }
   }
 
@@ -122,28 +122,28 @@ trait ClickHouseProfile extends JdbcProfile {
   class TableDDLBuilder(table: Table[_]) extends super.TableDDLBuilder(table)
   class ColumnDDLBuilder(column: FieldSymbol) extends super.ColumnDDLBuilder(column)
   class CountingInsertActionComposerImpl[U](compiled: CompiledInsert)
-    extends super.CountingInsertActionComposerImpl[U](compiled)
+      extends super.CountingInsertActionComposerImpl[U](compiled)
 
   trait ClickHouseAPI extends API {
     // nice page to read about extending profile apis
     // https://virtuslab.com/blog/smooth-operator-with-slick-3/
 
     implicit def chSingleColumnQueryExtensionMethods[B1: BaseTypedType, C[_]](
-                                                                               q: Query[Rep[B1], _, C]
-                                                                             ): CHSingleColumnQueryExtensionMethods[B1, B1, C] =
+        q: Query[Rep[B1], _, C]
+    ): CHSingleColumnQueryExtensionMethods[B1, B1, C] =
       new CHSingleColumnQueryExtensionMethods[B1, B1, C](q)
 
     implicit def chSingleOptionColumnQueryExtensionMethods[B1: BaseTypedType, C[_]](
-                                                                                     q: Query[Rep[Option[B1]], _, C]
-                                                                                   ): CHSingleColumnQueryExtensionMethods[B1, Option[B1], C] =
+        q: Query[Rep[Option[B1]], _, C]
+    ): CHSingleColumnQueryExtensionMethods[B1, Option[B1], C] =
       new CHSingleColumnQueryExtensionMethods[B1, Option[B1], C](q)
 
     implicit def chColumnExtensionMethods[B1](c: Rep[B1])(implicit
-                                                          tm: BaseTypedType[B1] /* with NumericTypedType*/
+        tm: BaseTypedType[B1] /* with NumericTypedType*/
     ): BaseCHColumnExtensionMethods[B1] = new BaseCHColumnExtensionMethods[B1](c)
 
     implicit def chOptionColumnExtensionMethods[B1](c: Rep[Option[B1]])(implicit
-                                                                        tm: BaseTypedType[B1] /* with NumericTypedType*/
+        tm: BaseTypedType[B1] /* with NumericTypedType*/
     ): OptionCHColumnExtensionMethods[B1] = new OptionCHColumnExtensionMethods[B1](c)
   }
 

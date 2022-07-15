@@ -57,7 +57,7 @@ object FRM {
         overlapsAB,
         distinctA,
         distinctB
-        ).mapTo[VariantStudyOverlapsRow]
+      ).mapTo[VariantStudyOverlapsRow]
   }
 
   class Genes(tag: Tag) extends Table[Gene](tag, "genes") {
@@ -146,7 +146,7 @@ object FRM {
         nearestCodingGeneId,
         nearestCodingGeneDistance,
         mostSevereConsequence
-        ).mapTo[Annotation]
+      ).mapTo[Annotation]
 
     def caddAnnotations =
       (caddRaw, caddPhred).mapTo[CaddAnnotation]
@@ -164,7 +164,7 @@ object FRM {
         gnomadNFEONF,
         gnomadNFENWE,
         gnomadOTH
-        ).mapTo[GnomadAnnotation]
+      ).mapTo[GnomadAnnotation]
 
     def * =
       (
@@ -178,7 +178,7 @@ object FRM {
         gnomadAnnotations,
         chromosomeB37,
         positionB37
-        ).mapTo[Variant]
+      ).mapTo[Variant]
   }
 
   class Studies(tag: Tag) extends Table[Study](tag, "studies") {
@@ -235,7 +235,7 @@ object FRM {
         nCases,
         traitCategory,
         numAssocLoci
-        ).mapTo[Study]
+      ).mapTo[Study]
   }
 
   class V2GStructure(tag: Tag) extends Table[V2GStructureRow](tag, "v2g_structure") {
@@ -300,7 +300,7 @@ object FRM {
         nCases,
         traitCategory,
         numAssocLoci
-        ).mapTo[Study]
+      ).mapTo[Study]
 
     def tagChromosome = column[String]("tag_chrom")
 
@@ -379,7 +379,7 @@ object FRM {
         eas1000GProp,
         eur1000GProp,
         sas1000GProp
-        ).mapTo[V2DAssociation]
+      ).mapTo[V2DAssociation]
 
     def studyIdAndLeadVariantStats =
       (studyId, leadVariant, odds, beta, pval, pvalExponent, pvalMantissa).mapTo[LeadRow]
@@ -439,7 +439,7 @@ object FRM {
         nCases,
         traitCategory,
         numAssocLoci
-        ).mapTo[Study]
+      ).mapTo[Study]
 
     def tagChromosome = column[String]("tag_chrom")
 
@@ -518,7 +518,7 @@ object FRM {
         eas1000GProp,
         eur1000GProp,
         sas1000GProp
-        ).mapTo[V2DAssociation]
+      ).mapTo[V2DAssociation]
 
     def * = (tagVariant, leadVariant, study, association, odds, beta).mapTo[V2DRow]
   }
@@ -578,7 +578,7 @@ object FRM {
         qtlSection,
         intervalSection,
         distanceSection
-        ).mapTo[PureV2GRow]
+      ).mapTo[PureV2GRow]
   }
 
   class V2GScored(tag: Tag) extends Table[V2GScoreRow](tag, "v2g_scored") {
@@ -646,7 +646,7 @@ object FRM {
         qtlSection,
         intervalSection,
         distanceSection
-        ).mapTo[PureV2GRow]
+      ).mapTo[PureV2GRow]
 
     def sources = column[Seq[String]]("source_list")
 
@@ -668,7 +668,7 @@ object FRM {
         qtlSection,
         intervalSection,
         distanceSection
-        ).mapTo[V2GRow]
+      ).mapTo[V2GRow]
 
     def * = (v2g, pureOverallScoreRow).mapTo[V2GScoreRow]
   }
@@ -702,17 +702,23 @@ object FRM {
     def v2dOdds = (odds, oddsL, oddsU).mapTo[V2DOdds]
     def v2dBeta = (direction, beta, betaL, betaU).mapTo[V2DBeta]
 
-    def * = (studyId, variant, pValue, pValueMantissa, pValueExponent,
-      v2dOdds, v2dBeta,
-      credibleSetSize,
-      ldSetSize,
-      uniqVariants,
-      top10GenesRawIds,
-      top10GenesRawScores,
-      top10GenesColocIds,
-      top10GenesColocScores,
-      top10GenesL2GIds,
-      top10GenesL2GScores).mapTo[ManhattanRow]
+    def * = (studyId,
+             variant,
+             pValue,
+             pValueMantissa,
+             pValueExponent,
+             v2dOdds,
+             v2dBeta,
+             credibleSetSize,
+             ldSetSize,
+             uniqVariants,
+             top10GenesRawIds,
+             top10GenesRawScores,
+             top10GenesColocIds,
+             top10GenesColocScores,
+             top10GenesL2GIds,
+             top10GenesL2GScores
+    ).mapTo[ManhattanRow]
   }
 
   class D2V2GScored(tag: Tag) extends Table[D2V2GScoreRow](tag, "d2v2g_scored") {
@@ -767,7 +773,7 @@ object FRM {
         nCases,
         traitCategory,
         numAssocLoci
-        ).mapTo[Study]
+      ).mapTo[Study]
 
     def tagChromosome = column[String]("tag_chrom")
 
@@ -846,7 +852,7 @@ object FRM {
         eas1000GProp,
         eur1000GProp,
         sas1000GProp
-        ).mapTo[V2DAssociation]
+      ).mapTo[V2DAssociation]
 
     def sources = column[Seq[String]]("source_list")
 
@@ -922,7 +928,7 @@ object FRM {
         qtlSection,
         intervalSection,
         distanceSection
-        ).mapTo[PureV2GRow]
+      ).mapTo[PureV2GRow]
 
     def * = (v2dRow, pureV2gRow, pureOverallScoreRow).mapTo[D2V2GScoreRow]
 
@@ -967,7 +973,7 @@ object FRM {
         lVariantRStudySE,
         lVariantRStudyPVal,
         lVariantRIsCC
-        ).mapTo[ColocRowHs]
+      ).mapTo[ColocRowHs]
 
     def isFlipped = column[Boolean]("is_flipped")
 
@@ -1026,7 +1032,7 @@ object FRM {
         rGeneId,
         rBioFeature,
         rPhenotype
-        ).mapTo[ColocRow]
+      ).mapTo[ColocRow]
   }
 
   class CredSet(tag: Tag) extends Table[CredSetRow](tag, "v2d_credset") {
@@ -1080,7 +1086,12 @@ object FRM {
       (postProb, tagBeta, tagPval, tagSE, is95, is99, logABF, multiSignalMethod)
         .mapTo[CredSetRowStats]
 
-    def tagVariantWithStats: (MappedProjection[SimpleVariant, (String, Long, String, String)], MappedProjection[CredSetRowStats, (Double, Double, Double, Double, Boolean, Boolean, Double, String)]) = (tagVariant, stats)
+    def tagVariantWithStats
+        : (MappedProjection[SimpleVariant, (String, Long, String, String)],
+           MappedProjection[CredSetRowStats,
+                            (Double, Double, Double, Double, Boolean, Boolean, Double, String)
+           ]
+        ) = (tagVariant, stats)
 
     def * =
       (studyId, leadVariant, tagVariant, stats, bioFeature, phenotypeId, dataType).mapTo[CredSetRow]
@@ -1121,7 +1132,9 @@ object FRM {
 
     def variant = (chrom, pos, ref, alt).mapTo[SimpleVariant]
 
-    def variantAndPVal: (MappedProjection[SimpleVariant, (String, Long, String, String)], Rep[Double]) = (variant, pval)
+    def variantAndPVal
+        : (MappedProjection[SimpleVariant, (String, Long, String, String)], Rep[Double]) =
+      (variant, pval)
 
     def * =
       (typeId, studyId, variant, eaf, mac, macCases, info, beta, se, pval, nTotal, nCases, isCC)
@@ -1129,7 +1142,7 @@ object FRM {
   }
 
   class SumStatsMolTraits(tag: Tag)
-    extends Table[SumStatsMolTraitsRow](tag, "v2d_sa_molecular_trait") {
+      extends Table[SumStatsMolTraitsRow](tag, "v2d_sa_molecular_trait") {
     def typeId = column[String]("type_id")
 
     def studyId = column[String]("study_id")
@@ -1168,7 +1181,9 @@ object FRM {
 
     def variant = (chrom, pos, ref, alt).mapTo[SimpleVariant]
 
-    def variantAndPVal: (MappedProjection[SimpleVariant, (String, Long, String, String)], Rep[Double]) = (variant, pval)
+    def variantAndPVal
+        : (MappedProjection[SimpleVariant, (String, Long, String, String)], Rep[Double]) =
+      (variant, pval)
 
     def * =
       (
@@ -1187,7 +1202,7 @@ object FRM {
         phenotypeId,
         geneId,
         bioFeature
-        ).mapTo[SumStatsMolTraitsRow]
+      ).mapTo[SumStatsMolTraitsRow]
   }
 
 }

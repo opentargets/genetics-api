@@ -23,4 +23,3 @@ class ElasticConfigurationTest extends OpenTargetsSpec {
   }
 
 }
-

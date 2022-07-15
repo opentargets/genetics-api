@@ -1,6 +1,21 @@
 package models.database
 
-import models.database.FRM.{Coloc, CredSet, D2V2GScored, Genes, Manhattan, Overlaps, Studies, SumStatsGWAS, SumStatsMolTraits, V2DsByChrPos, V2DsByStudy, V2GScored, V2GStructure, Variants}
+import models.database.FRM.{
+  Coloc,
+  CredSet,
+  D2V2GScored,
+  Genes,
+  Manhattan,
+  Overlaps,
+  Studies,
+  SumStatsGWAS,
+  SumStatsMolTraits,
+  V2DsByChrPos,
+  V2DsByStudy,
+  V2GScored,
+  V2GStructure,
+  Variants
+}
 import slick.lifted.TableQuery
 
 trait GeneticsDbTables {

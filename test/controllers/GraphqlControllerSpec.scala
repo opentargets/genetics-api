@@ -10,20 +10,19 @@ import play.api.test._
 import play.api.test.Helpers._
 
 trait TestQueries {
-  val simpleGeneQuery: JsValue = Json.parse(
-    """
+  val simpleGeneQuery: JsValue = Json.parse("""
   {
    "query": "{genes(chromosome:\"5\", start: 100000, end: 200000) { id, tss }}"
   }
   """)
-  val metadataQuery: JsValue = Json.parse(
-    """
+  val metadataQuery: JsValue = Json.parse("""
   {
     "query": "{ meta { name, apiVersion { major, minor, patch }, dataVersion { major, minor, patch }}}"
   }
   """)
 
-  def generatePostRequest(query: JsValue): FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/graphql").withJsonBody(query)
+  def generatePostRequest(query: JsValue): FakeRequest[AnyContentAsJson] =
+    FakeRequest("POST", "/graphql").withJsonBody(query)
 }
 
 class GraphqlControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Results with ShouldVerb {
@@ -39,8 +38,8 @@ class GraphqlControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Resul
       // then
       all(
         List(status(result) mustEqual OK,
-          contentType(result).value must be ("application/json"),
-          data.value must not have length(0)
+             contentType(result).value must be("application/json"),
+             data.value must not have length(0)
         )
       )
     }
@@ -55,7 +54,7 @@ class GraphqlControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Resul
       // then
       all(
         List(
-          status(result) must be (OK),
+          status(result) must be(OK),
           data.value.keySet.size > 2
         )
       )

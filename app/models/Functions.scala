@@ -19,10 +19,12 @@ object Functions {
   val defaultStudiesForGeneSize: Int = 10
   val GWASLiteral: String = "gwas"
 
-  /** Given a `filename`, the function fully loads the content into an option and
-    * maps it with `Json.parse`
-    * @param filename fully filename of a resource file
-    * @return A wrapped Json object from the given filename with an Option
+  /** Given a `filename`, the function fully loads the content into an option and maps it with
+    * `Json.parse`
+    * @param filename
+    *   fully filename of a resource file
+    * @return
+    *   A wrapped Json object from the given filename with an Option
     */
   def loadJSONFromFilename(filename: String): JsValue =
     Json.parse(filename.toFile.contentAsString)
@@ -40,40 +42,45 @@ object Functions {
   def toSumStatsSegment(from: Long, factor: Double = defaultSegmentDivFactor): Long =
     (from / factor).toLong
 
-  /** Both numbers must be positive numbers and absolute chromosome coords,
-   * start >= 0 and end > 0. Also, (end - start) > 0 and the diff between end and start
-   * must be greater than 0 and less or equal than defaultMaxRegionSize
-   *
-   * @param start start position on a genome strand
-   * @param end   end position of the range
-   * @return Some(start, end) pair or None
-   */
+  /** Both numbers must be positive numbers and absolute chromosome coords, start >= 0 and end > 0.
+    * Also, (end - start) > 0 and the diff between end and start must be greater than 0 and less or
+    * equal than defaultMaxRegionSize
+    *
+    * @param start
+    *   start position on a genome strand
+    * @param end
+    *   end position of the range
+    * @return
+    *   Some(start, end) pair or None
+    */
   def parseRegion(
-                   start: Long,
-                   end: Long,
-                   maxDistance: Long = defaultMaxRegionSize
-                 ): Either[InChromosomeRegionViolation, (Long, Long)] = {
+      start: Long,
+      end: Long,
+      maxDistance: Long = defaultMaxRegionSize
+  ): Either[InChromosomeRegionViolation, (Long, Long)] =
     if (
       (start >= 0 && end > 0) &&
-        ((end - start) > 0) &&
-        ((end - start) <= maxDistance)
+      ((end - start) > 0) &&
+      ((end - start) <= maxDistance)
     ) {
       Right((start, end))
     } else
       Left(InChromosomeRegionViolation(maxDistance))
-  }
 
-  /** the indexation of the pagination starts at page number 0 set by pageIndex and takes pageSize chunks
-   * each time. The default pageSize is defaultPaginationSize
-   *
-   * @param pageIndex ordinal of the pages chunked by pageSize. It 0-start based
-   * @param pageSize  the number of elements to get per page. default number defaultPaginationSize
-   * @return Clickhouse SQL dialect string to be used when you want to paginate
-   */
+  /** the indexation of the pagination starts at page number 0 set by pageIndex and takes pageSize
+    * chunks each time. The default pageSize is defaultPaginationSize
+    *
+    * @param pageIndex
+    *   ordinal of the pages chunked by pageSize. It 0-start based
+    * @param pageSize
+    *   the number of elements to get per page. default number defaultPaginationSize
+    * @return
+    *   Clickhouse SQL dialect string to be used when you want to paginate
+    */
   def parsePaginationTokens(
-                             pageIndex: Option[Int],
-                             pageSize: Option[Int] = defaultPaginationSize
-                           ): String = {
+      pageIndex: Option[Int],
+      pageSize: Option[Int] = defaultPaginationSize
+  ): String = {
     val pair = List(pageIndex, pageSize).map(_.map(_.abs).getOrElse(0))
 
     pair match {
@@ -84,17 +91,20 @@ object Functions {
     }
   }
 
-  /** the indexation of the pagination starts at page number 0 set by pageIndex and takes pageSize chunks
-   * each time. The default pageSize is defaultPaginationSize
-   *
-   * @param pageIndex ordinal of the pages chunked by pageSize. It 0-start based
-   * @param pageSize  the number of elements to get per page. default number defaultPaginationSize
-   * @return Clickhouse SQL dialect string to be used when you want to paginate
-   */
+  /** the indexation of the pagination starts at page number 0 set by pageIndex and takes pageSize
+    * chunks each time. The default pageSize is defaultPaginationSize
+    *
+    * @param pageIndex
+    *   ordinal of the pages chunked by pageSize. It 0-start based
+    * @param pageSize
+    *   the number of elements to get per page. default number defaultPaginationSize
+    * @return
+    *   Clickhouse SQL dialect string to be used when you want to paginate
+    */
   def parsePaginationTokensForSlick(
-                                     pageIndex: Option[Int],
-                                     pageSize: Option[Int] = defaultPaginationSize
-                                   ): (Int, Int) = {
+      pageIndex: Option[Int],
+      pageSize: Option[Int] = defaultPaginationSize
+  ): (Int, Int) = {
     val pair = List(pageIndex, pageSize).map(_.map(_.abs).getOrElse(0))
 
     pair match {
@@ -105,17 +115,20 @@ object Functions {
     }
   }
 
-  /** the indexation of the pagination starts at page number 0 set by pageIndex and takes pageSize chunks
-   * each time. The default pageSize is defaultPaginationSize
-   *
-   * @param pageIndex ordinal of the pages chunked by pageSize. It 0-start based
-   * @param pageSize  the number of elements to get per page. default number defaultPaginationSize
-   * @return Clickhouse SQL dialect string to be used when you want to paginate
-   */
+  /** the indexation of the pagination starts at page number 0 set by pageIndex and takes pageSize
+    * chunks each time. The default pageSize is defaultPaginationSize
+    *
+    * @param pageIndex
+    *   ordinal of the pages chunked by pageSize. It 0-start based
+    * @param pageSize
+    *   the number of elements to get per page. default number defaultPaginationSize
+    * @return
+    *   Clickhouse SQL dialect string to be used when you want to paginate
+    */
   def parsePaginationTokensForES(
-                                  pageIndex: Option[Int],
-                                  pageSize: Option[Int] = defaultPaginationSizeES
-                                ): (Int, Int) = {
+      pageIndex: Option[Int],
+      pageSize: Option[Int] = defaultPaginationSizeES
+  ): (Int, Int) = {
     val pair = List(pageIndex, pageSize).map(_.map(_.abs).getOrElse(0))
 
     pair match {
@@ -130,7 +143,7 @@ object Functions {
   def parseChromosome(chromosome: String): Either[ChromosomeViolation, String] =
     defaultChromosomes.find(_.equalsIgnoreCase(chromosome)) match {
       case Some(chr) => Right(chr)
-      case None => Left(ChromosomeViolation(chromosome))
+      case None      => Left(ChromosomeViolation(chromosome))
     }
 
   def toSafeDouble(mantissa: Double, exponent: Double): Double = {
@@ -138,9 +151,9 @@ object Functions {
     result match {
       case Double.PositiveInfinity => Double.MaxValue
       case Double.NegativeInfinity => Double.MinValue
-      case 0.0 => Double.MinPositiveValue
-      case -0.0 => -Double.MinPositiveValue
-      case _ => result
+      case 0.0                     => Double.MinPositiveValue
+      case -0.0                    => -Double.MinPositiveValue
+      case _                       => result
     }
   }
 }
