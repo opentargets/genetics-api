@@ -119,8 +119,6 @@ object FRM {
 
     def gnomadAFR = column[Option[Double]]("gnomad_afr")
 
-    def gnomadSEU = column[Option[Double]]("gnomad_seu")
-
     def gnomadAMR = column[Option[Double]]("gnomad_amr")
 
     def gnomadASJ = column[Option[Double]]("gnomad_asj")
@@ -156,7 +154,6 @@ object FRM {
     def gnomadAnnotations =
       (
         gnomadAFR,
-        gnomadSEU,
         gnomadAMR,
         gnomadASJ,
         gnomadEAS,

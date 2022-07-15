@@ -46,7 +46,6 @@ object EsImplicits {
 
   implicit val gnomadAnnotation: Reads[GnomadAnnotation] = (
     (JsPath \ "gnomad_afr").readNullable[Double] and
-      (JsPath \ "gnomad_seu").readNullable[Double] and
       (JsPath \ "gnomad_amr").readNullable[Double] and
       (JsPath \ "gnomad_asj").readNullable[Double] and
       (JsPath \ "gnomad_eas").readNullable[Double] and
