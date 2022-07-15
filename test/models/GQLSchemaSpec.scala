@@ -3,11 +3,10 @@ package models
 import models.gql.GQLSchema
 import org.scalatest.flatspec.AnyFlatSpecLike
 
-/**
- * The publically exposed fields for each GQL object where the object isn't publicly exposed it is
- * entirety. In that case there is no need to test as the Sangria `derivedObjectType` can be used
- * without further configuration.
- */
+/** The publically exposed fields for each GQL object where the object isn't publicly exposed it is
+  * entirety. In that case there is no need to test as the Sangria `derivedObjectType` can be used
+  * without further configuration.
+  */
 trait GQLFieldSpecification {
   val scoredGeneFields = List("gene", "score")
   val manhattanAssociationFields = List(
@@ -41,7 +40,8 @@ trait GQLFieldSpecification {
   val overlappedStudyFields = List("study", "numOverlapLoci")
   val overlappedVariantsStudiesFields = List("study")
   val topOverlappedStudiesFields = List("study", "topStudiesByLociOverlap")
-  val overlappedInfoForStudyFields = List("study", "overlappedVariantsForStudies", "variantIntersectionSet")
+  val overlappedInfoForStudyFields =
+    List("study", "overlappedVariantsForStudies", "variantIntersectionSet")
   val studyFields = List(
     "studyId",
     "traitReported",
@@ -75,7 +75,9 @@ class GqlEntities extends AnyFlatSpecLike {
     "The GQLManhattan entities" should "have the expected fields" in {
       val manhattanAssociation = GQLSchema.manhattanAssociation.fieldsByName.keySet
       val manhattanTable = GQLSchema.manhattan.fieldsByName.keySet
-      assert(validate(manhattanAssociationFields, manhattanAssociation), errorString("manhattan association"))
+      assert(validate(manhattanAssociationFields, manhattanAssociation),
+             errorString("manhattan association")
+      )
       assert(validate(manhattanTableFields, manhattanTable), errorString("manhattan table"))
     }
 
@@ -85,9 +87,15 @@ class GqlEntities extends AnyFlatSpecLike {
       val topOverlappedStudies = GQLSchema.topOverlappedStudies.fieldsByName.keySet
       val overlappedInfoForStudy = GQLSchema.overlappedInfoForStudy.fieldsByName.keySet
       assert(validate(overlappedStudyFields, overlappedStudy), errorString(" overlapped study"))
-      assert(validate(overlappedVariantsStudiesFields, overlappedVariantsStudy), errorString(" overlapped variants study"))
-      assert(validate(topOverlappedStudiesFields, topOverlappedStudies), errorString("top overlapped studies"))
-      assert(validate(overlappedInfoForStudyFields, overlappedInfoForStudy), errorString(" overlapped info for study"))
+      assert(validate(overlappedVariantsStudiesFields, overlappedVariantsStudy),
+             errorString(" overlapped variants study")
+      )
+      assert(validate(topOverlappedStudiesFields, topOverlappedStudies),
+             errorString("top overlapped studies")
+      )
+      assert(validate(overlappedInfoForStudyFields, overlappedInfoForStudy),
+             errorString(" overlapped info for study")
+      )
     }
 
     "The GQLStudy entities" should "have the expected fields" in {
@@ -171,11 +179,14 @@ class GQLSchemaSpec extends AnyFlatSpecLike {
     "V2DBeta",
     "V2DL2GRowByGene",
     "V2DOdds",
-    "Variant")
+    "Variant"
+  )
 
   "The GraphQL schema" should "contain all of the expected fields" in {
     val schema = GQLSchema.schema
-    assert(elements.forall(e => schema.availableTypeNames.contains(e)), "Not all expected types present in schema")
+    assert(elements.forall(e => schema.availableTypeNames.contains(e)),
+           "Not all expected types present in schema"
+    )
   }
 
 }

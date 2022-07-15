@@ -8,8 +8,8 @@ import sangria.renderer.SchemaRenderer
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class GQLSchemaController @Inject()(implicit ec: ExecutionContext, cc: ControllerComponents)
-  extends AbstractController(cc) {
+class GQLSchemaController @Inject() (implicit ec: ExecutionContext, cc: ControllerComponents)
+    extends AbstractController(cc) {
 
   def renderSchema: Action[AnyContent] =
     Action {

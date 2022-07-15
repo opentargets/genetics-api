@@ -26,17 +26,16 @@ class MetadataConfigurationTest extends OpenTargetsSpec with TableDrivenProperty
     Table(("major", "minor", "patch"), (-1, 0, 0), (1, -3, 0), (-3, -1, 0))
 
   "Versioning configuration" should "not accept invalid (negative) version numbers" in {
-    forAll(bad_versions) { (m, mi, p) => {
+    forAll(bad_versions) { (m, mi, p) =>
       a[IllegalArgumentException] should be thrownBy {
         Version(m, mi, p)
       }
-    }
     }
   }
 
   "Version" should "print nicely" in {
     val v = Version(0, 0, 1)
-    v.toString must be ("0.0.1")
+    v.toString must be("0.0.1")
   }
 
 }

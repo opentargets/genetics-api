@@ -25,13 +25,15 @@ object EsHitReader extends HitReader[ElasticSearchEntity] with Logging {
     import models.implicits.EsImplicits._
 
     hit.index match {
-      case "genes" => convertHit[Gene](hit)
-      case "studies" => convertHit[Study](hit)
+      case "genes"                            => convertHit[Gene](hit)
+      case "studies"                          => convertHit[Study](hit)
       case s: String if s.contains("variant") => convertHit[Variant](hit)
       case _ =>
         Failure(
           new RuntimeException(
-            s"Unknown index returned: ${hit.index}. Unable to match results to HitReader."))
+            s"Unknown index returned: ${hit.index}. Unable to match results to HitReader."
+          )
+        )
     }
 
   }

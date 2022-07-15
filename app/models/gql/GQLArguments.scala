@@ -3,7 +3,15 @@ package models.gql
 import components.elasticsearch.Pagination
 import sangria.marshalling.FromInput
 import sangria.marshalling.playJson._
-import sangria.schema.{Argument, InputObjectType, IntType, ListInputType, LongType, OptionInputType, StringType}
+import sangria.schema.{
+  Argument,
+  InputObjectType,
+  IntType,
+  ListInputType,
+  LongType,
+  OptionInputType,
+  StringType
+}
 import sangria.util.tag.@@
 
 trait GQLArguments {
@@ -13,16 +21,23 @@ trait GQLArguments {
   val studyId: Argument[String] =
     Argument("studyId", StringType, description = "Study ID which links a top loci with a trait")
 
-  val studyIdOpt =
-    Argument("optionalStudyId", OptionInputType(StringType), description = "Study ID which links a top loci with a trait")
+  val studyIdOpt: Argument[Option[String]] =
+    Argument("optionalStudyId",
+             OptionInputType(StringType),
+             description = "Study ID which links a top loci with a trait"
+    )
 
-  val geneIdOpt =
-    Argument("optionalGeneId", OptionInputType(StringType), description = "Gene ID using Ensembl identifier")
+  val geneIdOpt: Argument[Option[String]] =
+    Argument("optionalGeneId",
+             OptionInputType(StringType),
+             description = "Gene ID using Ensembl identifier"
+    )
 
-  val variantIdOpt = Argument(
+  val variantIdOpt: Argument[Option[String]] = Argument(
     "optionalVariantId",
     OptionInputType(StringType),
-    description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
+    description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE"
+  )
 
   val studyIds: Argument[Seq[String @@ FromInput.CoercedScalaResult]] =
     Argument("studyIds", ListInputType(StringType), description = "List of study IDs")
@@ -33,22 +48,26 @@ trait GQLArguments {
   val phenotypeId: Argument[String] = Argument(
     "phenotypeId",
     StringType,
-    description = "Phenotype ID using Ensembl identifier for the molecular traits")
+    description = "Phenotype ID using Ensembl identifier for the molecular traits"
+  )
 
   val variantId: Argument[String] = Argument(
     "variantId",
     StringType,
-    description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
+    description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE"
+  )
 
   val variantIds: Argument[Seq[String @@ FromInput.CoercedScalaResult]] = Argument(
     "variantIds",
     ListInputType(StringType),
-    description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE")
+    description = "Variant ID formated as CHR_POSITION_REFALLELE_ALT_ALLELE"
+  )
 
-  val chromosome: Argument[String] = Argument(
-    "chromosome",
-    StringType,
-    description = "Chromosome as String between 1..22 or X, Y, MT")
+  val chromosome: Argument[String] = Argument("chromosome",
+                                              StringType,
+                                              description =
+                                                "Chromosome as String between 1..22 or X, Y, MT"
+  )
 
   val pageIndex: Argument[Option[Int]] =
     Argument("pageIndex", OptionInputType(IntType), description = "pagination index >= 0")
@@ -72,6 +91,7 @@ trait GQLArguments {
   val bioFeature: Argument[String] = Argument(
     "bioFeature",
     StringType,
-    description = "BioFeature represents either a tissue, cell type, aggregation type, ...")
+    description = "BioFeature represents either a tissue, cell type, aggregation type, ..."
+  )
 
 }

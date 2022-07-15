@@ -14,11 +14,10 @@ import play.api.Logging
 import scala.concurrent.Future
 
 class ElasticsearchComponentSpec
-  extends PlaySpec
+    extends PlaySpec
     with Logging
     with ScalaFutures
     with GuiceOneAppPerSuite {
-
 
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
   implicit val defaultPatience: PatienceConfig =
@@ -27,13 +26,14 @@ class ElasticsearchComponentSpec
   val esComponent: ElasticsearchComponent = app.injector.instanceOf(classOf[ElasticsearchComponent])
 
   "A query with multiple pages of results should return them all" taggedAs IntegrationTestTag in {
-    //given
+    // given
     val queryTerm = "Steroid"
     // when
 
     esComponent
       .search(queryTerm, Pagination.mkDefault)
-      .futureValue.totalStudies > 40L
+      .futureValue
+      .totalStudies > 40L
   }
 
 }

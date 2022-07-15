@@ -17,21 +17,23 @@ import play.api.Logging
 
 import scala.concurrent.Future
 
-/**
- * Tests are predominantly running against the Clickhouse database, so need to have
- * an available instance configured. All tests are blocking until they receive
- * their results. Depending on the connection speed to the database it may be
- * necessary to configure the `defaultPatience` field to allow Futures longer
- * to complete.
- *
- * In some cases (see: `buildPhewFromSumstats` for example) a chromosome area is
- * chosen as we know that it comtains results. Over time the number of results
- * may change as database data is curated. The current workaround it to take the
- * current approximate value (Aug 20) and include a range around that value to
- * minimise the fragility of small database updates breaking the tests, but while
- * being sensitive enough to detect if something goes wrong within the API.
- */
-class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with ScalaFutures with GeneticsDbTables {
+/** Tests are predominantly running against the Clickhouse database, so need to have an available
+  * instance configured. All tests are blocking until they receive their results. Depending on the
+  * connection speed to the database it may be necessary to configure the `defaultPatience` field to
+  * allow Futures longer to complete.
+  *
+  * In some cases (see: `buildPhewFromSumstats` for example) a chromosome area is chosen as we know
+  * that it comtains results. Over time the number of results may change as database data is
+  * curated. The current workaround it to take the current approximate value (Aug 20) and include a
+  * range around that value to minimise the fragility of small database updates breaking the tests,
+  * but while being sensitive enough to detect if something goes wrong within the API.
+  */
+class BackendSpec
+    extends PlaySpec
+    with GuiceOneAppPerSuite
+    with Logging
+    with ScalaFutures
+    with GeneticsDbTables {
 
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
@@ -42,7 +44,7 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
   import clickhouse.ClickHouseProfile.api._
 
   "getGeneChromosome returns String representation of chromosome" taggedAs IntegrationTestTag in {
-    //given
+    // given
     val validGene = "ENSG00000012048"
     // when
     backend.getGeneChromosome(validGene).futureValue must be("17")
@@ -54,13 +56,14 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
     // when
     backend.getStudiesForGene(brca1gene).futureValue must not have size(0)
   }
-  "getOverlappedVariantsForStudies returns variants"  when {
+  "getOverlappedVariantsForStudies returns variants" when {
     "two studies provided with intersection" taggedAs IntegrationTestTag in {
       // given
       val studyIdA = "GCST004988"
       val studyIdB = "GCST003845"
       // when
-      val results = backend.getOverlapVariantsIntersectionForStudies(studyIdA, Seq(studyIdB)).futureValue
+      val results =
+        backend.getOverlapVariantsIntersectionForStudies(studyIdA, Seq(studyIdB)).futureValue
       results.size must be(8)
     }
     "two studies provided with no intersection" taggedAs IntegrationTestTag in {
@@ -78,7 +81,7 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
     // given
     val studyWithKnownOverlaps = "GCST004988"
     val limit = Some(2)
-    //when
+    // when
     val results: Entities.OverlappedLociStudy =
       backend.getTopOverlappedStudies(studyWithKnownOverlaps, Some(0), limit).futureValue
     all(
@@ -89,7 +92,9 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
           .drop(1)
           .head
           .numOverlapLoci,
-        results.studyId must equal(studyWithKnownOverlaps)))
+        results.studyId must equal(studyWithKnownOverlaps)
+      )
+    )
   }
 
   "getGenesByRegion: returns all genes in selected region" when {
@@ -101,7 +106,7 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
     "large region selected" taggedAs IntegrationTestTag in {
       val result = backend.getGenesByRegion("X", 250000, 1000000).futureValue
       result must not be empty
-      result.size must be (8 +- 2)
+      result.size must be(8 +- 2)
     }
   }
 
@@ -110,7 +115,7 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
     val result = backend.buildPhewFromSumstats(variantWithKnownResults, None, None).futureValue
 
     result must not be empty
-    result.size must be (100 +- 50)
+    result.size must be(100 +- 50)
 
   }
 
@@ -121,8 +126,8 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
     all(
       List(
         results.isDefined mustBe true,
-        results.get.geneIds.size must be (5 +- 5),
-        results.get.tagVariants.size must be (6 +- 6)
+        results.get.geneIds.size must be(5 +- 5),
+        results.get.tagVariants.size must be(6 +- 6)
       )
     )
   }
@@ -130,7 +135,8 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
   "gwasColocalisationForRegion: given valid chromosome and interval returns studies" taggedAs IntegrationTestTag in {
 
     // when
-    val results: Seq[ColocRow] = backend.gwasColocalisationForRegion("19", 750000, 850000).futureValue
+    val results: Seq[ColocRow] =
+      backend.gwasColocalisationForRegion("19", 750000, 850000).futureValue
     // then
     results must not be empty
     results.size must be(350 +- 150)
@@ -164,14 +170,14 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
     val funUnderTest = backend.qtlRegionalFromSumstats("", "", "", _, _, _)
 
     // takes a future and the number of expected violations returned with exception
-    def check(fViolation: Future[_], nViolations: Int): ResultOfCollectedAny[Assertion] = {
+    def check(fViolation: Future[_], nViolations: Int): ResultOfCollectedAny[Assertion] =
       ScalaFutures.whenReady(fViolation.failed) { e =>
         all(
-          List(
-            e mustBe a[InputParameterCheckError],
-            e.asInstanceOf[InputParameterCheckError].violations.size mustBe (nViolations)))
+          List(e mustBe a[InputParameterCheckError],
+               e.asInstanceOf[InputParameterCheckError].violations.size mustBe (nViolations)
+          )
+        )
       }
-    }
     "given one invalid input should return 1 violation" in {
 
       val f1: Future[_] = funUnderTest(badChromosome, 10, 20)
@@ -216,7 +222,8 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
     val searchExpr = "BRCA1"
 
     whenReady(backend.search(searchExpr, None))(r =>
-      all(List(r.genes must have length (1), r.genes.head.symbol.get must be(searchExpr))))
+      all(List(r.genes must have length (1), r.genes.head.symbol.get must be(searchExpr)))
+    )
   }
 
   "An empty search throws an exception" taggedAs IntegrationTestTag in {
@@ -224,6 +231,7 @@ class BackendSpec extends PlaySpec with GuiceOneAppPerSuite with Logging with Sc
     val searchExp = ""
     // then
     assert(
-      backend.search(searchExp, None).failed.futureValue.isInstanceOf[InputParameterCheckError])
+      backend.search(searchExp, None).failed.futureValue.isInstanceOf[InputParameterCheckError]
+    )
   }
 }

@@ -11,12 +11,11 @@ object DbImplicits {
 
   import components.clickhouse.rep.SeqRep.Implicits._
 
-  implicit val getSLGRow: GetResult[SLGRow] = {
+  implicit val getSLGRow: GetResult[SLGRow] =
     GetResult(r => SLGRow(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
-  }
 
-  implicit val getV2DL2GRowByGene: GetResult[V2DL2GRowByGene] = {
-    GetResult(r => {
+  implicit val getV2DL2GRowByGene: GetResult[V2DL2GRowByGene] =
+    GetResult { r =>
       val studyId: String = r.<<
       val svID: String = SimpleVariant(r.<<, r.<<, r.<<, r.<<).id
 
@@ -47,10 +46,9 @@ object DbImplicits {
         yProbaFullModel
       )
 
-    })
-  }
+    }
 
-  implicit val GetV2DStructure: Any with GetResult[V2GStructureRow] = GetResult(
-    r => V2GStructureRow(typeId = r.<<, sourceId = r.<<, bioFeatureSet = StrSeqRep(r.<<)))
+  implicit val GetV2DStructure: Any with GetResult[V2GStructureRow] =
+    GetResult(r => V2GStructureRow(typeId = r.<<, sourceId = r.<<, bioFeatureSet = StrSeqRep(r.<<)))
 
 }

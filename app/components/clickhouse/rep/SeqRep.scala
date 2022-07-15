@@ -3,8 +3,9 @@ package components.clickhouse.rep
 import components.clickhouse.ClickHouseProfile
 import play.api.Logging
 
-/** Clickhouse supports Array of elements from different types and this is an approximation
-  * to it.
+import scala.language.{higherKinds, implicitConversions}
+
+/** Clickhouse supports Array of elements from different types and this is an approximation to it.
   *
   * @param from
   * @tparam T
@@ -18,11 +19,12 @@ sealed abstract class SeqRep[T, C[_]](val from: String) {
 }
 
 object SeqRep {
-  def parseFastString(str: String) = str.slice(1, str.length - 1)
+  def parseFastString(str: String): String = str.slice(1, str.length - 1)
 
   sealed abstract class NumSeqRep[T](override val from: String, val f: String => T)
-    extends SeqRep[T, Seq](from) with Logging {
-    override protected def parse(from: String): SeqT = {
+      extends SeqRep[T, Seq](from)
+      with Logging {
+    override protected def parse(from: String): SeqT =
       if (from.nonEmpty) {
         from.length match {
           case n if n > minLenTokensForNum =>
@@ -31,7 +33,6 @@ object SeqRep {
         }
       } else
         Seq.empty
-    }
   }
 
   case class DSeqRep(override val from: String) extends NumSeqRep[Double](from, _.toDouble)
@@ -39,7 +40,7 @@ object SeqRep {
   case class LSeqRep(override val from: String) extends NumSeqRep[Long](from, _.toLong)
 
   case class StrSeqRep(override val from: String) extends SeqRep[String, Seq](from) with Logging {
-    override protected def parse(from: String): SeqT = {
+    override protected def parse(from: String): SeqT =
       if (from.nonEmpty) {
         from.length match {
           case n if n > minLenTokensForStr =>
@@ -48,12 +49,11 @@ object SeqRep {
         }
       } else
         Seq.empty
-    }
   }
 
-  case class TupleSeqRep[T](override val from: String, val f: String => T)
-    extends SeqRep[T, Seq](from) {
-    override protected def parse(from: String): SeqT = {
+  case class TupleSeqRep[T](override val from: String, f: String => T)
+      extends SeqRep[T, Seq](from) {
+    override protected def parse(from: String): SeqT =
       if (from.nonEmpty) {
         from.length match {
           case n if n > minLenTokensForStr =>
@@ -63,7 +63,6 @@ object SeqRep {
         }
       } else
         Seq.empty
-    }
   }
 
   object Implicits {
@@ -83,6 +82,8 @@ object SeqRep {
       MappedColumnType.base[Seq[Double], String](_.mkString("[", ",", "]"), DSeqRep(_).rep)
     implicit val seqStringType: ClickHouseProfile.BaseColumnType[Seq[String]] =
       MappedColumnType.base[Seq[String], String](_.map("'" + _ + "'")
-        .mkString("[", ",", "]"), StrSeqRep(_).rep)
+                                                   .mkString("[", ",", "]"),
+                                                 StrSeqRep(_).rep
+      )
   }
 }
