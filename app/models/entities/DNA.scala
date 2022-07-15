@@ -87,7 +87,6 @@ object DNA {
 
   case class GnomadAnnotation(
                                afr: Option[Double] = None,
-                               seu: Option[Double] = None,
                                amr: Option[Double] = None,
                                asj: Option[Double] = None,
                                eas: Option[Double] = None,
