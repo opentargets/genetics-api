@@ -11,6 +11,7 @@ env:
   global:
   - QUAY_REPO="quay.io/opentargets/genetics-api"
 script:
+  - sbt ++${TRAVIS_SCALA_VERSION} scalafmtCheckAll
   - sbt ++$TRAVIS_SCALA_VERSION clean compile
   - sbt ++$TRAVIS_SCALA_VERSION coverage "testOnly * -- -l configuration.IntegrationTestTag" coverageReport
   - sbt ++$TRAVIS_SCALA_VERSION dist
