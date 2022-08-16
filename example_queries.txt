@@ -35,7 +35,7 @@ query exmaple {
       se
     }
   }
-  qtlCredibleSet(studyId: "TWINSUK", variantId: "1_1280044_T_C", phenotypeId: "ENSG00000127054", bioFeature: "LCL") {
+  qtlCredibleSet(studyId: "TWINSUK", variantId: "1_1280044_T_C", geneId: "ENSG00000127054", bioFeature: "LCL") {
     tagVariant {
       id
       rsId
@@ -112,7 +112,7 @@ query exmaple {
       nearestGeneDistance
     }
   }
-  qtlRegional(studyId: "TWINSUK", bioFeature: "FAT", phenotypeId: "ENSG00000224969", chromosome: "1", start: 1000000, end: 1500000) {
+  qtlRegional(studyId: "TWINSUK", bioFeature: "FAT", geneId: "ENSG00000224969", chromosome: "1", start: 1000000, end: 1500000) {
     variant {
       id
       rsId
