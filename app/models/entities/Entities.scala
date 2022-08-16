@@ -636,6 +636,7 @@ object Entities {
       stats: CredSetRowStats,
       bioFeature: Option[String],
       pehotypeId: Option[String],
+      geneId: Option[String],
       dataType: String
   )
 

@@ -1042,6 +1042,8 @@ object FRM {
 
     def phenotypeId = column[Option[String]]("phenotype_id")
 
+    def geneId = column[Option[String]]("gene_id")
+
     def dataType = column[String]("data_type")
 
     def tagChromosome = column[String]("tag_chrom")
@@ -1094,7 +1096,8 @@ object FRM {
         ) = (tagVariant, stats)
 
     def * =
-      (studyId, leadVariant, tagVariant, stats, bioFeature, phenotypeId, dataType).mapTo[CredSetRow]
+      (studyId, leadVariant, tagVariant, stats, bioFeature, phenotypeId, geneId, dataType)
+        .mapTo[CredSetRow]
   }
 
   class SumStatsGWAS(tag: Tag) extends Table[SumStatsGWASRow](tag, "v2d_sa_gwas") {

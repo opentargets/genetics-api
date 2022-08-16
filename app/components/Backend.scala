@@ -206,7 +206,7 @@ class Backend @Inject() (
 
   def qtlCredibleSet(studyId: String,
                      variantId: String,
-                     phenotypeId: String,
+                     geneId: String,
                      bioFeatureId: String
   ): Future[Seq[(SimpleVariant, CredSetRowStats)]] = {
     val variant = Variant.fromString(variantId)
@@ -221,7 +221,7 @@ class Backend @Inject() (
               (r.leadAltAllele === v.altAllele) &&
               (r.studyId === studyId) &&
               (r.dataType =!= GWASLiteral) &&
-              (r.phenotypeId === phenotypeId) &&
+              (r.geneId === geneId) &&
               (r.bioFeature === bioFeatureId)
           )
           .map(_.tagVariantWithStats)
@@ -261,7 +261,7 @@ class Backend @Inject() (
   def qtlRegionalFromSumstats(
       studyId: String,
       bioFeature: String,
-      phenotypeId: String,
+      geneId: String,
       chromosome: String,
       startPos: Long,
       endPos: Long
@@ -274,7 +274,7 @@ class Backend @Inject() (
             (r.pos >= startPos) &&
             (r.pos <= endPos) &&
             (r.bioFeature === bioFeature) &&
-            (r.phenotypeId === phenotypeId) &&
+            (r.geneId === geneId) &&
             (r.studyId === studyId)
         )
         .map(_.variantAndPVal)

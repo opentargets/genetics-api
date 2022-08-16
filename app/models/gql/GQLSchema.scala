@@ -52,7 +52,7 @@ object GQLSchema
 
   val credSetTagElement: ObjectType[Backend, (SimpleVariant, CredSetRowStats)] = ObjectType(
     "CredSetTagElement",
-    "Thsi element represents the tag variant with its associated statistics",
+    "This element represents the tag variant with its associated statistics",
     fields[Backend, (SimpleVariant, CredSetRowStats)](
       Field("tagVariant",
             variant,
@@ -596,11 +596,11 @@ object GQLSchema
         "qtlRegional",
         ListType(regionalAssociation),
         arguments =
-          studyId :: bioFeature :: phenotypeId :: chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+          studyId :: bioFeature :: geneId :: chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
         resolve = ctx =>
           ctx.ctx.qtlRegionalFromSumstats(ctx.arg(studyId),
                                           ctx.arg(bioFeature),
-                                          ctx.arg(phenotypeId),
+                                          ctx.arg(geneId),
                                           ctx.arg(chromosome),
                                           ctx.arg(dnaPosStart),
                                           ctx.arg(dnaPosEnd)
@@ -622,11 +622,11 @@ object GQLSchema
       Field(
         "qtlCredibleSet",
         ListType(credSetTagElement),
-        arguments = studyId :: variantId :: phenotypeId :: bioFeature :: Nil,
+        arguments = studyId :: variantId :: geneId :: bioFeature :: Nil,
         resolve = ctx =>
           ctx.ctx.qtlCredibleSet(ctx.arg(studyId),
                                  ctx.arg(variantId),
-                                 ctx.arg(phenotypeId),
+                                 ctx.arg(geneId),
                                  ctx.arg(bioFeature)
           )
       ),
