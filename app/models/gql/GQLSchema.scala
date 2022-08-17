@@ -4,6 +4,7 @@ import components.Backend
 import models.entities.DNA
 import models.entities.DNA.SimpleVariant
 import models.entities.Entities._
+import play.api.Logging
 import sangria.execution.deferred.DeferredResolver
 import sangria.macros.derive._
 import sangria.schema.{
@@ -32,7 +33,8 @@ object GQLSchema
     with GQLArguments
     with GQLOverlaps
     with GQLTissue
-    with GQLMetadata {
+    with GQLMetadata
+    with Logging {
 
   val resolvers: DeferredResolver[Backend] =
     DeferredResolver.fetchers(studiesFetcher, genesFetcher, variantsFetcher)
@@ -52,7 +54,7 @@ object GQLSchema
 
   val credSetTagElement: ObjectType[Backend, (SimpleVariant, CredSetRowStats)] = ObjectType(
     "CredSetTagElement",
-    "Thsi element represents the tag variant with its associated statistics",
+    "This element represents the tag variant with its associated statistics",
     fields[Backend, (SimpleVariant, CredSetRowStats)](
       Field("tagVariant",
             variant,
@@ -394,7 +396,22 @@ object GQLSchema
             Some("Tag variant ID as ex. 1_12345_A_T"),
             resolve = r => variantsFetcher.defer(r.value.rVariant.id)
       ),
-      Field("gene", gene, Some("Gene"), resolve = rsl => genesFetcher.defer(rsl.value.rGeneId.get)),
+      // the field rGeneId is always null for GWAS, but should always be present for qtl data. This has proven not to
+      // hold so we want to be cautious here.
+      Field(
+        "gene",
+        gene,
+        Some("Gene"),
+        resolve = ctx =>
+          ctx.value.rGeneId match {
+            case Some(gene) => genesFetcher.defer(gene)
+            case None =>
+              logger.error(
+                s"QTL coloc for right_variant ${ctx.value.rVariant} requested with no gene ID."
+              )
+              throw new IllegalArgumentException
+          }
+      ),
       Field("phenotypeId",
             StringType,
             Some("QTL Phenotype ID"),
@@ -596,11 +613,11 @@ object GQLSchema
         "qtlRegional",
         ListType(regionalAssociation),
         arguments =
-          studyId :: bioFeature :: phenotypeId :: chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
+          studyId :: bioFeature :: geneId :: chromosome :: dnaPosStart :: dnaPosEnd :: Nil,
         resolve = ctx =>
           ctx.ctx.qtlRegionalFromSumstats(ctx.arg(studyId),
                                           ctx.arg(bioFeature),
-                                          ctx.arg(phenotypeId),
+                                          ctx.arg(geneId),
                                           ctx.arg(chromosome),
                                           ctx.arg(dnaPosStart),
                                           ctx.arg(dnaPosEnd)
@@ -622,11 +639,11 @@ object GQLSchema
       Field(
         "qtlCredibleSet",
         ListType(credSetTagElement),
-        arguments = studyId :: variantId :: phenotypeId :: bioFeature :: Nil,
+        arguments = studyId :: variantId :: geneId :: bioFeature :: Nil,
         resolve = ctx =>
           ctx.ctx.qtlCredibleSet(ctx.arg(studyId),
                                  ctx.arg(variantId),
-                                 ctx.arg(phenotypeId),
+                                 ctx.arg(geneId),
                                  ctx.arg(bioFeature)
           )
       ),
