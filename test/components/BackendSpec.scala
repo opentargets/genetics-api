@@ -219,10 +219,10 @@ class BackendSpec
 
   "Search expression yields results" taggedAs IntegrationTestTag in {
     // given
-    val searchExpr = "BRCA1"
+    val searchExpr = "ENSG00000012048"
 
     whenReady(backend.search(searchExpr, None))(r =>
-      all(List(r.genes must have length (1), r.genes.head.symbol.get must be(searchExpr)))
+      all(List(r.genes must have length (1), r.genes.head.id must be(searchExpr)))
     )
   }
 
