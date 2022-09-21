@@ -276,14 +276,6 @@ object GQLSchema
     )
   )
 
-  val variantSearchResult: ObjectType[Backend, VariantSearchResult] = ObjectType(
-    "VariantSearchResult",
-    "Variant search result object",
-    fields[Backend, VariantSearchResult](
-      Field("variant", variant, Some("A variant"), resolve = _.value.variant)
-    )
-  )
-
   val searchResult: ObjectType[Backend, SearchResultSet] = ObjectType(
     "SearchResult",
     "Search data by a query string",
@@ -303,13 +295,28 @@ object GQLSchema
             Some("Total number of studies found"),
             resolve = _.value.totalStudies
       ),
-      Field("genes", ListType(gene), Some("Gene search result list"), resolve = _.value.genes),
-      Field("variants",
-            ListType(variant),
-            Some("Variant search result list"),
-            resolve = _.value.variants
+      Field(
+        "genes",
+        ListType(gene),
+        Some("Gene search result list"),
+        resolve = searchResultSet => {
+          val geneIds = searchResultSet.value.genes.map(_.id)
+          genesFetcher.deferSeq(geneIds)
+        }
       ),
-      Field("studies", ListType(study), Some("Study search result list"), resolve = _.value.studies)
+      Field(
+        "variants",
+        ListType(variant),
+        Some("Variant search result list"),
+        resolve =
+          searchResultSet => variantsFetcher.deferSeq(searchResultSet.value.variants.map(_.id))
+      ),
+      Field("studies",
+            ListType(study),
+            Some("Study search result list"),
+            resolve =
+              searchResultSet => studiesFetcher.deferSeq(searchResultSet.value.studies.map(_.id))
+      )
     )
   )
 

@@ -1,17 +1,24 @@
 package models.implicits
 
 import com.sksamuel.elastic4s.{Hit, HitReader}
-import models.entities.DNA.{Gene, Variant}
-import models.entities.Entities.Study
-import play.api.{Logger, Logging}
-import play.api.libs.json.{JsError, JsResult, JsSuccess, Json, Reads}
+import play.api.Logging
+import play.api.libs.json.{JsError, JsPath, JsSuccess, Json, Reads}
 
-import scala.util
 import scala.util.{Failure, Success, Try}
 
-trait ElasticSearchEntity
+sealed trait ElasticSearchEntity
+case class GeneSearchResult(id: String) extends ElasticSearchEntity
+case class VariantSearchResult(id: String) extends ElasticSearchEntity
+case class StudySearchResult(id: String) extends ElasticSearchEntity
 
 object EsHitReader extends HitReader[ElasticSearchEntity] with Logging {
+
+  implicit val gsrReader: Reads[GeneSearchResult] =
+    (JsPath \ "gene_id").read[String].map(GeneSearchResult)
+  implicit val vsrReader: Reads[VariantSearchResult] =
+    (JsPath \ "variant_id").read[String].map(VariantSearchResult)
+  implicit val ssrReader: Reads[StudySearchResult] =
+    (JsPath \ "study_id").read[String].map(StudySearchResult)
 
   def convertHit[T](hit: Hit)(implicit r: Reads[T]): Try[T] =
     Json.parse(hit.sourceAsString).validate[T] match {
@@ -21,13 +28,11 @@ object EsHitReader extends HitReader[ElasticSearchEntity] with Logging {
         Failure(new RuntimeException(errors.mkString(" ")))
     }
 
-  override def read(hit: Hit): Try[ElasticSearchEntity] = {
-    import models.implicits.EsImplicits._
-
+  override def read(hit: Hit): Try[ElasticSearchEntity] =
     hit.index match {
-      case "genes"                            => convertHit[Gene](hit)
-      case "studies"                          => convertHit[Study](hit)
-      case s: String if s.contains("variant") => convertHit[Variant](hit)
+      case "genes"                            => convertHit[GeneSearchResult](hit)
+      case "studies"                          => convertHit[StudySearchResult](hit)
+      case s: String if s.contains("variant") => convertHit[VariantSearchResult](hit)
       case _ =>
         Failure(
           new RuntimeException(
@@ -35,7 +40,5 @@ object EsHitReader extends HitReader[ElasticSearchEntity] with Logging {
           )
         )
     }
-
-  }
 
 }

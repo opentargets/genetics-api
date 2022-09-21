@@ -14,16 +14,22 @@ import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.requests.searches._
 import com.sksamuel.elastic4s.requests.searches.queries.funcscorer.FieldValueFactorFunctionModifier
 import configuration.ElasticsearchConfiguration
+
 import javax.inject.{Inject, Singleton}
-import models.entities.DNA.{Gene, Variant}
-import models.entities.Entities.{SearchResultSet, Study}
+import models.entities.DNA.Variant
+import models.entities.Entities.SearchResultSet
 import models.entities.Violations.{InputParameterCheckError, SearchStringViolation}
-import models.implicits.{ElasticSearchEntity, EsHitReader}
-import play.api.{Configuration, Logger, Logging}
+import models.implicits.{
+  ElasticSearchEntity,
+  EsHitReader,
+  GeneSearchResult,
+  StudySearchResult,
+  VariantSearchResult
+}
+import play.api.{Configuration, Logger}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
 
 object GeneticsApiQueries {
 
@@ -142,11 +148,11 @@ class ElasticsearchComponent @Inject() (configuration: Configuration) extends El
           // build output
           SearchResultSet(
             gene.totalHits,
-            gene.hits.asInstanceOf[Seq[Gene]],
+            gene.hits.asInstanceOf[Seq[GeneSearchResult]],
             variant.totalHits,
-            variant.hits.asInstanceOf[Seq[Variant]],
+            variant.hits.asInstanceOf[Seq[VariantSearchResult]],
             study.totalHits,
-            study.hits.asInstanceOf[Seq[Study]]
+            study.hits.asInstanceOf[Seq[StudySearchResult]]
           )
         }
     }

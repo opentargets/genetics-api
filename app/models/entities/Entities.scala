@@ -6,8 +6,8 @@ import models.Functions.{
   defaultIntervalTypes,
   defaultQtlTypes
 }
-import models.entities.DNA.{Gene, SimpleVariant, Variant}
-import models.implicits.ElasticSearchEntity
+import models.entities.DNA.{SimpleVariant, Variant}
+import models.implicits.{GeneSearchResult, StudySearchResult, VariantSearchResult}
 
 import scala.collection.SeqView
 
@@ -220,7 +220,7 @@ object Entities {
       nCases: Option[Long],
       traitCategory: Option[String],
       numAssocLoci: Option[Long]
-  ) extends ElasticSearchEntity
+  )
 
   case class GeneTagVariant(geneId: String, tagVariantId: String, overallScore: Double)
 
@@ -302,16 +302,15 @@ object Entities {
       }
   }
 
-  case class VariantSearchResult(variant: Variant)
-
   case class SearchResultSet(
       totalGenes: Long = 0,
-      genes: Seq[Gene] = Seq(),
+      genes: Seq[GeneSearchResult] = Seq(),
       totalVariants: Long = 0,
-      variants: Seq[Variant] = Seq(),
+      variants: Seq[VariantSearchResult] = Seq(),
       totalStudies: Long = 0,
-      studies: Seq[Study] = Seq()
+      studies: Seq[StudySearchResult] = Seq()
   ) {
+    // fixme: this appears to be unused: remove?
     def combine(that: SearchResultSet): SearchResultSet =
       SearchResultSet(
         totalGenes + that.totalGenes,
