@@ -32,7 +32,7 @@
     <!-- Set logging for all Akka library classes to INFO -->
     <logger name="akka" level="ERROR"/>
 
-    <root level="WARN">
+    <root level="INFO">
         <appender-ref ref="ASYNCSTDOUT"/>
     </root>
 
