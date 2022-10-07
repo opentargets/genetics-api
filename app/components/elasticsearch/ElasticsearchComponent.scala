@@ -54,7 +54,7 @@ object GeneticsApiQueries {
       case Right(v) => v.id
       case _        => term
     }
-    search("variant_*") query boolQuery.should(termQuery("variant_id.keyword", vToken),
+    search("variants") query boolQuery.should(termQuery("variant_id.keyword", vToken),
                                                termQuery("rs_id.keyword", term.toLowerCase)
     ) start p._1 limit p._2 trackTotalHits true
   }
