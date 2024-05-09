@@ -102,7 +102,7 @@ If using Docker set the following variables:
 
 
 # Copyright
-Copyright 2014-2018 Biogen, Celgene Corporation, EMBL - European Bioinformatics Institute, GlaxoSmithKline, Takeda Pharmaceutical Company and Wellcome Sanger Institute
+Copyright 2014-2024 EMBL - European Bioinformatics Institute, Genentech, GSK, MSD, Pfizer, Sanofi and Wellcome Sanger Institute
 
 This software was developed as part of the Open Targets project. For more information please see: http://www.opentargets.org
 
