@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This repository is archived. Open Targets Genetics API has now been integrated in [platform-api](https://github.com/opentargets/platform-api).
+
 [![codecov](https://codecov.io/gh/opentargets/genetics-api/branch/master/graph/badge.svg)](https://codecov.io/gh/opentargets/genetics-api)
 [![Build Status](https://travis-ci.com/opentargets/genetics-api.svg)](https://travis-ci.com/opentargets/genetics-api)
 [![Docker Repository on Quay](https://quay.io/repository/opentargets/genetics-api/status "Docker Repository on Quay")](https://quay.io/repository/opentargets/genetics-api)
